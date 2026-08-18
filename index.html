@@ -11,66 +11,55 @@
 </head>
 <body>
 <div class="app">
+  <nav class="homeTabs" aria-label="Home sections">
+    <button id="gamesTab" class="homeTab active" type="button">Games</button>
+    <button id="boardLabTab" class="homeTab" type="button">Analysis Board</button>
+  </nav>
+
   <section id="libraryView">
     <div class="topbar"><h1>Chess Analyser</h1><span class="badge">Chess.com</span><button id="settingsToggleLibrary" class="btn settingsBtn" type="button">⚙ Settings</button></div>
     <div id="settingsPanel" class="card settingsPanel" hidden>
-      <div class="settingsSection">
-        <div class="settingsSectionTitle">Pieces</div>
-        <div id="piecePreviewGrid" class="previewGrid piecePreviewGrid">
-          <button class="previewCard" type="button" data-piece-style="neo"><span class="piecePreview" data-preview-folder="chess_kaneo"></span><span>Neo</span></button>
-          <button class="previewCard" type="button" data-piece-style="bases"><span class="piecePreview" data-preview-folder="chess_kaneo_midnight"></span><span>Bases</span></button>
-          <button class="previewCard" type="button" data-piece-style="classic"><span class="piecePreview" data-preview-folder="chess_maestro_bw"></span><span>Classic</span></button>
-        </div>
-      </div>
-      <div class="settingsSection">
-        <div class="settingsSectionTitle">Board</div>
-        <div id="boardPreviewGrid" class="previewGrid boardPreviewGrid">
-          <button class="previewCard" type="button" data-board-theme="green"><span class="miniBoard green"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Green</span></button>
-          <button class="previewCard" type="button" data-board-theme="brown"><span class="miniBoard brown"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Brown</span></button>
-          <button class="previewCard" type="button" data-board-theme="blue"><span class="miniBoard blue"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Blue</span></button>
-          <button class="previewCard" type="button" data-board-theme="grey"><span class="miniBoard grey"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Grey</span></button>
-        </div>
-      </div>
-      <div class="settingsGrid compactSettings">
-        <label>Engine<select id="engineMode" class="input"><option value="auto">Auto (cloud → live)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Live</option></select></label>
-        <label>Sounds<select id="soundMode" class="input"><option value="on">On</option><option value="off">Off</option></select></label>
-      </div>
-      <div class="settingsHint">Visual presets use open-source piece artwork and app-owned board themes. Names describe the intended look; no Chess.com artwork is bundled.</div>
+      <div class="settingsSection"><div class="settingsSectionTitle">Pieces</div><div id="piecePreviewGrid" class="previewGrid piecePreviewGrid">
+        <button class="previewCard" type="button" data-piece-style="neo"><span class="piecePreview" data-preview-folder="chess_kaneo"></span><span>Neo</span></button>
+        <button class="previewCard" type="button" data-piece-style="bases"><span class="piecePreview" data-preview-folder="chess_kaneo_midnight"></span><span>Bases</span></button>
+        <button class="previewCard" type="button" data-piece-style="classic"><span class="piecePreview" data-preview-folder="chess_maestro_bw"></span><span>Classic</span></button>
+      </div></div>
+      <div class="settingsSection"><div class="settingsSectionTitle">Board</div><div id="boardPreviewGrid" class="previewGrid boardPreviewGrid">
+        <button class="previewCard" type="button" data-board-theme="green"><span class="miniBoard green">${'<i></i>'.repeat(16)}</span><span>Green</span></button>
+        <button class="previewCard" type="button" data-board-theme="brown"><span class="miniBoard brown">${'<i></i>'.repeat(16)}</span><span>Brown</span></button>
+        <button class="previewCard" type="button" data-board-theme="blue"><span class="miniBoard blue">${'<i></i>'.repeat(16)}</span><span>Blue</span></button>
+        <button class="previewCard" type="button" data-board-theme="grey"><span class="miniBoard grey">${'<i></i>'.repeat(16)}</span><span>Grey</span></button>
+      </div></div>
+      <div class="settingsGrid compactSettings"><label>Engine<select id="engineMode" class="input"><option value="auto">Auto (cloud → live)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Live</option></select></label><label>Sounds<select id="soundMode" class="input"><option value="on">On</option><option value="off">Off</option></select></label></div>
+      <div class="settingsHint">Visual presets use open-source piece artwork and app-owned board themes.</div>
     </div>
     <div class="card syncCard"><div class="row syncRow"><input id="user" class="input" placeholder="Chess.com username" aria-label="Chess.com username"><select id="importRange" class="input rangeSelect" aria-label="Games to import"><option value="month">Last month</option><option value="year">Last year</option><option value="all">All history</option></select><button id="sync" class="btn primary">Import games</button></div><div id="status" class="muted" style="margin-top:8px">Enter a Chess.com username to import games.</div></div>
     <div id="games"></div>
   </section>
 
+  <section id="boardLabView" hidden>
+    <div class="topbar"><h1>Analysis Board</h1><span class="badge">Free play</span><button id="settingsToggleLab" class="btn settingsBtn" type="button">⚙ Settings</button></div>
+    <div class="labShell">
+      <div class="labBoardColumn"><div class="boardWrap labBoardWrap"><div class="evalBar"><div id="labEvalFill" class="evalFill"></div><div id="labEvalText" class="evalText bottom"> </div></div><div class="boardStage"><div id="labBoard" class="board" aria-label="Free analysis board"></div><svg id="labArrows" class="analysisArrows" viewBox="0 0 800 800" preserveAspectRatio="none"></svg></div></div></div>
+      <aside class="card labPanel">
+        <h2>Analyse any position</h2><p class="muted">Move pieces legally on the board, then analyse the resulting position.</p>
+        <label class="labLabel">Engine<select id="labEngine" class="input"><option value="auto">Auto (cloud → live)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Live</option></select></label>
+        <div class="labButtons"><button id="labAnalyse" class="btn primary" type="button">Analyse position</button><button id="labReset" class="btn" type="button">Reset board</button><button id="labFlip" class="btn" type="button">Flip</button></div>
+        <div class="labResult"><div id="labScore" class="engineScore">—</div><div id="labSource" class="engineSub">Ready</div><div id="labLine" class="bestLine">Make a move or analyse the starting position.</div></div>
+      </aside>
+    </div>
+  </section>
+
   <section id="analysisView">
-    <div class="topbar"><button id="back" class="backBtn" aria-label="Back to games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.7 4.3a1 1 0 0 1 0 1.4L9.4 12l6.3 6.3a1 1 0 1 1-1.4 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.4 0Z"/></svg><span>Games</span></button><div class="analysisTitleWrap"><span class="analysisMark">♞</span><h1 id="analysisTitle">Analysis</h1></div><span class="kbdHint">← → to navigate</span><button id="settingsToggleAnalysis" class="btn settingsBtn" type="button">⚙</button><button id="flip" class="btn" aria-label="Flip board"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 3.5 6.5 7 10V7h4V5H7V3Zm10 11v3h-4v2h4v3l3.5-3.5L17 14ZM5 13v6a2 2 0 0 0 2 2h4v-2H7v-6H5Zm14-2V5a2 2 0 0 0-2-2h-4v2h4v6h2Z"/></svg><span>Flip</span></button></div>
-    <div class="analysisShell">
-      <div class="boardColumn">
-        <div class="playerStrip" id="topPlayer"></div>
-        <div class="boardWrap"><div class="evalBar"><div id="evalFill" class="evalFill"></div><div id="evalTop" class="evalText"> </div><div id="evalBottom" class="evalText bottom"> </div></div><div class="boardStage"><div id="board" class="board" aria-label="Interactive chess board"></div><svg id="analysisArrows" class="analysisArrows" viewBox="0 0 800 800" preserveAspectRatio="none" aria-hidden="true"></svg></div></div>
-        <div class="playerStrip" id="bottomPlayer"></div>
-      </div>
-      <div class="sidePanel">
-        <div class="gameHeader"><h2 id="gameTitle"></h2><div id="gameMeta" class="muted"></div></div>
-        <div class="panelNav"><button class="active" type="button">Analysis</button><button type="button" disabled>Details</button></div>
-        <div class="enginePanel">
-          <div class="engineHeadline"><div class="engineIdentity"><div class="engineIcon" id="enginePieceIcon"></div><div><div class="engineLabel">ENGINE</div><div id="engineScore" class="engineScore">—</div><div id="engineSource" class="engineSub">Ready</div></div></div><button id="analyse" class="btn primary analyseBtn">Analyse</button></div>
-          <div id="bestLine" class="bestLine">Choose a position and tap Analyse for an evaluation.</div>
-          <div id="variationNote" class="variationNote"></div>
-        </div>
-        <div id="moves" class="moves"></div>
-        <div class="controls">
-<button id="start" class="ctrl" aria-label="First move"><svg viewBox="0 0 24 24"><path d="M5 5h2v14H5V5Zm3 7 10-7v14L8 12Z"/></svg></button>
-<button id="prev" class="ctrl" aria-label="Previous move"><svg viewBox="0 0 24 24"><path d="m7 12 10-7v14L7 12Z"/></svg></button>
-<button id="next" class="ctrl primary" aria-label="Next move"><svg viewBox="0 0 24 24"><path d="m17 12-10 7V5l10 7Z"/></svg></button>
-<button id="end" class="ctrl" aria-label="Last move"><svg viewBox="0 0 24 24"><path d="M17 5h2v14h-2V5ZM6 5l10 7-10 7V5Z"/></svg></button>
-<button id="resetVariation" class="ctrl" title="Return to game line" aria-label="Return to game line"><svg viewBox="0 0 24 24"><path d="M8.2 7H16a5 5 0 1 1 0 10h-5v-2h5a3 3 0 1 0 0-6H8.2l2.4 2.4-1.4 1.4L4.4 8l4.8-4.8 1.4 1.4L8.2 7Z"/></svg></button>
-</div>
-      </div>
+    <div class="topbar"><button id="back" class="backBtn" aria-label="Back to games"><svg viewBox="0 0 24 24"><path d="M15.7 4.3a1 1 0 0 1 0 1.4L9.4 12l6.3 6.3a1 1 0 1 1-1.4 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.4 0Z"/></svg><span>Games</span></button><div class="analysisTitleWrap"><span class="analysisMark">♞</span><h1>Analysis</h1></div><span class="kbdHint">← → to navigate</span><button id="settingsToggleAnalysis" class="btn settingsBtn" type="button">⚙</button><button id="flip" class="btn" aria-label="Flip board"><svg viewBox="0 0 24 24"><path d="M7 3 3.5 6.5 7 10V7h4V5H7V3Zm10 11v3h-4v2h4v3l3.5-3.5L17 14ZM5 13v6a2 2 0 0 0 2 2h4v-2H7v-6H5Zm14-2V5a2 2 0 0 0-2-2h-4v2h4v6h2Z"/></svg><span>Flip</span></button></div>
+    <div class="analysisShell"><div class="boardColumn"><div class="playerStrip" id="topPlayer"></div><div class="boardWrap"><div class="evalBar"><div id="evalFill" class="evalFill"></div><div id="evalTop" class="evalText"> </div><div id="evalBottom" class="evalText bottom"> </div></div><div class="boardStage"><div id="board" class="board"></div><svg id="analysisArrows" class="analysisArrows" viewBox="0 0 800 800" preserveAspectRatio="none"></svg></div></div><div class="playerStrip" id="bottomPlayer"></div></div>
+      <div class="sidePanel"><div class="gameHeader"><h2 id="gameTitle"></h2><div id="gameMeta" class="muted"></div></div><div class="panelNav"><button class="active">Analysis</button><button disabled>Details</button></div><div class="enginePanel"><div class="engineHeadline"><div class="engineIdentity"><div class="engineIcon" id="enginePieceIcon"></div><div><div class="engineLabel">ENGINE</div><div id="engineScore" class="engineScore">—</div><div id="engineSource" class="engineSub">Ready</div></div></div><button id="analyse" class="btn primary analyseBtn">Analyse</button></div><div id="bestLine" class="bestLine">Choose a position and tap Analyse for an evaluation.</div><div id="variationNote" class="variationNote"></div></div><div id="moves" class="moves"></div><div class="controls"><button id="start" class="ctrl">⏮</button><button id="prev" class="ctrl">◀</button><button id="next" class="ctrl primary">▶</button><button id="end" class="ctrl">⏭</button><button id="resetVariation" class="ctrl">↩</button></div></div>
     </div>
     <div id="mobileEngineDock" class="mobileEngineDock"><div class="mobileEval"><div id="mobileScore" class="mobileScore">—</div><div id="mobileSource" class="mobileSource">Ready</div></div><div id="mobileLine" class="mobileLine">Tap Analyse to show the best move arrow.</div><button id="analyseMobile" class="btn primary mobileAnalyse">Analyse</button></div>
   </section>
 </div>
 <script type="module" src="app.js"></script>
 <script type="module" src="enhancements.js"></script>
+<script type="module" src="lab.js"></script>
 </body>
 </html>
