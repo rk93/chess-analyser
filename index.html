@@ -5,15 +5,15 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#262421">
 <link rel="manifest" href="manifest.webmanifest">
-<title>RK93 Chess Analyser</title>
+<title>Chess Analyser</title>
 <link rel="stylesheet" href="styles.css">
-
+<link rel="stylesheet" href="fixes.css">
 </head>
 <body>
 <div class="app">
   <section id="libraryView">
-    <div class="topbar"><h1>Chess Analyser</h1><span class="badge">rk93</span></div>
-    <div class="card syncCard"><div class="row"><input id="user" class="input" value="rk93" aria-label="Chess.com username"><button id="sync" class="btn primary">Sync games</button></div><div id="status" class="muted" style="margin-top:8px">Ready.</div></div>
+    <div class="topbar"><h1>Chess Analyser</h1><span class="badge">Chess.com</span></div>
+    <div class="card syncCard"><div class="row syncRow"><input id="user" class="input" placeholder="Chess.com username" aria-label="Chess.com username"><select id="importRange" class="input rangeSelect" aria-label="Games to import"><option value="month">Last month</option><option value="year">Last year</option><option value="all">All history</option></select><button id="sync" class="btn primary">Import games</button></div><div id="status" class="muted" style="margin-top:8px">Enter a Chess.com username to import games.</div></div>
     <div id="games"></div>
   </section>
 
@@ -47,6 +47,6 @@
   </section>
 </div>
 <script type="module" src="app.js"></script>
-
+<script type="module" src="enhancements.js"></script>
 </body>
 </html>
