@@ -12,13 +12,22 @@
 <body>
 <div class="app">
   <section id="libraryView">
-    <div class="topbar"><h1>Chess Analyser</h1><span class="badge">Chess.com</span></div>
+    <div class="topbar"><h1>Chess Analyser</h1><span class="badge">Chess.com</span><button id="settingsToggleLibrary" class="btn settingsBtn" type="button">⚙ Settings</button></div>
+    <div id="settingsPanel" class="card settingsPanel" hidden>
+      <div class="settingsGrid">
+        <label>Piece style<select id="pieceStyle" class="input"><option value="neo">Neo</option><option value="bases">Bases</option><option value="classic">Classic</option></select></label>
+        <label>Board<select id="boardTheme" class="input"><option value="green">Green</option><option value="brown">Brown</option><option value="blue">Blue</option><option value="grey">Grey</option></select></label>
+        <label>Engine<select id="engineMode" class="input"><option value="auto">Auto (cloud → live)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Live</option></select></label>
+        <label class="soundLabel">Sounds<select id="soundMode" class="input"><option value="on">On</option><option value="off">Off</option></select></label>
+      </div>
+      <div class="settingsHint">Piece presets are open-source approximations inspired by familiar Chess.com styles; they are not Chess.com assets.</div>
+    </div>
     <div class="card syncCard"><div class="row syncRow"><input id="user" class="input" placeholder="Chess.com username" aria-label="Chess.com username"><select id="importRange" class="input rangeSelect" aria-label="Games to import"><option value="month">Last month</option><option value="year">Last year</option><option value="all">All history</option></select><button id="sync" class="btn primary">Import games</button></div><div id="status" class="muted" style="margin-top:8px">Enter a Chess.com username to import games.</div></div>
     <div id="games"></div>
   </section>
 
   <section id="analysisView">
-    <div class="topbar"><button id="back" class="backBtn" aria-label="Back to games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.7 4.3a1 1 0 0 1 0 1.4L9.4 12l6.3 6.3a1 1 0 1 1-1.4 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.4 0Z"/></svg><span>Games</span></button><div class="analysisTitleWrap"><span class="analysisMark">♞</span><h1 id="analysisTitle">Analysis</h1></div><span class="kbdHint">← → to navigate</span><button id="flip" class="btn" aria-label="Flip board"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 3.5 6.5 7 10V7h4V5H7V3Zm10 11v3h-4v2h4v3l3.5-3.5L17 14ZM5 13v6a2 2 0 0 0 2 2h4v-2H7v-6H5Zm14-2V5a2 2 0 0 0-2-2h-4v2h4v6h2Z"/></svg><span>Flip</span></button></div>
+    <div class="topbar"><button id="back" class="backBtn" aria-label="Back to games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.7 4.3a1 1 0 0 1 0 1.4L9.4 12l6.3 6.3a1 1 0 1 1-1.4 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.4 0Z"/></svg><span>Games</span></button><div class="analysisTitleWrap"><span class="analysisMark">♞</span><h1 id="analysisTitle">Analysis</h1></div><span class="kbdHint">← → to navigate</span><button id="settingsToggleAnalysis" class="btn settingsBtn" type="button">⚙</button><button id="flip" class="btn" aria-label="Flip board"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 3.5 6.5 7 10V7h4V5H7V3Zm10 11v3h-4v2h4v3l3.5-3.5L17 14ZM5 13v6a2 2 0 0 0 2 2h4v-2H7v-6H5Zm14-2V5a2 2 0 0 0-2-2h-4v2h4v6h2Z"/></svg><span>Flip</span></button></div>
     <div class="analysisShell">
       <div class="boardColumn">
         <div class="playerStrip" id="topPlayer"></div>
@@ -30,7 +39,7 @@
         <div class="panelNav"><button class="active" type="button">Analysis</button><button type="button" disabled>Details</button></div>
         <div class="enginePanel">
           <div class="engineHeadline"><div class="engineIdentity"><div class="engineIcon" id="enginePieceIcon"></div><div><div class="engineLabel">ENGINE</div><div id="engineScore" class="engineScore">—</div><div id="engineSource" class="engineSub">Ready</div></div></div><button id="analyse" class="btn primary analyseBtn">Analyse</button></div>
-          <div id="bestLine" class="bestLine">Choose a position and tap Analyse for a Stockfish evaluation.</div>
+          <div id="bestLine" class="bestLine">Choose a position and tap Analyse for an evaluation.</div>
           <div id="variationNote" class="variationNote"></div>
         </div>
         <div id="moves" class="moves"></div>
