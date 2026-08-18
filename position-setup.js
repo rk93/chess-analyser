@@ -1,8 +1,8 @@
+import './opening-insights.js';
 const $=id=>document.getElementById(id);
 const PREF='chess-analyser-pref:';
 const pref=(k,f)=>localStorage.getItem(PREF+k)||f;
 let active=false,selectedPiece='wQ',boardMap=new Map(),lastFen='start';
-const pieceCode={P:'P',N:'N',B:'B',R:'R',Q:'Q',K:'K'};
 function pieceSrc(color,type){const folders={neo:'chess_kaneo',bases:'chess_kaneo_midnight',classic:'chess_maestro_bw'},folder=folders[pref('pieces','neo')]||folders.neo;return `https://cdn.jsdelivr.net/gh/Kadagaden/chess-pieces@master/${folder}/${color}${type}.svg`}
 function parseFen(fen){boardMap.clear();if(!fen||fen==='start')fen='rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';const rows=fen.split(' ')[0].split('/');for(let ri=0;ri<8;ri++){let f=0;for(const ch of rows[ri]){if(/\d/.test(ch)){f+=Number(ch);continue}const color=ch===ch.toUpperCase()?'w':'b',type=ch.toUpperCase();boardMap.set(String.fromCharCode(97+f)+(8-ri),color+type);f++}}}
 function toFen(){const rows=[];for(let r=8;r>=1;r--){let row='',empty=0;for(let f=0;f<8;f++){const p=boardMap.get(String.fromCharCode(97+f)+r);if(!p){empty++;continue}if(empty){row+=empty;empty=0}const [c,t]=p;row+=c==='w'?t:t.toLowerCase()}if(empty)row+=empty;rows.push(row)}return `${rows.join('/')} ${$('setupTurn').value} - - 0 1`}
