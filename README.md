@@ -1,6 +1,6 @@
 # Chess Analyser
 
-A responsive, browser-based chess analysis app for importing Chess.com games and analysing arbitrary chess positions.
+A responsive, browser-based chess analysis app for importing Chess.com games, reviewing complete games, and analysing arbitrary chess positions.
 
 Live site: https://rk93.github.io/chess-analyser/
 
@@ -11,7 +11,21 @@ Live site: https://rk93.github.io/chess-analyser/
 - Local IndexedDB storage so imported games persist in the browser
 - Responsive mobile-first game analysis UI
 - Home tabs for **Games** and a standalone **Analysis Board**
-- Free Analysis Board lets users make legal moves from the starting position and analyse any resulting position
+- Automatic evaluation when navigating through imported-game moves
+- Background prefetch of upcoming positions to make Next/Previous analysis feel faster
+- Lichess Opening Explorer information for supported positions
+- **Game Review** for complete imported games
+  - estimated White and Black accuracy
+  - move labels: Best, Excellent, Good, Inaccuracy, Mistake, Blunder
+  - evaluation graph across the game
+  - largest evaluation swing highlighted
+  - summary counts by move-quality category
+- Standalone Analysis Board with drag-and-drop legal moves
+- **Position Setup** mode
+  - freely add or remove pieces
+  - choose White or Black to move
+  - clear the board or restore the starting position
+  - load the custom position back into the Analysis Board and analyse it
 - Board flipping and move navigation
 - Multi-PV best-move arrows drawn directly on the board
 - Lichess Cloud evaluation
@@ -25,9 +39,17 @@ Live site: https://rk93.github.io/chess-analyser/
 - User preferences saved locally
 - Progressive Web App support through a service worker and web manifest
 
-## Analysis Board
+## Game Review
 
-The **Analysis Board** tab is independent of imported Chess.com games. Users can move pieces legally on a fresh board, flip the board, reset the position, select an engine, and analyse the current position. Engine arrows and evaluation are shown directly on the board.
+Open an imported game and press **Review game**. The app evaluates positions throughout the game, calculates an estimated accuracy score for each side, assigns move-quality labels, plots an evaluation graph, and highlights the largest evaluation swing.
+
+The review uses Lichess Cloud evaluations where available. For positions not available from the cloud, the browser may use a limited number of live Stockfish requests and interpolate remaining gaps. Accuracy and move labels should therefore be treated as useful analysis estimates rather than an attempt to reproduce Chess.com's proprietary Game Review scoring exactly.
+
+## Analysis Board and Position Setup
+
+The **Analysis Board** tab is independent of imported Chess.com games. In normal mode, users can drag pieces to make legal moves, flip the board, reset the position, select an engine, and analyse the current position.
+
+Press **Position setup** to build a position freely. Select a white or black piece from the palette and tap squares to place it, use the eraser to remove pieces, choose the side to move, then press **Use position**. A valid setup requires exactly one king for each side before it can be loaded into the analysis board.
 
 ## Piece artwork
 
@@ -55,12 +77,16 @@ http://localhost:8000
 
 ## Project structure
 
-- `index.html` — application shell, home tabs, game analysis UI and settings UI
+- `index.html` — application shell, home tabs, game review UI, analysis board and settings UI
 - `styles.css` — core layout and analysis UI
-- `fixes.css` — appearance customiser, home tabs, analysis-board layout and responsive overrides
-- `app.js` — imported-game board, game navigation, analysis, engines, sound and piece rendering
+- `fixes.css` — appearance customiser, review/setup UI and responsive overrides
+- `app.js` — imported-game board, navigation, analysis, engines, sound and piece rendering
 - `enhancements.js` — Chess.com import filters and settings persistence
-- `lab.js` — standalone Analysis Board and engine analysis
+- `lab.js` — standalone Analysis Board, drag-and-drop and engine analysis
+- `position-setup.js` — custom position editor
+- `game-review.js` — full-game evaluation, accuracy estimates, move labels and graph
+- `auto-analysis.js` — automatic move-by-move analysis and upcoming-position prefetch
+- `opening-insights.js` — Lichess Opening Explorer information
 - `manifest.webmanifest` — PWA metadata
 - `sw.js` — service-worker caching
 
@@ -70,15 +96,15 @@ Imported games are stored in browser IndexedDB. Updating the files in this repos
 
 ## Android / Google Play direction
 
-The web app is already a PWA. A practical Android packaging route is a **Trusted Web Activity (TWA)** using Google's Bubblewrap tooling. This keeps the GitHub Pages web app as the main codebase while producing an Android package for Play Store distribution.
+The web app is already a PWA. A practical Android packaging route is a **Trusted Web Activity (TWA)** using Google's Bubblewrap tooling. This keeps the hosted web app as the main codebase while producing an Android package for Play Store distribution.
 
 Typical release path:
 
-1. Make sure the PWA manifest contains production-quality app icons and metadata.
+1. Add production-quality app icons and final manifest metadata.
 2. Generate a TWA Android project with Bubblewrap.
 3. Configure Digital Asset Links so the Android package is verified against the hosted website.
-4. Build and sign the Android App Bundle / APK.
+4. Build and sign the Android App Bundle.
 5. Test on Android devices.
-6. Create the Play Console listing, complete testing requirements, and submit the app.
+6. Complete the Play Console listing, testing requirements, privacy disclosures and submission.
 
-The web app and GitHub Pages hosting can remain free. Google Play full public distribution requires Google's developer registration fee and any applicable Play policies/testing requirements.
+The web app and GitHub Pages hosting can remain free. Google Play public distribution requires Google's developer registration fee and compliance with current Play policies.
