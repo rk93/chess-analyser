@@ -8,8 +8,9 @@ const prefetched=new Map();
 
 function analysisVisible(){const view=$('analysisView');return view&&getComputedStyle(view).display!=='none'}
 function moveElements(){return [...document.querySelectorAll('#moves .move')]}
+function moveSan(el){return el?.childNodes?.[0]?.textContent?.trim()||el?.textContent?.trim()||''}
 function currentPly(){const moves=moveElements();const i=moves.findIndex(m=>m.classList.contains('active'));return i<0?0:i+1}
-function fenAtPly(ply){try{const c=new Chess(),moves=moveElements();for(let i=0;i<Math.min(ply,moves.length);i++)c.move(moves[i].textContent.trim());return c.fen()}catch{return null}}
+function fenAtPly(ply){try{const c=new Chess(),moves=moveElements();for(let i=0;i<Math.min(ply,moves.length);i++)c.move(moveSan(moves[i]));return c.fen()}catch{return null}}
 function cacheKey(mode,fen){return `${mode}|${fen}`}
 function announcePosition(){const fen=fenAtPly(currentPly());if(fen)window.dispatchEvent(new CustomEvent('chessPositionChanged',{detail:{fen,context:'game'}}))}
 
@@ -21,12 +22,9 @@ function squarePoint(sq){const board=$('board'),el=board?.querySelector(`[data-s
 function draw(pvs){const svg=$('analysisArrows');if(!svg)return;svg.innerHTML='<defs><marker id="prefetchArrow" markerWidth="5" markerHeight="5" refX="4.1" refY="2.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L5,2.5 L0,5 Z" fill="#8bc34a"/></marker></defs>';pvs.slice(0,3).forEach((pv,i)=>{const u=String(pv.moves||'').trim().split(/\s+/)[0];if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u))return;const a=squarePoint(u.slice(0,2)),b=squarePoint(u.slice(2,4));if(!a||!b)return;svg.insertAdjacentHTML('beforeend',`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${['#8bc34a','#f4c542','#58a6ff'][i]}" stroke-width="${i?12:16}" stroke-linecap="round" opacity=".88" marker-end="url(#prefetchArrow)"/>`)})}
 function show(data){if(!data?.pvs?.length)return false;const s=score(data.pvs[0]);$('engineScore').textContent=$('mobileScore').textContent=s.label;$('engineSource').textContent=`${data.source} · depth ${data.depth??'—'} · prefetched`;$('mobileSource').textContent=data.source;$('bestLine').textContent='Best: '+(data.pvs[0].moves||'');$('mobileLine').textContent='Best: '+(data.pvs[0].moves||'');$('evalFill').style.height=`${Math.max(3,Math.min(97,50+45*(2/Math.PI)*Math.atan(s.n/3)))}%`;draw(data.pvs);return true}
 function updatePrefetchStatus(){const mode=pref('engine','auto'),ply=currentPly(),limit=mode==='stockfish'?1:2;let ready=0;for(let i=1;i<=limit;i++){const fen=fenAtPly(ply+i),v=fen&&prefetched.get(cacheKey(mode,fen));if(v&&!v.loading)ready++}const source=$('engineSource');if(source&&ready>0&&!source.textContent.includes('prefetched'))source.textContent+=` · ${ready} next ready`}
-
 async function prefetchAhead(){if(!analysisVisible())return;const mode=pref('engine','auto'),ply=currentPly(),count=mode==='stockfish'?1:2;for(let offset=1;offset<=count;offset++){const fen=fenAtPly(ply+offset);if(!fen)continue;const key=cacheKey(mode,fen);if(prefetched.has(key))continue;prefetched.set(key,{loading:true});try{const data=await fetchForMode(fen,mode,true);if(data)prefetched.set(key,data);else prefetched.delete(key)}catch{prefetched.delete(key)}}updatePrefetchStatus()}
 function schedulePrefetch(){clearTimeout(prefetchTimer);prefetchTimer=setTimeout(prefetchAhead,350)}
-
 function runWhenReady(){if(!requested||!analysisVisible())return;announcePosition();const mode=pref('engine','auto'),fen=fenAtPly(currentPly()),cached=fen&&prefetched.get(cacheKey(mode,fen));if(cached&&!cached.loading&&show(cached)){requested=false;schedulePrefetch();return}const btn=$('analyse');if(!btn)return;if(btn.disabled){setTimeout(runWhenReady,120);return}requested=false;btn.click();schedulePrefetch()}
 function scheduleAutoAnalysis(){requested=true;clearTimeout(timer);announcePosition();const source=$('engineSource'),mobileSource=$('mobileSource');if(source)source.textContent='Updating evaluation…';if(mobileSource)mobileSource.textContent='Updating…';timer=setTimeout(runWhenReady,180)}
-
 function init(){['start','prev','next','end','resetVariation'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',scheduleAutoAnalysis)});const moves=$('moves');if(moves)moves.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleAutoAnalysis()});window.addEventListener('chessPreference',e=>{if(e.detail?.key==='engine'){prefetched.clear();scheduleAutoAnalysis()}});document.addEventListener('click',e=>{if(e.target.closest?.('#games .game'))setTimeout(()=>{announcePosition();schedulePrefetch()},250)})}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
