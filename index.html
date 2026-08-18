@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#262421">
+<link rel="manifest" href="manifest.webmanifest">
+<title>RK93 Chess Analyser</title>
+<link rel="stylesheet" href="styles.css">
+
+</head>
+<body>
+<div class="app">
+  <section id="libraryView">
+    <div class="topbar"><h1>Chess Analyser</h1><span class="badge">rk93</span></div>
+    <div class="card syncCard"><div class="row"><input id="user" class="input" value="rk93" aria-label="Chess.com username"><button id="sync" class="btn primary">Sync games</button></div><div id="status" class="muted" style="margin-top:8px">Ready.</div></div>
+    <div id="games"></div>
+  </section>
+
+  <section id="analysisView">
+    <div class="topbar"><button id="back" class="backBtn" aria-label="Back to games"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.7 4.3a1 1 0 0 1 0 1.4L9.4 12l6.3 6.3a1 1 0 1 1-1.4 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.4 0Z"/></svg><span>Games</span></button><div class="analysisTitleWrap"><span class="analysisMark">♞</span><h1 id="analysisTitle">Analysis</h1></div><span class="kbdHint">← → to navigate</span><button id="flip" class="btn" aria-label="Flip board"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3 3.5 6.5 7 10V7h4V5H7V3Zm10 11v3h-4v2h4v3l3.5-3.5L17 14ZM5 13v6a2 2 0 0 0 2 2h4v-2H7v-6H5Zm14-2V5a2 2 0 0 0-2-2h-4v2h4v6h2Z"/></svg><span>Flip</span></button></div>
+    <div class="analysisShell">
+      <div class="boardColumn">
+        <div class="playerStrip" id="topPlayer"></div>
+        <div class="boardWrap"><div class="evalBar"><div id="evalFill" class="evalFill"></div><div id="evalTop" class="evalText"> </div><div id="evalBottom" class="evalText bottom"> </div></div><div class="boardStage"><div id="board" class="board" aria-label="Interactive chess board"></div><svg id="analysisArrows" class="analysisArrows" viewBox="0 0 800 800" preserveAspectRatio="none" aria-hidden="true"></svg></div></div>
+        <div class="playerStrip" id="bottomPlayer"></div>
+      </div>
+      <div class="sidePanel">
+        <div class="gameHeader"><h2 id="gameTitle"></h2><div id="gameMeta" class="muted"></div></div>
+        <div class="panelNav"><button class="active" type="button">Analysis</button><button type="button" disabled>Details</button></div>
+        <div class="enginePanel">
+          <div class="engineHeadline"><div class="engineIdentity"><div class="engineIcon" id="enginePieceIcon"></div><div><div class="engineLabel">ENGINE</div><div id="engineScore" class="engineScore">—</div><div id="engineSource" class="engineSub">Ready</div></div></div><button id="analyse" class="btn primary analyseBtn">Analyse</button></div>
+          <div id="bestLine" class="bestLine">Choose a position and tap Analyse for a Stockfish evaluation.</div>
+          <div id="variationNote" class="variationNote"></div>
+        </div>
+        <div id="moves" class="moves"></div>
+        <div class="controls">
+<button id="start" class="ctrl" aria-label="First move"><svg viewBox="0 0 24 24"><path d="M5 5h2v14H5V5Zm3 7 10-7v14L8 12Z"/></svg></button>
+<button id="prev" class="ctrl" aria-label="Previous move"><svg viewBox="0 0 24 24"><path d="m7 12 10-7v14L7 12Z"/></svg></button>
+<button id="next" class="ctrl primary" aria-label="Next move"><svg viewBox="0 0 24 24"><path d="m17 12-10 7V5l10 7Z"/></svg></button>
+<button id="end" class="ctrl" aria-label="Last move"><svg viewBox="0 0 24 24"><path d="M17 5h2v14h-2V5ZM6 5l10 7-10 7V5Z"/></svg></button>
+<button id="resetVariation" class="ctrl" title="Return to game line" aria-label="Return to game line"><svg viewBox="0 0 24 24"><path d="M8.2 7H16a5 5 0 1 1 0 10h-5v-2h5a3 3 0 1 0 0-6H8.2l2.4 2.4-1.4 1.4L4.4 8l4.8-4.8 1.4 1.4L8.2 7Z"/></svg></button>
+</div>
+      </div>
+    </div>
+    <div id="mobileEngineDock" class="mobileEngineDock"><div class="mobileEval"><div id="mobileScore" class="mobileScore">—</div><div id="mobileSource" class="mobileSource">Ready</div></div><div id="mobileLine" class="mobileLine">Tap Analyse to show the best move arrow.</div><button id="analyseMobile" class="btn primary mobileAnalyse">Analyse</button></div>
+  </section>
+</div>
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
