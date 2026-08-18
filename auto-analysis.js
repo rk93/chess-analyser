@@ -1,3 +1,4 @@
+import './opening-insights.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 const $=id=>document.getElementById(id);
 const PREF='chess-analyser-pref:';
