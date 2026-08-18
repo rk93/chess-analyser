@@ -14,13 +14,28 @@
   <section id="libraryView">
     <div class="topbar"><h1>Chess Analyser</h1><span class="badge">Chess.com</span><button id="settingsToggleLibrary" class="btn settingsBtn" type="button">⚙ Settings</button></div>
     <div id="settingsPanel" class="card settingsPanel" hidden>
-      <div class="settingsGrid">
-        <label>Piece style<select id="pieceStyle" class="input"><option value="neo">Neo</option><option value="bases">Bases</option><option value="classic">Classic</option></select></label>
-        <label>Board<select id="boardTheme" class="input"><option value="green">Green</option><option value="brown">Brown</option><option value="blue">Blue</option><option value="grey">Grey</option></select></label>
-        <label>Engine<select id="engineMode" class="input"><option value="auto">Auto (cloud → live)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Live</option></select></label>
-        <label class="soundLabel">Sounds<select id="soundMode" class="input"><option value="on">On</option><option value="off">Off</option></select></label>
+      <div class="settingsSection">
+        <div class="settingsSectionTitle">Pieces</div>
+        <div id="piecePreviewGrid" class="previewGrid piecePreviewGrid">
+          <button class="previewCard" type="button" data-piece-style="neo"><span class="piecePreview" data-preview-folder="chess_kaneo"></span><span>Neo</span></button>
+          <button class="previewCard" type="button" data-piece-style="bases"><span class="piecePreview" data-preview-folder="chess_kaneo_midnight"></span><span>Bases</span></button>
+          <button class="previewCard" type="button" data-piece-style="classic"><span class="piecePreview" data-preview-folder="chess_maestro_bw"></span><span>Classic</span></button>
+        </div>
       </div>
-      <div class="settingsHint">Piece presets are open-source approximations inspired by familiar Chess.com styles; they are not Chess.com assets.</div>
+      <div class="settingsSection">
+        <div class="settingsSectionTitle">Board</div>
+        <div id="boardPreviewGrid" class="previewGrid boardPreviewGrid">
+          <button class="previewCard" type="button" data-board-theme="green"><span class="miniBoard green"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Green</span></button>
+          <button class="previewCard" type="button" data-board-theme="brown"><span class="miniBoard brown"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Brown</span></button>
+          <button class="previewCard" type="button" data-board-theme="blue"><span class="miniBoard blue"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Blue</span></button>
+          <button class="previewCard" type="button" data-board-theme="grey"><span class="miniBoard grey"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span>Grey</span></button>
+        </div>
+      </div>
+      <div class="settingsGrid compactSettings">
+        <label>Engine<select id="engineMode" class="input"><option value="auto">Auto (cloud → live)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Live</option></select></label>
+        <label>Sounds<select id="soundMode" class="input"><option value="on">On</option><option value="off">Off</option></select></label>
+      </div>
+      <div class="settingsHint">Visual presets use open-source piece artwork and app-owned board themes. Names describe the intended look; no Chess.com artwork is bundled.</div>
     </div>
     <div class="card syncCard"><div class="row syncRow"><input id="user" class="input" placeholder="Chess.com username" aria-label="Chess.com username"><select id="importRange" class="input rangeSelect" aria-label="Games to import"><option value="month">Last month</option><option value="year">Last year</option><option value="all">All history</option></select><button id="sync" class="btn primary">Import games</button></div><div id="status" class="muted" style="margin-top:8px">Enter a Chess.com username to import games.</div></div>
     <div id="games"></div>
