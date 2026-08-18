@@ -4,6 +4,7 @@ const $=id=>document.getElementById(id);
 const PREF='chess-analyser-pref:';
 const pref=(k,f)=>localStorage.getItem(PREF+k)||f;
 let chess=new Chess(),orientation='white',selected=null,lastMove=null;
+let dragState=null;
 
 function pieceSrc(color,type){
   const code={p:'P',r:'R',n:'N',b:'B',q:'Q',k:'K'}[type];
@@ -13,8 +14,16 @@ function pieceSrc(color,type){
 }
 function themeBoard(){const b=$('labBoard');if(!b)return;b.classList.remove('theme-green','theme-brown','theme-blue','theme-grey');b.classList.add('theme-'+pref('board','green'))}
 function order(){const files=orientation==='white'?['a','b','c','d','e','f','g','h']:['h','g','f','e','d','c','b','a'],ranks=orientation==='white'?[8,7,6,5,4,3,2,1]:[1,2,3,4,5,6,7,8];return ranks.flatMap(r=>files.map(f=>f+r))}
-function render(){const b=$('labBoard');if(!b)return;b.innerHTML='';order().forEach(sq=>{const f=sq.charCodeAt(0)-97,r=Number(sq[1]),el=document.createElement('div');el.className=`sq ${(f+r)%2?'light':'dark'}`;if(selected===sq)el.classList.add('selected');if(lastMove&&(lastMove.from===sq||lastMove.to===sq))el.classList.add('last');const p=chess.get(sq);if(p){const img=document.createElement('img');img.className='piece';img.src=pieceSrc(p.color,p.type);img.draggable=false;el.appendChild(img)}el.addEventListener('click',()=>tap(sq));b.appendChild(el)});themeBoard()}
-function tap(sq){if(selected){const options=chess.moves({square:selected,verbose:true}).filter(m=>m.to===sq);if(options.length){lastMove=chess.move({from:selected,to:sq,promotion:options.some(m=>m.promotion)?'q':undefined});selected=null;clearAnalysis();render();return}selected=null}const p=chess.get(sq);if(p&&p.color===chess.turn())selected=sq;render()}
+function render(){const b=$('labBoard');if(!b)return;b.innerHTML='';order().forEach(sq=>{const f=sq.charCodeAt(0)-97,r=Number(sq[1]),el=document.createElement('div');el.className=`sq ${(f+r)%2?'light':'dark'}`;el.dataset.square=sq;if(selected===sq)el.classList.add('selected');if(lastMove&&(lastMove.from===sq||lastMove.to===sq))el.classList.add('last');const p=chess.get(sq);if(p){const img=document.createElement('img');img.className='piece labPiece';img.src=pieceSrc(p.color,p.type);img.draggable=false;img.alt='';img.addEventListener('pointerdown',e=>startDrag(e,sq,img));el.appendChild(img)}el.addEventListener('click',e=>{if(Date.now()-(dragState?.endedAt||0)<250)return;tap(sq)});b.appendChild(el)});themeBoard()}
+function legalMove(from,to){const options=chess.moves({square:from,verbose:true}).filter(m=>m.to===to);if(!options.length)return false;lastMove=chess.move({from,to,promotion:options.some(m=>m.promotion)?'q':undefined});selected=null;clearAnalysis();render();return true}
+function tap(sq){if(selected){if(legalMove(selected,sq))return;selected=null}const p=chess.get(sq);if(p&&p.color===chess.turn())selected=sq;render()}
+function startDrag(e,from,img){const p=chess.get(from);if(!p||p.color!==chess.turn())return;e.preventDefault();selected=from;const ghost=img.cloneNode(true);ghost.classList.add('dragGhost');document.body.appendChild(ghost);const size=Math.max(44,img.getBoundingClientRect().width);ghost.style.width=size+'px';ghost.style.height=size+'px';dragState={from,ghost,pointerId:e.pointerId,moved:false,endedAt:0};positionGhost(e.clientX,e.clientY);img.setPointerCapture?.(e.pointerId);img.addEventListener('pointermove',onDragMove);img.addEventListener('pointerup',onDragEnd,{once:true});img.addEventListener('pointercancel',onDragCancel,{once:true});renderDragSelection(from)}
+function renderDragSelection(from){document.querySelectorAll('#labBoard .sq').forEach(el=>el.classList.toggle('selected',el.dataset.square===from))}
+function positionGhost(x,y){if(!dragState?.ghost)return;dragState.ghost.style.left=x+'px';dragState.ghost.style.top=y+'px'}
+function onDragMove(e){if(!dragState)return;e.preventDefault();dragState.moved=true;positionGhost(e.clientX,e.clientY);document.querySelectorAll('#labBoard .sq.dragTarget').forEach(el=>el.classList.remove('dragTarget'));const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('#labBoard .sq');if(target&&target.dataset.square!==dragState.from)target.classList.add('dragTarget')}
+function finishDrag(e,cancelled=false){if(!dragState)return;const state=dragState;state.ghost?.remove();document.querySelectorAll('#labBoard .sq.dragTarget').forEach(el=>el.classList.remove('dragTarget'));let moved=false;if(!cancelled&&state.moved){const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('#labBoard .sq');if(target)moved=legalMove(state.from,target.dataset.square)}if(!moved){selected=state.from;render()}dragState={endedAt:Date.now()}}
+function onDragEnd(e){finishDrag(e,false)}
+function onDragCancel(e){finishDrag(e,true)}
 function clearAnalysis(){$('labScore').textContent='—';$('labSource').textContent='Ready';$('labLine').textContent='Position changed. Tap Analyse position.';$('labEvalFill').style.height='50%';$('labArrows').innerHTML=''}
 function score(pv){if(pv?.mate!==undefined&&pv?.mate!==null&&Number(pv.mate)!==0){const m=Number(pv.mate);return{n:m>0?20:-20,label:(m<0?'-':'')+'M'+Math.abs(m)}}const n=(Number(pv?.cp)||0)/100;return{n,label:(n>=0?'+':'')+n.toFixed(2)}}
 function squareCenter(sq){const f=sq.charCodeAt(0)-97,r=Number(sq[1]),x=orientation==='white'?f:7-f,y=orientation==='white'?8-r:r-1;return{x:(x+.5)*100,y:(y+.5)*100}}
