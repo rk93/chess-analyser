@@ -12,11 +12,15 @@ function savePref(k,v){localStorage.setItem(PREF+k,v);window.dispatchEvent(new C
 function applyBoardTheme(){const b=$('board');if(!b)return;b.classList.remove('theme-green','theme-brown','theme-blue','theme-grey');b.classList.add('theme-'+pref('board','green'))}
 function updateSelectedCards(){document.querySelectorAll('[data-piece-style]').forEach(b=>b.classList.toggle('selected',b.dataset.pieceStyle===pref('pieces','neo')));document.querySelectorAll('[data-board-theme]').forEach(b=>b.classList.toggle('selected',b.dataset.boardTheme===pref('board','green')))}
 function renderPiecePreviews(){document.querySelectorAll('[data-preview-folder]').forEach(el=>{const folder=el.dataset.previewFolder;el.innerHTML=`<img src="https://cdn.jsdelivr.net/gh/Kadagaden/chess-pieces@master/${folder}/wN.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/Kadagaden/chess-pieces@master/${folder}/bK.svg" alt="">`})}
-function toggleSettings(){const p=$('settingsPanel');p.hidden=!p.hidden;if(!p.hidden&&getComputedStyle($('libraryView')).display==='none'){$('analysisView').insertBefore(p,$('analysisView').querySelector('.analysisShell'))}else if(!p.hidden&&p.parentElement!==$('libraryView')){$('libraryView').insertBefore(p,$('libraryView').children[1])}}
+function showSettings(){const p=$('settingsPanel');if(!p)return;p.hidden=false;p.classList.add('open');updateSelectedCards();}
+function hideSettings(){const p=$('settingsPanel');if(!p)return;p.classList.remove('open');p.hidden=true;}
+function toggleSettings(e){e?.preventDefault();e?.stopPropagation();const p=$('settingsPanel');if(!p)return;p.hidden?showSettings():hideSettings();}
 function init(){const user=$('user'),range=$('importRange'),sync=$('sync');const saved=localStorage.getItem('chess-username');if(saved)user.value=saved;const savedRange=localStorage.getItem('chess-import-range');if(savedRange)range.value=savedRange;sync.onclick=e=>{e.preventDefault();e.stopImmediatePropagation();rangeImport()};if(!user.value)$('status').textContent='Enter any Chess.com username and choose how much history to import.';
-  for(const [id,key,fallback] of [['engineMode','engine','auto'],['soundMode','sound','on']]){const el=$(id);el.value=pref(key,fallback);el.addEventListener('change',()=>savePref(key,el.value))}
+  for(const [id,key,fallback] of [['engineMode','engine','auto'],['soundMode','sound','on']]){const el=$(id);if(!el)continue;el.value=pref(key,fallback);el.addEventListener('change',()=>savePref(key,el.value))}
   document.querySelectorAll('[data-piece-style]').forEach(btn=>btn.addEventListener('click',()=>{savePref('pieces',btn.dataset.pieceStyle);updateSelectedCards()}));
   document.querySelectorAll('[data-board-theme]').forEach(btn=>btn.addEventListener('click',()=>{savePref('board',btn.dataset.boardTheme);applyBoardTheme();updateSelectedCards()}));
-  $('settingsToggleLibrary').addEventListener('click',toggleSettings);$('settingsToggleAnalysis').addEventListener('click',toggleSettings);renderPiecePreviews();updateSelectedCards();applyBoardTheme();new MutationObserver(applyBoardTheme).observe($('board'),{childList:true});
+  ['settingsToggleLibrary','settingsToggleAnalysis'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',toggleSettings)});
+  const close=$('settingsClose');if(close)close.addEventListener('click',hideSettings);
+  renderPiecePreviews();updateSelectedCards();applyBoardTheme();const board=$('board');if(board)new MutationObserver(applyBoardTheme).observe(board,{childList:true});
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
