@@ -14,6 +14,7 @@
   <nav class="homeTabs" aria-label="Home sections">
     <button id="gamesTab" class="homeTab active" type="button">Games</button>
     <button id="boardLabTab" class="homeTab" type="button">Analysis Board</button>
+    <button id="analyticsTab" class="homeTab" type="button">Analytics</button>
   </nav>
 
   <section id="libraryView">
@@ -57,6 +58,16 @@
     </div>
   </section>
 
+  <section id="analyticsView" hidden>
+    <div class="topbar"><h1>Analytics</h1><span class="badge">History</span></div>
+    <div class="analyticsToolbar card">
+      <label>Period<select id="analyticsRange" class="input"><option value="30d">Last 30 days</option><option value="3m">Last 3 months</option><option value="1y" selected>Last year</option><option value="all">All history</option></select></label>
+      <label>Time control<select id="analyticsTime" class="input"><option value="all">All</option><option value="rapid">Rapid</option><option value="blitz">Blitz</option><option value="bullet">Bullet</option><option value="daily">Daily</option></select></label>
+      <label>Colour<select id="analyticsColor" class="input"><option value="all">Both colours</option><option value="white">White</option><option value="black">Black</option></select></label>
+    </div>
+    <div id="analyticsContent"><div class="card analyticsEmpty">Open Analytics to load your history.</div></div>
+  </section>
+
   <section id="analysisView">
     <div class="topbar"><button id="back" class="backBtn" aria-label="Back to games"><svg viewBox="0 0 24 24"><path d="M15.7 4.3a1 1 0 0 1 0 1.4L9.4 12l6.3 6.3a1 1 0 1 1-1.4 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.4 0Z"/></svg><span>Games</span></button><div class="analysisTitleWrap"><span class="analysisMark">♞</span><h1>Analysis</h1></div><span class="kbdHint">← → to navigate</span><button id="settingsToggleAnalysis" class="btn settingsBtn" type="button">⚙</button><button id="flip" class="btn" aria-label="Flip board"><svg viewBox="0 0 24 24"><path d="M7 3 3.5 6.5 7 10V7h4V5H7V3Zm10 11v3h-4v2h4v3l3.5-3.5L17 14ZM5 13v6a2 2 0 0 0 2 2h4v-2H7v-6H5Zm14-2V5a2 2 0 0 0-2-2h-4v2h4v6h2Z"/></svg><span>Flip</span></button></div>
     <div class="analysisShell"><div class="boardColumn"><div class="playerStrip" id="topPlayer"></div><div class="boardWrap"><div class="evalBar"><div id="evalFill" class="evalFill"></div><div id="evalTop" class="evalText"> </div><div id="evalBottom" class="evalText bottom"> </div></div><div class="boardStage"><div id="board" class="board"></div><svg id="analysisArrows" class="analysisArrows" viewBox="0 0 800 800" preserveAspectRatio="none"></svg></div></div><div class="playerStrip" id="bottomPlayer"></div></div>
@@ -73,5 +84,6 @@
 <script type="module" src="auto-analysis.js"></script>
 <script type="module" src="game-review.js"></script>
 <script type="module" src="position-setup.js"></script>
+<script type="module" src="analytics.js"></script>
 </body>
 </html>
