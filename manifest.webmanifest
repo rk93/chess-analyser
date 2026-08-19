@@ -6,7 +6,7 @@
   "start_url": "/chess-analyser/",
   "scope": "/chess-analyser/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "display_override": ["standalone", "minimal-ui"],
   "orientation": "portrait-primary",
   "background_color": "#262421",
   "theme_color": "#262421",
@@ -35,23 +35,6 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "maskable"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Games",
-      "short_name": "Games",
-      "url": "/chess-analyser/"
-    },
-    {
-      "name": "Analysis Board",
-      "short_name": "Board",
-      "url": "/chess-analyser/#analysis-board"
-    },
-    {
-      "name": "Analytics",
-      "short_name": "Analytics",
-      "url": "/chess-analyser/#analytics"
     }
   ]
 }
