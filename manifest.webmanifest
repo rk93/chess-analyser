@@ -1,1 +1,57 @@
-{"name":"RK93 Chess Analyser","short_name":"Chess Analyser","start_url":"./","display":"standalone","background_color":"#262421","theme_color":"#262421","icons":[]}
+{
+  "id": "/chess-analyser/",
+  "name": "Chess Analyser",
+  "short_name": "Chess Analyser",
+  "description": "Import Chess.com games, analyse positions, review games and explore your chess history.",
+  "start_url": "/chess-analyser/",
+  "scope": "/chess-analyser/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "portrait-primary",
+  "background_color": "#262421",
+  "theme_color": "#262421",
+  "categories": ["games", "education", "productivity"],
+  "icons": [
+    {
+      "src": "icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/icon-maskable-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Games",
+      "short_name": "Games",
+      "url": "/chess-analyser/"
+    },
+    {
+      "name": "Analysis Board",
+      "short_name": "Board",
+      "url": "/chess-analyser/#analysis-board"
+    },
+    {
+      "name": "Analytics",
+      "short_name": "Analytics",
+      "url": "/chess-analyser/#analytics"
+    }
+  ]
+}
