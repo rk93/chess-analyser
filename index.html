@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="styles.css">
 <link rel="stylesheet" href="fixes.css">
 <link rel="stylesheet" href="analytics.css">
+<link rel="stylesheet" href="top-players.css">
 </head>
 <body>
 <div class="app">
@@ -16,6 +17,7 @@
     <button id="gamesTab" class="homeTab active" type="button">Games</button>
     <button id="boardLabTab" class="homeTab" type="button">Analysis Board</button>
     <button id="analyticsTab" class="homeTab" type="button">Analytics</button>
+    <button id="topPlayersTab" class="homeTab" type="button">Top Players</button>
   </nav>
 
   <section id="libraryView">
@@ -69,6 +71,13 @@
     <div id="analyticsContent"><div class="card analyticsEmpty">Open Analytics to load your history.</div></div>
   </section>
 
+  <section id="topPlayersView" hidden>
+    <div class="topbar"><h1>Top Players</h1><span class="badge">Chess.com leaders</span></div>
+    <div class="topPlayersToolbar card"><label>Leaderboard<select id="topPlayersCategory" class="input"><option value="live_blitz" selected>Blitz</option><option value="live_rapid">Rapid</option><option value="live_bullet">Bullet</option></select></label><div id="topPlayersStatus" class="muted">Open Top Players to load the current leaderboard.</div></div>
+    <div id="topPlayersGrid" class="topPlayersGrid"></div>
+    <div id="topPlayerGames" class="topPlayersGames"></div>
+  </section>
+
   <section id="analysisView">
     <div class="topbar"><button id="back" class="backBtn" aria-label="Back to games"><svg viewBox="0 0 24 24"><path d="M15.7 4.3a1 1 0 0 1 0 1.4L9.4 12l6.3 6.3a1 1 0 1 1-1.4 1.4l-7-7a1 1 0 0 1 0-1.4l7-7a1 1 0 0 1 1.4 0Z"/></svg><span>Games</span></button><div class="analysisTitleWrap"><span class="analysisMark">♞</span><h1>Analysis</h1></div><span class="kbdHint">← → to navigate</span><button id="settingsToggleAnalysis" class="btn settingsBtn" type="button">⚙</button><button id="flip" class="btn" aria-label="Flip board"><svg viewBox="0 0 24 24"><path d="M7 3 3.5 6.5 7 10V7h4V5H7V3Zm10 11v3h-4v2h4v3l3.5-3.5L17 14ZM5 13v6a2 2 0 0 0 2 2h4v-2H7v-6H5Zm14-2V5a2 2 0 0 0-2-2h-4v2h4v6h2Z"/></svg><span>Flip</span></button></div>
     <div class="analysisShell"><div class="boardColumn"><div class="playerStrip" id="topPlayer"></div><div class="boardWrap"><div class="evalBar"><div id="evalFill" class="evalFill"></div><div id="evalTop" class="evalText"> </div><div id="evalBottom" class="evalText bottom"> </div></div><div class="boardStage"><div id="board" class="board"></div><svg id="analysisArrows" class="analysisArrows" viewBox="0 0 800 800" preserveAspectRatio="none"></svg></div></div><div class="playerStrip" id="bottomPlayer"></div></div>
@@ -86,5 +95,6 @@
 <script type="module" src="game-review.js"></script>
 <script type="module" src="position-setup.js"></script>
 <script type="module" src="analytics.js"></script>
+<script type="module" src="top-players.js"></script>
 </body>
 </html>
