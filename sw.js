@@ -1,4 +1,4 @@
-const CACHE='chess-analyser-pages-v26';
+const CACHE='chess-analyser-pages-v27';
 const CORE=['./','./index.html','./styles.css','./fixes.css','./analytics.css','./app.js','./enhancements.js','./lab.js','./auto-analysis.js','./opening-insights.js','./game-review.js','./position-setup.js','./analytics.js','./manifest.webmanifest','./icons/icon-192.svg','./icons/icon-512.svg','./icons/icon-maskable-192.svg','./icons/icon-maskable-512.svg'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)))});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));
