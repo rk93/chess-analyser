@@ -6,7 +6,7 @@ let rows=[],player='',loaded=false,loading=false;
 
 function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function loadGames(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),r=tx.objectStore(STORE).getAll();r.onsuccess=()=>{db.close();resolve(r.result||[])};r.onerror=()=>{db.close();reject(r.error)}})}
-function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'}[c]))}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function tags(pgn){const out={};for(const m of String(pgn||'').matchAll(/^\[([^\s]+)\s+"([^"]*)"\]/gm))out[m[1]]=m[2];return out}
 function titleCase(s){return s.replace(/\b\w/g,c=>c.toUpperCase())}
 function openingFromTags(t){let name=t.Opening||'',eco=t.ECO||'';if(!name&&t.ECOUrl){let slug=decodeURIComponent(t.ECOUrl.split('/').pop()||'').replace(/-\d.*$/,'').replace(/-/g,' ').trim();name=titleCase(slug)}return{name:name||'Unknown opening',eco,label:(eco?eco+' · ':'')+(name||'Unknown opening')}}
