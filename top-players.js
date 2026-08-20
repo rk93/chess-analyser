@@ -1,3 +1,4 @@
+import './explorer.js';
 const $=id=>document.getElementById(id);
 const API='https://api.chess.com/pub';
 const state={category:'live_blitz',players:[],selected:null,archives:[],archiveIndex:-1,games:[],loading:false};
