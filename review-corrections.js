@@ -1,3 +1,4 @@
+import './import-fix.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { cacheSet,simpleHash } from './analysis-store.js';
 
