@@ -1,0 +1,7 @@
+const $=id=>document.getElementById(id);
+function selected(){const piece=localStorage.getItem('chess-analyser-pref:pieces')||'classic',board=localStorage.getItem('chess-analyser-pref:board')||'green';document.querySelectorAll('[data-piece-style]').forEach(b=>b.classList.toggle('selected',b.dataset.pieceStyle===piece));document.querySelectorAll('[data-board-theme]').forEach(b=>b.classList.toggle('selected',b.dataset.boardTheme===board))}
+function openSettings(){const p=$('settingsPanel');if(!p)return;if(p.parentElement!==document.body)document.body.appendChild(p);p.hidden=false;p.classList.add('open');selected()}
+function closeSettings(){const p=$('settingsPanel');if(!p)return;p.classList.remove('open');p.hidden=true}
+function toggleSettings(){const p=$('settingsPanel');if(!p)return;if(p.hidden||!p.classList.contains('open'))openSettings();else closeSettings()}
+function init(){document.addEventListener('click',e=>{const trigger=e.target.closest?.('#settingsToggleLibrary,#settingsToggleAnalysis,#settingsToggleLab,#gamesSettings');if(!trigger)return;e.preventDefault();e.stopPropagation();toggleSettings()},true);document.addEventListener('click',e=>{const p=$('settingsPanel');if(!p||p.hidden)return;if(e.target.closest?.('#settingsPanel'))return;if(e.target.closest?.('#settingsToggleLibrary,#settingsToggleAnalysis,#settingsToggleLab,#gamesSettings'))return;closeSettings()});document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSettings()})}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
