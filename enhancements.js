@@ -15,10 +15,10 @@ function savePref(k,v){localStorage.setItem(PREF+k,v);window.dispatchEvent(new C
 function applyBoardTheme(){const b=$('board');if(!b)return;b.classList.remove('theme-green','theme-brown','theme-blue','theme-grey');b.classList.add('theme-'+pref('board','green'))}
 function updateSelectedCards(){document.querySelectorAll('[data-piece-style]').forEach(b=>b.classList.toggle('selected',b.dataset.pieceStyle===pref('pieces','classic')));document.querySelectorAll('[data-board-theme]').forEach(b=>b.classList.toggle('selected',b.dataset.boardTheme===pref('board','green')))}
 function renderPiecePreviews(){document.querySelectorAll('[data-preview-folder]').forEach(el=>{const folder=el.dataset.previewFolder;el.innerHTML=`<img src="https://cdn.jsdelivr.net/gh/Kadagaden/chess-pieces@master/${folder}/wN.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/Kadagaden/chess-pieces@master/${folder}/bK.svg" alt="">`})}
-function showSettings(){const p=$('settingsPanel');if(!p)return;if(p.parentElement!==document.body)document.body.appendChild(p);p.hidden=false;p.classList.add('open');updateSelectedCards()}
-function hideSettings(){const p=$('settingsPanel');if(!p)return;p.classList.remove('open');p.hidden=true}
-function closeAfterApply(){setTimeout(hideSettings,120)}
-function toggleSettings(e){e?.preventDefault();e?.stopPropagation();const p=$('settingsPanel');if(!p)return;p.hidden?showSettings():hideSettings()}
+function showSettings(){window.dispatchEvent(new CustomEvent('requestOpenSettingsPage'))}
+function hideSettings(){const p=$('settingsPanel');if(!p)return;if(p.closest('#settingsView'))return;p.classList.remove('open');p.hidden=true}
+function closeAfterApply(){const p=$('settingsPanel');if(p?.closest('#settingsView'))return;setTimeout(hideSettings,120)}
+function toggleSettings(e){e?.preventDefault();e?.stopPropagation();showSettings()}
 function init(){const user=$('user'),range=$('importRange');const saved=localStorage.getItem('chess-username');if(saved)user.value=saved;const savedRange=localStorage.getItem('chess-import-range');if(savedRange)range.value=savedRange;if(!user.value)$('status').textContent='Enter any Chess.com username and choose how much history to import.';
   for(const [id,key,fallback] of [['engineMode','engine','auto'],['soundMode','sound','on']]){const el=$(id);if(!el)continue;el.value=pref(key,fallback);el.addEventListener('change',()=>{savePref(key,el.value);closeAfterApply()})}
   document.querySelectorAll('[data-piece-style]').forEach(btn=>btn.addEventListener('click',()=>{savePref('pieces',btn.dataset.pieceStyle);updateSelectedCards();closeAfterApply()}));
