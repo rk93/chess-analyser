@@ -1,4 +1,4 @@
-const CACHE='chess-analyser-pages-v53';
+const CACHE='chess-analyser-pages-v54';
 const CORE=['./','./index.html','./styles.css','./fixes.css','./review-experience.css','./analytics.css','./top-players.css','./explorer.css','./puzzles.css','./ux-shell.css','./app.js','./enhancements.js','./ux-shell.js','./settings-fix.js','./lab.js','./auto-analysis.js','./analysis-recovery.js','./opening-insights.js','./game-review.js','./review-corrections.js','./review-summary-navigation.js','./import-fix.js','./position-setup.js','./analytics.js','./top-players.js','./explorer.js','./puzzles.js','./analysis-store.js','./manifest.webmanifest','./icons/icon-192.svg','./icons/icon-512.svg','./icons/icon-maskable-192.svg','./icons/icon-maskable-512.svg'];
 self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(CORE)))});
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))])));
