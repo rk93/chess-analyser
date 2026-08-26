@@ -1,29 +1,21 @@
 import './ux-shell.js';
-const DB_NAME='rk93-chess-analyser',STORE='games';
 const $=id=>document.getElementById(id);
-function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open(DB_NAME,1);r.onupgradeneeded=()=>{const db=r.result;if(!db.objectStoreNames.contains(STORE)){const s=db.createObjectStore(STORE,{keyPath:'_key'});s.createIndex('end_time','end_time')}};r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
-async function putGames(games){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),s=tx.objectStore(STORE);for(const g of games){g._key=g.url||`${g.end_time}-${g.white?.username}-${g.black?.username}`;s.put(g)}tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)})}
-async function json(url){const r=await fetch(url,{headers:{Accept:'application/json'}});if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);return r.json()}
-function archiveDate(url){const m=url.match(/\/(\d{4})\/(\d{2})$/);return m?new Date(+m[1],+m[2]-1,1):new Date(0)}
-function filterArchives(archives,range){if(range==='all')return archives;const now=new Date(),cut=new Date(now.getFullYear(),now.getMonth(),1);cut.setMonth(cut.getMonth()-(range==='month'?1:12));return archives.filter(a=>archiveDate(a)>=cut)}
-async function rangeImport(){const u=$('user').value.trim();if(!u){$('status').textContent='Enter a Chess.com username first.';return}const range=$('importRange').value,b=$('sync');b.disabled=true;try{localStorage.setItem('chess-username',u);localStorage.setItem('chess-import-range',range);$('status').textContent='Finding Chess.com games…';const data=await json(`https://api.chess.com/pub/player/${encodeURIComponent(u)}/games/archives`);const targets=filterArchives(data.archives||[],range);let count=0;for(let i=0;i<targets.length;i++){$('status').textContent=`Importing ${i+1}/${targets.length} months…`;const month=await json(targets[i]);await putGames(month.games||[]);count+=(month.games||[]).length}$('status').textContent=`Imported ${count} games. Refreshing library…`;setTimeout(()=>location.reload(),350)}catch(e){$('status').textContent='Import failed: '+e.message;b.disabled=false}}
 const PREF='chess-analyser-pref:';
+
 if(!localStorage.getItem(PREF+'pieces'))localStorage.setItem(PREF+'pieces','classic');
 if(!localStorage.getItem(PREF+'board'))localStorage.setItem(PREF+'board','green');
-function pref(k,fallback){return localStorage.getItem(PREF+k)||fallback}
-function savePref(k,v){localStorage.setItem(PREF+k,v);window.dispatchEvent(new CustomEvent('chessPreference',{detail:{key:k,value:v}}))}
-function applyBoardTheme(){const b=$('board');if(!b)return;b.classList.remove('theme-green','theme-brown','theme-blue','theme-grey');b.classList.add('theme-'+pref('board','green'))}
-function updateSelectedCards(){document.querySelectorAll('[data-piece-style]').forEach(b=>b.classList.toggle('selected',b.dataset.pieceStyle===pref('pieces','classic')));document.querySelectorAll('[data-board-theme]').forEach(b=>b.classList.toggle('selected',b.dataset.boardTheme===pref('board','green')))}
-function renderPiecePreviews(){document.querySelectorAll('[data-preview-folder]').forEach(el=>{const folder=el.dataset.previewFolder;el.innerHTML=`<img src="https://cdn.jsdelivr.net/gh/Kadagaden/chess-pieces@master/${folder}/wN.svg" alt=""><img src="https://cdn.jsdelivr.net/gh/Kadagaden/chess-pieces@master/${folder}/bK.svg" alt="">`})}
-function showSettings(){window.dispatchEvent(new CustomEvent('requestOpenSettingsPage'))}
-function hideSettings(){const p=$('settingsPanel');if(!p)return;if(p.closest('#settingsView'))return;p.classList.remove('open');p.hidden=true}
-function closeAfterApply(){const p=$('settingsPanel');if(p?.closest('#settingsView'))return;setTimeout(hideSettings,120)}
-function toggleSettings(e){e?.preventDefault();e?.stopPropagation();showSettings()}
-function init(){const user=$('user'),range=$('importRange');const saved=localStorage.getItem('chess-username');if(saved)user.value=saved;const savedRange=localStorage.getItem('chess-import-range');if(savedRange)range.value=savedRange;if(!user.value)$('status').textContent='Enter any Chess.com username and choose how much history to import.';
-  for(const [id,key,fallback] of [['engineMode','engine','auto'],['soundMode','sound','on']]){const el=$(id);if(!el)continue;el.value=pref(key,fallback);el.addEventListener('change',()=>{savePref(key,el.value);closeAfterApply()})}
-  document.querySelectorAll('[data-piece-style]').forEach(btn=>btn.addEventListener('click',()=>{savePref('pieces',btn.dataset.pieceStyle);updateSelectedCards();closeAfterApply()}));
-  document.querySelectorAll('[data-board-theme]').forEach(btn=>btn.addEventListener('click',()=>{savePref('board',btn.dataset.boardTheme);applyBoardTheme();updateSelectedCards();closeAfterApply()}));
-  ['settingsToggleLibrary','settingsToggleAnalysis'].forEach(id=>{const el=$(id);if(el)el.addEventListener('click',toggleSettings)});
-  renderPiecePreviews();updateSelectedCards();applyBoardTheme();const board=$('board');if(board)new MutationObserver(applyBoardTheme).observe(board,{childList:true});
+
+function pref(key,fallback){return localStorage.getItem(PREF+key)||fallback}
+function savePref(key,value){localStorage.setItem(PREF+key,value);window.dispatchEvent(new CustomEvent('chessPreference',{detail:{key,value}}))}
+function applyBoardTheme(){const theme=pref('board','green');document.querySelectorAll('.board').forEach(board=>{board.classList.remove('theme-green','theme-brown','theme-blue','theme-grey');board.classList.add('theme-'+theme)})}
+function updateSelectedCards(){const pieces=pref('pieces','classic'),board=pref('board','green');document.querySelectorAll('[data-piece-style]').forEach(btn=>{const selected=btn.dataset.pieceStyle===pieces;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',String(selected))});document.querySelectorAll('[data-board-theme]').forEach(btn=>{const selected=btn.dataset.boardTheme===board;btn.classList.toggle('selected',selected);btn.setAttribute('aria-pressed',String(selected))})}
+function renderPiecePreviews(){document.querySelectorAll('[data-preview-folder]').forEach(el=>{if(el.dataset.ready)return;el.dataset.ready='1';const folder=el.dataset.previewFolder,imgs=[['wN','♘'],['bK','♚']];for(const [piece,fallback] of imgs){const img=document.createElement('img');img.src=`https://cdn.jsdelivr.net/gh/Kadagaden/chess-pieces@master/${folder}/${piece}.svg`;img.alt='';img.addEventListener('error',()=>{img.remove();const s=document.createElement('span');s.className='pieceFallback';s.textContent=fallback;el.appendChild(s)},{once:true});el.appendChild(img)}})}
+function showSettings(e){e?.preventDefault();e?.stopPropagation();window.dispatchEvent(new CustomEvent('requestOpenSettingsPage'))}
+function init(){const user=$('user'),range=$('importRange');const saved=localStorage.getItem('chess-username');if(saved&&user)user.value=saved;const savedRange=localStorage.getItem('chess-import-range');if(savedRange&&range)range.value=savedRange;if(user&&!user.value&&$('status'))$('status').textContent='Enter any Chess.com username and choose how much history to import.';
+  for(const [id,key,fallback] of [['engineMode','engine','auto'],['soundMode','sound','on']]){const el=$(id);if(!el)continue;el.value=pref(key,fallback);el.addEventListener('change',()=>savePref(key,el.value))}
+  document.addEventListener('click',e=>{const piece=e.target.closest?.('[data-piece-style]');if(piece){savePref('pieces',piece.dataset.pieceStyle);updateSelectedCards();return}const board=e.target.closest?.('[data-board-theme]');if(board){savePref('board',board.dataset.boardTheme);updateSelectedCards();applyBoardTheme();return}const trigger=e.target.closest?.('#settingsToggleLibrary,#settingsToggleAnalysis,#settingsToggleLab,#gamesSettings');if(trigger)showSettings(e)},true);
+  renderPiecePreviews();updateSelectedCards();applyBoardTheme();
+  new MutationObserver(()=>{applyBoardTheme();renderPiecePreviews()}).observe(document.body,{childList:true,subtree:true});
+  window.addEventListener('requestOpenSettingsPage',()=>requestAnimationFrame(()=>{renderPiecePreviews();updateSelectedCards()}));
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
