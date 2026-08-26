@@ -1,6 +1,8 @@
 import './import-fix.js';
 import './review-summary-navigation.js';
 import './puzzles.js';
+import './ux-shell.js';
+import './settings-fix.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { cacheSet,simpleHash } from './analysis-store.js';
 
