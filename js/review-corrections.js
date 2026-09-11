@@ -2,6 +2,7 @@ import './import-fix.js';
 import './review-summary-navigation.js';
 import './review-reliability.js';
 import './review-pro.js';
+import './review-polish.js';
 import './puzzles.js';
 import './ux-shell.js';
 import './settings-fix.js';
