@@ -1,2 +1,3 @@
+import './review-perspective-fix.js';
 function init(){document.addEventListener('click',e=>{const trigger=e.target.closest?.('#settingsToggleLibrary,#settingsToggleAnalysis,#settingsToggleLab,#gamesSettings');if(!trigger)return;e.preventDefault();e.stopPropagation();window.dispatchEvent(new CustomEvent('requestOpenSettingsPage'))},true)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
