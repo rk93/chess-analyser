@@ -1,4 +1,5 @@
 import './ux-shell.js';
+import './pgn-analyzer.js';
 const $=id=>document.getElementById(id);
 const PREF='chess-analyser-pref:';
 
