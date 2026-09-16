@@ -24,11 +24,12 @@ jobs:
           mkdir -p engine
           cp node_modules/stockfish/bin/stockfish-19-lite-single.js engine/
           cp node_modules/stockfish/bin/stockfish-19-lite-single.wasm engine/
+          cp node_modules/stockfish/bin/stockfish-19-lite-single.wasm engine/stockfish.wasm
       - name: Commit vendored engine
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add engine/stockfish-19-lite-single.js engine/stockfish-19-lite-single.wasm
+          git add engine/stockfish-19-lite-single.js engine/stockfish-19-lite-single.wasm engine/stockfish.wasm
           if git diff --cached --quiet; then
             echo "Stockfish already up to date"
           else
