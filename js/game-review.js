@@ -1,12 +1,14 @@
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { cacheGet,cacheSet,getPositionEval,setPositionEval,simpleHash } from './analysis-store.js';
+import { buildTacticalVerificationPlan } from './review-tactics.js';
 
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-const REVIEW_VERSION=6;
+const REVIEW_VERSION=7;
 const MAX_FRESH_CLOUD=36;
 const CLOUD_CONCURRENCY=4;
 const LIVE_FALLBACK_LIMIT=4;
+const TACTICAL_VERIFY_LIMIT=16;
 let running=false,reviewToken=0,restoreTimer=null,activeReview=null,summaryShownForKey='';
 
 const LABELS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Mistake','Blunder'];
@@ -54,6 +56,18 @@ async function liveEval(fen){
   }
   const pv=data.pvs[0];
   return{cp:cpFromPv(pv),best:firstMove(pv.moves),depth:data.depth||12,source:'live'};
+}
+async function deepLiveEval(fen){
+  let data=canonical(await getPositionEval('review-deep',fen));
+  if(!data){
+    const r=await fetchTimeout('https://chess-api.com/v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fen,depth:16,variants:1,maxThinkingTime:350})},6500);
+    if(!r.ok)throw new Error(`Deep live ${r.status}`);
+    const j=await r.json(),best=j.move||j.lan||'',cont=Array.isArray(j.continuationArr)?j.continuationArr.filter(Boolean):[],moves=[best,...cont.filter((m,i)=>!(i===0&&m===best))].filter(Boolean).join(' '),cp=j.eval!=null?Math.round(Number(j.eval)*100):Number(j.centipawns)||0;
+    data={source:'Stockfish tactical',depth:j.depth||16,pvs:[{cp,mate:j.mate,moves}]};
+    await setPositionEval('review-deep',fen,data);
+  }
+  const pv=data.pvs[0];
+  return{cp:cpFromPv(pv),best:firstMove(pv.moves),depth:data.depth||16,source:'deep-live'};
 }
 
 function winProb(cp){const pawns=Math.max(-10,Math.min(10,cp/100));return 1/(1+Math.exp(-1.25*pawns))}
@@ -151,6 +165,18 @@ function sampleIndexes(total,max){if(total<=max)return Array.from({length:total}
 async function fillCached(positions,evals,bestMoves,positionExact){for(let i=0;i<positions.length;i++){const e=await cloudEval(positions[i].fen,{network:false});if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}if(i%24===23)await sleep(0)}}
 async function runCloudPass(positions,evals,bestMoves,positionExact,token){await fillCached(positions,evals,bestMoves,positionExact);const candidates=sampleIndexes(positions.length,MAX_FRESH_CLOUD).filter(i=>evals[i]==null);let next=0,done=0,stop=false;async function worker(){while(!stop){const n=next++;if(n>=candidates.length||token!==reviewToken)return;const i=candidates[n];try{const e=await cloudEval(positions[i].fen);if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}}catch(e){if(e?.rateLimited)stop=true}done++;$('reviewStatus').textContent=`Quick review ${Math.min(done,candidates.length)}/${candidates.length}…`;if(done%8===0)await sleep(30)}}await Promise.all(Array.from({length:Math.min(CLOUD_CONCURRENCY,candidates.length||1)},worker))}
 function missingFallbackIndexes(evals){const missing=[];for(let i=0;i<evals.length;i++)if(evals[i]==null)missing.push(i);if(missing.length<=LIVE_FALLBACK_LIMIT)return missing;const out=[];for(let n=0;n<LIVE_FALLBACK_LIMIT;n++)out.push(missing[Math.round(n*(missing.length-1)/(LIVE_FALLBACK_LIMIT-1))]);return [...new Set(out)]}
+async function runTacticalVerification(positions,sans,evals,bestMoves,positionExact,token){
+  const provisional=evals.slice();interpolate(provisional);
+  const plan=buildTacticalVerificationPlan({positions,sans,evals:provisional,positionExact,legalMoves:fen=>new Chess(fen).moves({verbose:true})});
+  const candidates=plan.filter(x=>!positionExact[x.index]).slice(0,TACTICAL_VERIFY_LIMIT);
+  for(let n=0;n<candidates.length;n++){
+    if(token!==reviewToken)return{plan,verified:0};
+    const {index,reason}=candidates[n];$('reviewStatus').textContent=`Tactical verification ${n+1}/${candidates.length} · ${reason}…`;
+    try{const e=await deepLiveEval(positions[index].fen);if(e){evals[index]=e.cp;bestMoves[index]=e.best||'';positionExact[index]=true}}catch{}
+    if(n<candidates.length-1)await sleep(35);
+  }
+  return{plan,verified:candidates.length};
+}
 async function runReview(){
   if(running)return;
   if(activeReview){showSummaryScreen(activeReview,{force:true});return}
@@ -159,11 +185,12 @@ async function runReview(){
   running=true;activeReview=null;signalRunning(true);const token=++reviewToken,btn=$('runReview');btn.disabled=true;btn.textContent='Reviewing…';clearTags();$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;const evals=new Array(positions.length).fill(null),bestMoves=new Array(positions.length).fill(''),positionExact=new Array(positions.length).fill(false);
   try{
     await runCloudPass(positions,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
-    const fallback=missingFallbackIndexes(evals);for(let n=0;n<fallback.length;n++){if(token!==reviewToken)return;const i=fallback[n];$('reviewStatus').textContent=`Finishing review ${n+1}/${fallback.length}…`;try{const e=await liveEval(positions[i].fen);if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}}catch{}if(n<fallback.length-1)await sleep(35)}
+    const fallback=missingFallbackIndexes(evals);for(let n=0;n<fallback.length;n++){if(token!==reviewToken)return;const i=fallback[n];$('reviewStatus').textContent=`Finishing quick review ${n+1}/${fallback.length}…`;try{const e=await liveEval(positions[i].fen);if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}}catch{}if(n<fallback.length-1)await sleep(35)}
+    const tactical=await runTacticalVerification(positions,sans,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
     const exactCount=positionExact.filter(Boolean).length;if(exactCount<2)throw new Error('not enough engine positions were available; try again shortly');
     interpolate(evals);const ucis=playedUcis(),losses=[],labels=[],whiteLoss=[],blackLoss=[],moveVerified=[];
     for(let ply=1;ply<evals.length;ply++){const loss=moveLoss(evals[ply-1],evals[ply],ply),verified=!!positionExact[ply-1]&&!!positionExact[ply];losses.push(loss);moveVerified.push(verified);labels.push(classifyMove({loss,ply,before:evals[ply-1],after:evals[ply],played:ucis[ply-1],best:bestMoves[ply-1],verified}));(ply%2?whiteLoss:blackLoss).push(loss)}
-    const data={version:REVIEW_VERSION,evals,losses,labels,bestMoves,positionExact,moveVerified,whiteAccuracy:accuracy(whiteLoss),blackAccuracy:accuracy(blackLoss),updated:Date.now()};await cacheSet('review',key,data);displayReview(data,{showSummary:true});
+    const data={version:REVIEW_VERSION,evals,losses,labels,bestMoves,positionExact,moveVerified,tacticalPlan:tactical.plan.map(x=>({index:x.index,reason:x.reason})),whiteAccuracy:accuracy(whiteLoss),blackAccuracy:accuracy(blackLoss),updated:Date.now()};await cacheSet('review',key,data);displayReview(data,{showSummary:true});
   }catch(e){$('reviewStatus').textContent='Game Review failed: '+(e?.name==='AbortError'?'engine request timed out':e.message)}finally{running=false;signalRunning(false);btn.disabled=false;if(!activeReview)btn.textContent='Review game'}
 }
 function resetReviewUI(){reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
