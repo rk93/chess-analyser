@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildTacticalVerificationPlan, planIndexes } from '../js/review-tactics.js';
+import { classifyReviewedMove } from '../js/review-scoring.js';
 
 const PGN=`[Site "Chess.com"]
 [Date "2026-09-16"]
@@ -45,4 +46,19 @@ test('tactical pass deep-verifies the repeated hanging-queen sequence in regress
   });
   const indexes=new Set(planIndexes(plan));
   for(let i=28;i<=34;i++) assert.ok(indexes.has(i),`expected position ${i} to be deep verified`);
+});
+
+test('15.Qe4 in the regression PGN cannot be downgraded below blunder when the engine confirms Nxe4 wins the queen',()=>{
+  const sans=sansFromPgn(PGN);
+  assert.equal(sans[28],'Qe4');
+  const label=classifyReviewedMove({
+    loss:0.08,
+    ply:29,
+    played:'f3e4',
+    best:'f3d1',
+    previousLabel:'Inaccuracy',
+    queenHangConfirmed:true,
+    queenTrade:false
+  });
+  assert.equal(label,'Blunder');
 });
