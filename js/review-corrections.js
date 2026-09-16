@@ -1,4 +1,5 @@
 import './import-fix.js';
+import './review-quality.js';
 import './review-summary-navigation.js';
 import './review-reliability.js';
 import './review-pro.js';
