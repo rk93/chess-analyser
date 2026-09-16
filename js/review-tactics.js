@@ -1,5 +1,3 @@
-import './review-quality.js';
-
 export function buildTacticalVerificationPlan({positions=[],sans=[],evals=[],positionExact=[],legalMoves}){
   const score=new Map(),reason=new Map();
   const add=(index,points,why)=>{
