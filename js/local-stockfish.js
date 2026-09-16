@@ -20,7 +20,7 @@ class LocalStockfish{
       try{
         const url=new URL('../engine/stockfish-19-lite-single.js',import.meta.url);
         this.worker=new Worker(url);
-        const onMessage=e=>{const line=String(e.data||'');if(line.includes('uciok')){this.worker.postMessage('isready');}else if(line.includes('readyok')){this.worker.removeEventListener('message',onMessage);resolve(this);}};
+        const onMessage=e=>{const line=String(e.data||'');if(line.includes('uciok')){this.worker.postMessage('setoption name Hash value 32');this.worker.postMessage('isready');}else if(line.includes('readyok')){this.worker.removeEventListener('message',onMessage);resolve(this);}};
         this.worker.addEventListener('message',onMessage);
         this.worker.addEventListener('error',reject,{once:true});
         this.worker.postMessage('uci');
@@ -37,7 +37,7 @@ class LocalStockfish{
     const turn=String(fen).split(/\s+/)[1]||'w';
     return new Promise((resolve,reject)=>{
       const state={depth:0,cp:0,mate:null,pv:'',best:''};
-      let timer=setTimeout(()=>{cleanup();try{this.worker.postMessage('stop')}catch{};reject(new Error('Local Stockfish timed out'));},15000);
+      let timer=setTimeout(()=>{cleanup();try{this.worker.postMessage('stop')}catch{};reject(new Error('Local Stockfish timed out'));},20000);
       const cleanup=()=>{clearTimeout(timer);this.worker?.removeEventListener('message',onMessage)};
       const onMessage=e=>{
         const line=String(e.data||'');parseInfo(line,state,turn);
@@ -45,12 +45,12 @@ class LocalStockfish{
         if(m){state.best=m[1]&&m[1]!=='(none)'?m[1]:'';cleanup();resolve({...state,source:'Stockfish 19 local'});}
       };
       this.worker.addEventListener('message',onMessage);
-      this.worker.postMessage('ucinewgame');
       this.worker.postMessage(`position fen ${fen}`);
       this.worker.postMessage(movetime>0?`go movetime ${movetime}`:`go depth ${depth}`);
     });
   }
-  quit(){try{this.worker?.terminate()}catch{}this.worker=null;this.readyPromise=null;}
+  newGame(){try{this.worker?.postMessage('ucinewgame')}catch{}}
+  quit(){try{this.worker?.terminate()}catch{}this.worker=null;this.readyPromise=null;this.queue=Promise.resolve();}
 }
 
 export function getLocalStockfish(){if(!singleton)singleton=new LocalStockfish();return singleton}
