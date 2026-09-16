@@ -1,0 +1,37 @@
+name: Vendor Stockfish
+
+on:
+  push:
+    paths:
+      - '.github/workflows/vendor-stockfish.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install Stockfish package
+        run: npm install --no-save stockfish@19.0.0
+      - name: Copy browser engine
+        run: |
+          mkdir -p engine
+          cp node_modules/stockfish/bin/stockfish-19-lite-single.js engine/
+          cp node_modules/stockfish/bin/stockfish-19-lite-single.wasm engine/
+      - name: Commit vendored engine
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add engine/stockfish-19-lite-single.js engine/stockfish-19-lite-single.wasm
+          if git diff --cached --quiet; then
+            echo "Stockfish already up to date"
+          else
+            git commit -m "Vendor Stockfish 19 lite engine"
+            git push
+          fi
