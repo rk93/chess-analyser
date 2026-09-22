@@ -56,6 +56,12 @@ function keepShowBestAvailable(){
   const btn=$('reviewShowBest');if(!btn||!review)return;
   btn.hidden=currentPly()===0;
 }
+function autoShowBest(){
+  if(!review||currentPly()===0)return;
+  // Review v2 already stores the verified best move for every position, so this is
+  // normally instant and makes guided Next behave like a coach rather than a manual tool.
+  showBest().catch(()=>{});
+}
 
 function jumpToSummaryMove(row,side){
   if(!review)return;
@@ -69,8 +75,8 @@ function jumpToSummaryMove(row,side){
 }
 
 function init(){
-  window.addEventListener('gameReviewReady',e=>{review=e.detail?.data||review;cycle.clear();requestAnimationFrame(keepShowBestAvailable)});
-  window.addEventListener('reviewNavigation',()=>requestAnimationFrame(keepShowBestAvailable));
+  window.addEventListener('gameReviewReady',e=>{review=e.detail?.data||review;cycle.clear();requestAnimationFrame(()=>{keepShowBestAvailable();autoShowBest()})});
+  window.addEventListener('reviewNavigation',()=>requestAnimationFrame(()=>{keepShowBestAvailable();autoShowBest()}));
   document.addEventListener('click',e=>{
     const best=e.target.closest?.('#reviewShowBest');if(best){e.preventDefault();e.stopImmediatePropagation();showBest();return}
     const count=e.target.closest?.('#reviewBreakdown .left,#reviewBreakdown .right');if(count){const n=Number(count.textContent)||0;if(!n)return;e.preventDefault();e.stopImmediatePropagation();jumpToSummaryMove(count.closest('.reviewBreakRow'),count.classList.contains('left')?'white':'black')}
