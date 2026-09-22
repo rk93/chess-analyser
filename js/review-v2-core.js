@@ -45,16 +45,20 @@ export function classifyStockfishMove({
   const cpDrop=moverCpDrop(beforeCp,afterCp,ply);
   const exactBest=!!best&&played===best;
   const bestEquivalent=exactBest||cpDrop<=10;
-  // A move cannot simultaneously be Stockfish's exact top move and a bad-move label.
-  // Independent searches can disagree slightly; exact PV identity wins over that noise.
-  if(exactBest)return{label:isBook?'Book':'Best',lossPct,accuracy:moveAccuracyFromLoss(lossPct),bestEquivalent:true,onlyGapPct:null};
-  const bad=lichessBadMove(lossPct);
-  if(bad)return{label:bad,lossPct,accuracy:moveAccuracyFromLoss(lossPct),bestEquivalent:false,onlyGapPct:null};
   const forced=legalMoveCount===1;
   let onlyGapPct=null;
   if(Number.isFinite(secondBestCp)){
     onlyGapPct=Math.max(0,moverWinPercent(beforeCp,ply)-moverWinPercent(secondBestCp,ply));
   }
+  // A move cannot simultaneously be Stockfish's exact top move and a bad-move label.
+  // Independent searches can disagree slightly; exact PV identity wins over that noise.
+  // It can still be Great when it is a clearly singular engine choice.
+  if(exactBest){
+    const label=!isBook&&onlyGapPct!=null&&onlyGapPct>=12&&lossPct<2?'Great':(isBook?'Book':'Best');
+    return{label,lossPct,accuracy:moveAccuracyFromLoss(lossPct),bestEquivalent:true,onlyGapPct};
+  }
+  const bad=lichessBadMove(lossPct);
+  if(bad)return{label:bad,lossPct,accuracy:moveAccuracyFromLoss(lossPct),bestEquivalent:false,onlyGapPct};
 
   let label;
   if(isBook&&lossPct<5)label='Book';
