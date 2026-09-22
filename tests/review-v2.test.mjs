@@ -53,3 +53,13 @@ test('move accuracy declines monotonically with Win% loss',()=>{
   assert.ok(moveAccuracyFromLoss(1)>moveAccuracyFromLoss(10));
   assert.ok(moveAccuracyFromLoss(10)>moveAccuracyFromLoss(30));
 });
+
+
+test('exact Stockfish top move can never be labelled a bad move even with noisy independent evals',()=>{
+  const row=classifyStockfishMove({
+    beforeCp:320,afterCp:-329,ply:45,played:'d1c2',best:'d1c2',
+    secondBestCp:100,legalMoveCount:18,isBook:false
+  });
+  assert.equal(row.label,'Best');
+  assert.notEqual(row.label,'Blunder');
+});
