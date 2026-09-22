@@ -47,9 +47,12 @@ async function showBest(){
     fetching=true;if(btn){btn.disabled=true;btn.textContent='Finding best…'};
     try{best=await fetchBest(fen);if(best){review.bestMoves=review.bestMoves||[];review.bestMoves[i]=best;await cacheSet('review',reviewKey(),review).catch(()=>{})}}finally{fetching=false;if(btn){btn.disabled=false;btn.textContent='Show best'}}
   }
-  if(!best){if(comment)comment.textContent='A verified best move is not available for this position yet.';return}
+  if(!best){if(comment&&!comment.textContent)comment.textContent='A verified best move is not available for this position yet.';return}
   drawWhenReady(best);
-  const bestSan=sanForUci(fen,best);if(comment)comment.textContent=`Best move: ${bestSan}. The green arrow shows the engine's preferred move.`;
+  const bestSan=sanForUci(fen,best);
+  const card=$('reviewGuideCard');let line=$('reviewAutoBest');
+  if(card&&!line){line=document.createElement('div');line.id='reviewAutoBest';line.className='reviewAutoBest';const actions=card.querySelector('.reviewGuideActions');card.insertBefore(line,actions||null)}
+  if(line)line.innerHTML=`Engine best: <b>${bestSan}</b> <span>· shown by the green arrow</span>`;
 }
 
 function keepShowBestAvailable(){
