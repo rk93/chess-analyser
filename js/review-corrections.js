@@ -15,7 +15,7 @@ const $=id=>document.getElementById(id);
 const LABELS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Mistake','Blunder'];
 const SYMBOL={Brilliant:'!!',Great:'!',Best:'★',Excellent:'✓',Good:'✓',Book:'📖',Inaccuracy:'?!',Mistake:'?',Blunder:'??'};
 const BADGE={Brilliant:'brilliant',Great:'great',Best:'best',Excellent:'excellent',Good:'good',Book:'book',Inaccuracy:'inaccuracy',Mistake:'mistake',Blunder:'blunder'};
-const LOCAL_REVIEW_VERSION=20;
+const LOCAL_REVIEW_VERSION=21;
 const BASE_DEPTH=16;
 const DEEP_DEPTH=20;
 let auditing=false;
