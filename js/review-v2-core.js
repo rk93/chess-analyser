@@ -42,11 +42,14 @@ export function classifyStockfishMove({
   legalMoveCount=null,isBook=false,isSacrifice=false
 }){
   const lossPct=moverWinLossPct(beforeCp,afterCp,ply);
+  const cpDrop=moverCpDrop(beforeCp,afterCp,ply);
+  const exactBest=!!best&&played===best;
+  const bestEquivalent=exactBest||cpDrop<=10;
+  // A move cannot simultaneously be Stockfish's exact top move and a bad-move label.
+  // Independent searches can disagree slightly; exact PV identity wins over that noise.
+  if(exactBest)return{label:isBook?'Book':'Best',lossPct,accuracy:moveAccuracyFromLoss(lossPct),bestEquivalent:true,onlyGapPct:null};
   const bad=lichessBadMove(lossPct);
   if(bad)return{label:bad,lossPct,accuracy:moveAccuracyFromLoss(lossPct),bestEquivalent:false,onlyGapPct:null};
-
-  const cpDrop=moverCpDrop(beforeCp,afterCp,ply);
-  const bestEquivalent=(!!best&&played===best)||cpDrop<=10;
   const forced=legalMoveCount===1;
   let onlyGapPct=null;
   if(Number.isFinite(secondBestCp)){
