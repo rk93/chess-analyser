@@ -29,7 +29,9 @@ function ensureContext(){
   let box=$('reviewMoveContext');
   if(box)return box;
   box=document.createElement('section');box.id='reviewMoveContext';box.className='reviewMoveContext';
-  box.innerHTML='<div class="reviewContextTitle">Position context</div><div id="reviewContextBody" class="reviewContextBody muted">Move to a position to load context.</div>';
+  box.innerHTML='<details id="reviewContextDetails" class="reviewContextDetails"><summary><span>Position context</span><span id="reviewContextSummary" class="reviewContextSummary">Opening · tactics · database</span></summary><div id="reviewContextBody" class="reviewContextBody muted">Move to a position to load context.</div></details>';
+  const details=box.querySelector('#reviewContextDetails');
+  if(details&&matchMedia('(min-width: 801px)').matches)details.open=true;
   const actions=card.querySelector('.reviewGuideActions');
   card.insertBefore(box,actions||null);
   return box;
@@ -118,6 +120,8 @@ async function renderContext(){
   const before=game.positions[ply-1],m=game.moves[ply-1],id=++requestId;
   const facts=moveFacts(game,ply);
   const best=review.bestMoves?.[ply-1]||'',bestSan=sanForUci(before,best),loss=Number(review.lossPct?.[ply-1]);
+  const summary=$('reviewContextSummary');
+  if(summary)summary.textContent=`${review.labels?.[ply-1]||'Move'}${Number.isFinite(loss)?` · ${loss.toFixed(1)}% loss`:''}`;
   body.innerHTML=`<div class="reviewContextMove"><b>${Math.floor((ply+1)/2)}${ply%2?' .':' …'} ${esc(m.san)}</b><span>${esc(review.labels?.[ply-1]||'')}</span></div>
     <div class="reviewContextFacts">${facts.length?facts.map(x=>`<span>${esc(x)}</span>`).join(''):'<span>Quiet/positional move</span>'}</div>
     <div class="reviewContextEngine">${bestSan?`Engine best: <b>${esc(bestSan)}</b>`:''}${Number.isFinite(loss)?` · Win% loss <b>${loss.toFixed(1)}%</b>`:''}</div>
