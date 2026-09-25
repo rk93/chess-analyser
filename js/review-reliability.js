@@ -2,7 +2,7 @@ import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { cacheSet,simpleHash,getPositionEval,setPositionEval } from './analysis-store.js';
 
 const $=id=>document.getElementById(id);
-let review=null,fetching=false;
+let review=null,fetching=false,lastRenderedPly=-1,syncRaf=0;
 const cycle=new Map();
 
 function moveEls(){return [...document.querySelectorAll('#moves .move')]}
@@ -60,8 +60,6 @@ async function showBest(){
   if(renderPreparedBest(i))return;
   const line=ensureBestLine();if(line){line.classList.add('loadingLine');line.innerHTML='<span>Preparing engine line…</span>'}
   const ps=positions(),fen=ps[i];if(!fen)return;
-  // Review v2 should already contain the best move. Network lookup is kept only as
-  // a compatibility fallback for older cached reviews.
   if(Number(review.localStockfishVersion)>=21)return;
   const btn=$('reviewShowBest'),comment=$('reviewGuideComment');let best='';
   fetching=true;if(btn){btn.disabled=true;btn.textContent='Finding best…'};
@@ -75,9 +73,24 @@ function keepShowBestAvailable(){
   const btn=$('reviewShowBest');if(!btn||!review)return;
   btn.hidden=currentPly()===0;
 }
-function autoShowBest(){
-  if(!review||currentPly()===0)return;
-  showBest().catch(()=>{});
+function syncToActiveMove(force=false){
+  if(syncRaf)cancelAnimationFrame(syncRaf);
+  syncRaf=requestAnimationFrame(()=>{
+    syncRaf=0;
+    const ply=currentPly();
+    keepShowBestAvailable();
+    if(!review||ply===0){lastRenderedPly=0;$('analysisArrows')?.replaceChildren();return}
+    if(!force&&ply===lastRenderedPly)return;
+    lastRenderedPly=ply;
+    showBest().catch(()=>{});
+  });
+}
+function observeActiveMove(){
+  const root=$('moves');if(!root)return;
+  const obs=new MutationObserver(mutations=>{
+    if(mutations.some(m=>m.type==='attributes'&&m.attributeName==='class'&&m.target?.classList?.contains('move')))syncToActiveMove();
+  });
+  obs.observe(root,{subtree:true,attributes:true,attributeFilter:['class']});
 }
 
 function jumpToSummaryMove(row,side){
@@ -92,13 +105,14 @@ function jumpToSummaryMove(row,side){
 }
 
 function init(){
-  window.addEventListener('gameReviewReady',e=>{review=e.detail?.data||review;cycle.clear();requestAnimationFrame(()=>{keepShowBestAvailable();autoShowBest()})});
-  window.addEventListener('reviewNavigation',()=>requestAnimationFrame(()=>{keepShowBestAvailable();autoShowBest()}));
+  observeActiveMove();
+  window.addEventListener('gameReviewReady',e=>{review=e.detail?.data||review;cycle.clear();lastRenderedPly=-1;syncToActiveMove(true)});
+  window.addEventListener('reviewNavigation',()=>syncToActiveMove());
   document.addEventListener('click',e=>{
     const best=e.target.closest?.('#reviewShowBest');if(best){e.preventDefault();e.stopImmediatePropagation();showBest();return}
     const count=e.target.closest?.('#reviewBreakdown .left,#reviewBreakdown .right');if(count){const n=Number(count.textContent)||0;if(!n)return;e.preventDefault();e.stopImmediatePropagation();jumpToSummaryMove(count.closest('.reviewBreakRow'),count.classList.contains('left')?'white':'black');return}
     if(e.target.closest?.('#next,#prev,#start,#end,#reviewNext,#reviewPrev,#moves .move')){
-      setTimeout(()=>requestAnimationFrame(()=>{keepShowBestAvailable();autoShowBest()}),16);
+      const line=$('reviewAutoBest');if(line){line.classList.add('loadingLine');line.innerHTML='<span>Updating engine line…</span>'}
     }
   },true);
 }
