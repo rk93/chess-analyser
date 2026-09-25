@@ -42,6 +42,26 @@ function terminalEval(fen){
 }
 function legalMoveCount(fen){try{return new Chess(fen).moves().length}catch{return null}}
 function queenCaptureAvailable(fen){try{return new Chess(fen).moves({verbose:true}).some(m=>m.captured==='q')}catch{return false}}
+function lineSan(fen,pv,max=6){
+  try{
+    const c=new Chess(fen),out=[];
+    for(const uci of String(pv||'').trim().split(/\s+/).slice(0,max)){
+      if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci))break;
+      const m=c.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||undefined});if(!m)break;out.push(m.san);
+    }
+    return out.join(' ');
+  }catch{return''}
+}
+function enrichDisplay(data,ctx){
+  const n=Math.max(0,ctx.positions.length-1),bestSans=new Array(n).fill(''),bestLines=new Array(n).fill('');
+  for(let i=0;i<n;i++){
+    const fen=ctx.positions[i],uci=data.bestMoves?.[i]||'',pv=data.localPvs?.[i]||uci;
+    bestSans[i]=lineSan(fen,uci,1)||uci;
+    bestLines[i]=lineSan(fen,pv,6)||bestSans[i];
+  }
+  data.bestSans=bestSans;data.bestLines=bestLines;data.displayPrecomputed=true;
+  return data;
+}
 
 function countBySide(data){
   const out={white:Object.fromEntries(LABELS.map(x=>[x,0])),black:Object.fromEntries(LABELS.map(x=>[x,0]))};
@@ -147,14 +167,18 @@ function buildReview(engineData,ctx,prior){
     updated:Date.now()
   };
   Object.assign(prior,result);
-  return prior;
+  return enrichDisplay(prior,ctx);
 }
 
 async function deepCorrect(detail){
   if(auditing)return;
   const prior=detail?.data;if(!prior?.evals?.length)return;
   const ctx=build();if(ctx.positions.length!==prior.evals.length)return;
-  if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION){refreshMoveTags(prior);refreshSummary(prior);return}
+  if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION){
+    const needed=!prior.displayPrecomputed||!Array.isArray(prior.bestSans)||!Array.isArray(prior.bestLines);
+    if(needed){enrichDisplay(prior,ctx);await cacheSet('review',reviewKey(),prior).catch(()=>{})}
+    refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
+  }
   if(!await localStockfishAvailable()){const status=$('reviewStatus');if(status)status.textContent='Local Stockfish is unavailable; the quick review remains visible.';return}
   auditing=true;
   try{
