@@ -37,22 +37,38 @@ function drawArrow(uci){
   return true;
 }
 function drawWhenReady(uci,tries=4){if(drawArrow(uci)||tries<=0)return;requestAnimationFrame(()=>drawWhenReady(uci,tries-1))}
+function ensureBestLine(){
+  const card=$('reviewGuideCard');if(!card)return null;
+  let line=$('reviewAutoBest');
+  if(!line){line=document.createElement('div');line.id='reviewAutoBest';line.className='reviewAutoBest';const actions=card.querySelector('.reviewGuideActions');card.insertBefore(line,actions||null)}
+  return line;
+}
+function renderPreparedBest(i){
+  const best=review?.bestMoves?.[i]||'';if(!best)return false;
+  drawWhenReady(best);
+  const bestSan=review?.bestSans?.[i]||best,lineSan=review?.bestLines?.[i]||bestSan,line=ensureBestLine();
+  if(line){
+    line.classList.remove('loadingLine');
+    line.innerHTML=`<div><span>Engine best</span> <b>${bestSan}</b></div>${lineSan&&lineSan!==bestSan?`<div class="reviewPvLine">${lineSan}</div>`:''}`;
+  }
+  return true;
+}
 
 async function showBest(){
   if(!review||fetching)return;
   const ply=currentPly(),i=ply-1;if(i<0)return;
+  if(renderPreparedBest(i))return;
+  const line=ensureBestLine();if(line){line.classList.add('loadingLine');line.innerHTML='<span>Preparing engine line…</span>'}
   const ps=positions(),fen=ps[i];if(!fen)return;
-  const btn=$('reviewShowBest'),comment=$('reviewGuideComment');let best=review.bestMoves?.[i]||'';
-  if(!best){
-    fetching=true;if(btn){btn.disabled=true;btn.textContent='Finding best…'};
-    try{best=await fetchBest(fen);if(best){review.bestMoves=review.bestMoves||[];review.bestMoves[i]=best;await cacheSet('review',reviewKey(),review).catch(()=>{})}}finally{fetching=false;if(btn){btn.disabled=false;btn.textContent='Show best'}}
-  }
-  if(!best){if(comment&&!comment.textContent)comment.textContent='A verified best move is not available for this position yet.';return}
+  // Review v2 should already contain the best move. Network lookup is kept only as
+  // a compatibility fallback for older cached reviews.
+  if(Number(review.localStockfishVersion)>=21)return;
+  const btn=$('reviewShowBest'),comment=$('reviewGuideComment');let best='';
+  fetching=true;if(btn){btn.disabled=true;btn.textContent='Finding best…'};
+  try{best=await fetchBest(fen);if(best){review.bestMoves=review.bestMoves||[];review.bestMoves[i]=best;await cacheSet('review',reviewKey(),review).catch(()=>{})}}finally{fetching=false;if(btn){btn.disabled=false;btn.textContent='Show best'}}
+  if(!best){if(line){line.classList.remove('loadingLine');line.textContent='Best line unavailable for this position.'}if(comment&&!comment.textContent)comment.textContent='A verified best move is not available for this position yet.';return}
   drawWhenReady(best);
-  const bestSan=sanForUci(fen,best);
-  const card=$('reviewGuideCard');let line=$('reviewAutoBest');
-  if(card&&!line){line=document.createElement('div');line.id='reviewAutoBest';line.className='reviewAutoBest';const actions=card.querySelector('.reviewGuideActions');card.insertBefore(line,actions||null)}
-  if(line)line.innerHTML=`Engine best: <b>${bestSan}</b> <span>· shown by the green arrow</span>`;
+  const bestSan=sanForUci(fen,best);if(line){line.classList.remove('loadingLine');line.innerHTML=`<div><span>Engine best</span> <b>${bestSan}</b></div>`}
 }
 
 function keepShowBestAvailable(){
@@ -61,8 +77,6 @@ function keepShowBestAvailable(){
 }
 function autoShowBest(){
   if(!review||currentPly()===0)return;
-  // Review v2 already stores the verified best move for every position, so this is
-  // normally instant and makes guided Next behave like a coach rather than a manual tool.
   showBest().catch(()=>{});
 }
 
@@ -84,7 +98,7 @@ function init(){
     const best=e.target.closest?.('#reviewShowBest');if(best){e.preventDefault();e.stopImmediatePropagation();showBest();return}
     const count=e.target.closest?.('#reviewBreakdown .left,#reviewBreakdown .right');if(count){const n=Number(count.textContent)||0;if(!n)return;e.preventDefault();e.stopImmediatePropagation();jumpToSummaryMove(count.closest('.reviewBreakRow'),count.classList.contains('left')?'white':'black');return}
     if(e.target.closest?.('#next,#prev,#start,#end,#reviewNext,#reviewPrev,#moves .move')){
-      setTimeout(()=>requestAnimationFrame(()=>{keepShowBestAvailable();autoShowBest()}),35);
+      setTimeout(()=>requestAnimationFrame(()=>{keepShowBestAvailable();autoShowBest()}),16);
     }
   },true);
 }
