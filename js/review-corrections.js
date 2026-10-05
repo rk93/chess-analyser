@@ -11,6 +11,7 @@ import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { cacheSet,simpleHash } from './analysis-store.js';
 import { getLocalStockfish,localStockfishAvailable } from './local-stockfish.js';
 import { classifyStockfishMove,gameAccuracy,moverWinLossPct,moveAccuracyFromLoss } from './review-v2-core.js';
+import { displayCacheNeedsRepair } from './review-display.js';
 
 const $=id=>document.getElementById(id);
 const LABELS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Mistake','Blunder'];
@@ -59,7 +60,7 @@ function enrichDisplay(data,ctx){
     bestSans[i]=lineSan(fen,uci,1)||uci;
     bestLines[i]=lineSan(fen,pv,6)||bestSans[i];
   }
-  data.bestSans=bestSans;data.bestLines=bestLines;data.displayPrecomputed=true;
+  data.bestSans=bestSans;data.bestLines=bestLines;data.displayPrecomputed=true;data.displayPrecomputedVersion=2;
   return data;
 }
 
@@ -175,7 +176,7 @@ async function deepCorrect(detail){
   const prior=detail?.data;if(!prior?.evals?.length)return;
   const ctx=build();if(ctx.positions.length!==prior.evals.length)return;
   if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION){
-    const needed=!prior.displayPrecomputed||!Array.isArray(prior.bestSans)||!Array.isArray(prior.bestLines);
+    const needed=!prior.displayPrecomputed||Number(prior.displayPrecomputedVersion)<2||displayCacheNeedsRepair(prior,ctx.ucis.length);
     if(needed){enrichDisplay(prior,ctx);await cacheSet('review',reviewKey(),prior).catch(()=>{})}
     refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
   }
