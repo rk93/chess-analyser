@@ -43,8 +43,9 @@ class LocalStockfish{
     return this.readyPromise;
   }
   analyse(fen,{depth=15,movetime=0,multipv=1,clearHash=true}={}){
-    this.queue=this.queue.then(()=>this._analyse(fen,{depth,movetime,multipv,clearHash}));
-    return this.queue;
+    const run=this.queue.catch(()=>{}).then(()=>this._analyse(fen,{depth,movetime,multipv,clearHash}));
+    this.queue=run.catch(()=>{});
+    return run;
   }
   async _analyse(fen,{depth,movetime,multipv,clearHash}){
     await this.ready();
