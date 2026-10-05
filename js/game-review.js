@@ -1,6 +1,7 @@
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { cacheGet,cacheSet,getPositionEval,setPositionEval,simpleHash } from './analysis-store.js';
 import { buildTacticalVerificationPlan } from './review-tactics.js';
+import { displayLineFor } from './review-display.js';
 
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -116,6 +117,24 @@ function ensureGuideCard(){
   $('reviewNext')?.addEventListener('click',()=>$('next')?.click());
   return card;
 }
+function ensureAutoBestLine(){
+  const card=ensureGuideCard();if(!card)return null;
+  let line=$('reviewAutoBest');
+  if(!line){line=document.createElement('div');line.id='reviewAutoBest';line.className='reviewAutoBest';const actions=card.querySelector('.reviewGuideActions');card.insertBefore(line,actions||null)}
+  return line;
+}
+function renderAutoBest(i,data,fen){
+  const line=ensureAutoBestLine(),prepared=displayLineFor(data,i);
+  if(!prepared.bestUci){
+    if(line)line.textContent='No engine move available for this position.';
+    drawBestArrow('');
+    return;
+  }
+  const bestSan=(prepared.bestSan===prepared.bestUci&&fen)?sanForUci(fen,prepared.bestUci):prepared.bestSan;
+  const pv=prepared.line||bestSan;
+  if(line)line.innerHTML=`<div><span>Engine best</span> <b>${escapeHtml(bestSan)}</b></div>${pv&&pv!==bestSan?`<div class="reviewPvLine">${escapeHtml(pv)}</div>`:''}`;
+  drawBestArrow(prepared.bestUci);
+}
 function clearBoardBadge(){document.querySelectorAll('#board .boardReviewBadge').forEach(x=>x.remove())}
 function showBoardBadge(label,uci){clearBoardBadge();if(!uci)return;const sq=uci.slice(2,4),el=$('board')?.querySelector(`[data-square="${sq}"]`);if(!el)return;const b=document.createElement('span');b.className=`boardReviewBadge badge-${BADGE[label]||'good'}`;b.textContent=SYMBOL[label]||'✓';b.title=label;el.appendChild(b)}
 function commentForMove({label,played,bestSan,verified,before,after,ply}){
@@ -133,15 +152,15 @@ function commentForMove({label,played,bestSan,verified,before,after,ply}){
 }
 function renderGuide(ply,data){
   const card=ensureGuideCard();if(!card)return;
-  if(ply===0){card.hidden=false;$('reviewGuideIcon').textContent='✓';$('reviewGuideMove').textContent='Review ready';$('reviewGuideEval').textContent=scoreLabel(data.evals?.[0]);$('reviewGuideComment').textContent='Use Next, Previous, or tap any move to step through the review.';$('reviewGuideMeta').textContent='Move feedback is loaded from the saved review — navigation does not need a new engine request.';$('reviewShowBest').hidden=true;$('reviewPractice').hidden=true;return}
+  if(ply===0){card.hidden=false;$('reviewGuideIcon').textContent='✓';$('reviewGuideMove').textContent='Review ready';$('reviewGuideEval').textContent=scoreLabel(data.evals?.[0]);$('reviewGuideComment').textContent='Use Next, Previous, or tap any move to step through the review.';$('reviewGuideMeta').textContent='Move feedback is loaded from the saved review — navigation does not need a new engine request.';$('reviewShowBest').hidden=true;$('reviewPractice').hidden=true;const auto=ensureAutoBestLine();if(auto)auto.textContent='Best line will appear as you review each move.';drawBestArrow('');return}
   const i=ply-1,sans=moveSans(),positions=buildPositions(),ucis=playedUcis(),label=data.labels?.[i]||'Good',played=sans[i]||`Move ${ply}`,best=data.bestMoves?.[i]||'',bestSan=best?sanForUci(positions[i]?.fen,best):'',verified=!!data.moveVerified?.[i],before=data.evals?.[i],after=data.evals?.[i+1];
   card.hidden=false;$('reviewGuideIcon').textContent=SYMBOL[label]||'✓';$('reviewGuideMove').textContent=`${played} · ${label}`;$('reviewGuideEval').textContent=scoreLabel(after);$('reviewGuideComment').textContent=commentForMove({label,played,bestSan,verified,before,after,ply});$('reviewGuideMeta').textContent=verified?'Engine-verified move classification':'Estimated classification from nearby reviewed positions';
-  const show=$('reviewShowBest'),practice=$('reviewPractice');show.hidden=!best||!verified;practice.hidden=!(verified&&(label==='Mistake'||label==='Blunder')&&best);
+  renderAutoBest(i,data,positions[i]?.fen);const show=$('reviewShowBest'),practice=$('reviewPractice');show.hidden=!best||!verified;practice.hidden=!(verified&&(label==='Mistake'||label==='Blunder')&&best);
   if(show)show.onclick=()=>{drawBestArrow(best);$('reviewGuideComment').textContent=bestSan?`Best move: ${bestSan}. The green arrow shows the engine's preferred move.`:'The green arrow shows the engine preferred move.'};
   if(practice){const detail=practiceDetail(i,data,positions,sans);practice.onclick=e=>launchPractice(e,detail)}
   showBoardBadge(label,ucis[i]);
 }
-function renderCurrentMove(){const data=activeReview;if(!data)return;const ply=currentPly(),cp=data.evals?.[ply];if(cp==null)return;const score=scoreLabel(cp);$('engineScore').textContent=$('mobileScore').textContent=score;$('engineSource').textContent='Game Review';$('mobileSource').textContent='Game Review';setEvalBar(cp);drawBestArrow('');renderGuide(ply,data)}
+function renderCurrentMove(){const data=activeReview;if(!data)return;const ply=currentPly(),cp=data.evals?.[ply];if(cp==null)return;const score=scoreLabel(cp);$('engineScore').textContent=$('mobileScore').textContent=score;$('engineSource').textContent='Game Review';$('mobileSource').textContent='Game Review';setEvalBar(cp);renderGuide(ply,data)}
 
 function summaryHeadline(data){const diff=(Number(data.whiteAccuracy)||0)-(Number(data.blackAccuracy)||0),blunders=data.labels.filter(x=>x==='Blunder').length;if(blunders===0)return'A clean game with no major blunders. Review the strongest decisions move by move.';if(Math.abs(diff)>=15)return'One side played a much more accurate game. Review the key turning points and missed chances.';return'The game had important swings. Review the moves that changed the evaluation.'}
 function ensureSummaryScreen(){let el=$('reviewSummaryScreen');if(el)return el;el=document.createElement('section');el.id='reviewSummaryScreen';el.className='reviewSummaryScreen';el.hidden=true;el.innerHTML=`<div class="reviewSummaryInner"><div class="reviewSummaryTop"><h2>Game Review</h2><button id="reviewSummaryClose" class="reviewSummaryClose" type="button" aria-label="Close">×</button></div><div id="reviewHeadlineCard" class="reviewHeadlineCard"></div><div id="reviewSummaryGraph" class="reviewSummaryGraph"></div><div id="reviewSummaryPlayers" class="reviewSummaryPlayers"></div><div id="reviewBreakdown" class="reviewBreakdown"></div><button id="reviewStartBtn" class="reviewStartBtn" type="button">Start Review</button></div>`;document.body.appendChild(el);$('reviewSummaryClose').onclick=()=>el.hidden=true;$('reviewStartBtn').onclick=()=>startGuidedReview();return el}
