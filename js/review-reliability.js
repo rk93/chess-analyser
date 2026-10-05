@@ -111,9 +111,6 @@ function init(){
   document.addEventListener('click',e=>{
     const best=e.target.closest?.('#reviewShowBest');if(best){e.preventDefault();e.stopImmediatePropagation();showBest();return}
     const count=e.target.closest?.('#reviewBreakdown .left,#reviewBreakdown .right');if(count){const n=Number(count.textContent)||0;if(!n)return;e.preventDefault();e.stopImmediatePropagation();jumpToSummaryMove(count.closest('.reviewBreakRow'),count.classList.contains('left')?'white':'black');return}
-    if(e.target.closest?.('#next,#prev,#start,#end,#reviewNext,#reviewPrev,#moves .move')){
-      const line=$('reviewAutoBest');if(line){line.classList.add('loadingLine');line.innerHTML='<span>Updating engine line…</span>'}
-    }
   },true);
 }
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
