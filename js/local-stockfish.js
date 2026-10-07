@@ -21,7 +21,14 @@ class LocalStockfish{
   constructor(){this.worker=null;this.readyPromise=null;this.queue=Promise.resolve();}
   ready(){
     if(this.readyPromise)return this.readyPromise;
-    this.readyPromise=new Promise((resolve,reject)=>{
+    const start=new Promise((resolve,reject)=>{
+      let timer=null;
+      const fail=e=>{
+        clearTimeout(timer);
+        try{this.worker?.terminate()}catch{}
+        this.worker=null;
+        reject(e instanceof Error?e:new Error(String(e?.message||e||'Local Stockfish failed to start')));
+      };
       try{
         const url=new URL('../engine/stockfish-19-lite-single.js',import.meta.url);
         this.worker=new Worker(url);
@@ -31,14 +38,20 @@ class LocalStockfish{
             this.worker.postMessage('setoption name Hash value 32');
             this.worker.postMessage('isready');
           }else if(line.includes('readyok')){
+            clearTimeout(timer);
             this.worker.removeEventListener('message',onMessage);
             resolve(this);
           }
         };
         this.worker.addEventListener('message',onMessage);
-        this.worker.addEventListener('error',reject,{once:true});
+        this.worker.addEventListener('error',fail,{once:true});
+        timer=setTimeout(()=>fail(new Error('Local Stockfish startup timed out')),10000);
         this.worker.postMessage('uci');
-      }catch(e){reject(e)}
+      }catch(e){fail(e)}
+    });
+    this.readyPromise=start.catch(e=>{
+      this.readyPromise=null;
+      throw e;
     });
     return this.readyPromise;
   }
