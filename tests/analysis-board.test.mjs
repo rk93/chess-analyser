@@ -27,3 +27,35 @@ test('PGN candidate lookup cannot wait forever on cloud',async()=>{
 test('Analysis Board module remains syntactically valid',()=>{
   assert.doesNotThrow(()=>execFileSync(process.execPath,['--check','js/lab.js'],{stdio:'pipe'}));
 });
+
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+
+test('local Stockfish startup has timeout and resets failed ready promise',async()=>{
+  const src=await readFile('js/local-stockfish.js','utf8');
+  assert.match(src,/Local Stockfish startup timed out/);
+  assert.match(src,/this\.readyPromise=null/);
+  assert.match(src,/this\.worker\?\.terminate/);
+});
+
+test('Analysis Board Auto preserves local engine failure reason',async()=>{
+  const src=await readFile('js/lab.js','utf8');
+  assert.match(src,/Local Stockfish failed:/);
+  assert.match(src,/Cloud fallback was also unavailable/);
+  assert.doesNotMatch(src,/if\(!data\)throw new Error\('No cloud evaluation available for this position\.'\);\s*}\s*else\s*{/s);
+});
+
+test('Analysis Board ignores stale analysis completions',async()=>{
+  const src=await readFile('js/lab.js','utf8');
+  assert.match(src,/let analysisRun=0/);
+  assert.match(src,/const run=\+\+analysisRun/);
+  assert.match(src,/if\(run!==analysisRun\)return/);
+});
+
+test('engine modules remain syntactically valid',()=>{
+  for(const file of ['js/lab.js','js/local-stockfish.js']){
+    assert.doesNotThrow(()=>execFileSync(process.execPath,['--check',file],{stdio:'pipe'}),file);
+  }
+});
