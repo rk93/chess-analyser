@@ -34,7 +34,7 @@
         <button class="previewCard" type="button" data-board-theme="blue"><span class="miniBoard blue"></span><span>Blue</span></button>
         <button class="previewCard" type="button" data-board-theme="grey"><span class="miniBoard grey"></span><span>Grey</span></button>
       </div></div>
-      <div class="settingsGrid compactSettings"><label>Engine<select id="engineMode" class="input"><option value="auto">Auto (cloud → live)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Live</option></select></label><label>Sounds<select id="soundMode" class="input"><option value="on">On</option><option value="off">Off</option></select></label></div>
+      <div class="settingsGrid compactSettings"><label>Engine<select id="engineMode" class="input"><option value="auto">Auto (local → cloud)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Local</option></select></label><label>Sounds<select id="soundMode" class="input"><option value="on">On</option><option value="off">Off</option></select></label></div>
       <div class="settingsHint">Visual presets use open-source piece artwork and app-owned board themes.</div>
     </div>
     <div class="card syncCard"><div class="row syncRow"><input id="user" class="input" placeholder="Chess.com username" aria-label="Chess.com username"><select id="importRange" class="input rangeSelect" aria-label="Games to import"><option value="month">Last month</option><option value="year">Last year</option><option value="all">All history</option></select><button id="sync" class="btn primary">Import games</button></div><div id="status" class="muted" style="margin-top:8px">Enter a Chess.com username to import games.</div></div>
@@ -47,7 +47,7 @@
       <div class="labBoardColumn"><div class="boardWrap labBoardWrap"><div class="evalBar"><div id="labEvalFill" class="evalFill"></div><div id="labEvalText" class="evalText bottom"> </div></div><div class="boardStage"><div id="labBoard" class="board" aria-label="Free analysis board"></div><svg id="labArrows" class="analysisArrows" viewBox="0 0 800 800" preserveAspectRatio="none"></svg></div></div></div>
       <aside class="card labPanel">
         <h2>Analyse any position</h2><p class="muted">Move pieces legally, or build a custom position with Setup mode.</p>
-        <label class="labLabel">Engine<select id="labEngine" class="input"><option value="auto">Auto (cloud → live)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Live</option></select></label>
+        <label class="labLabel">Engine<select id="labEngine" class="input"><option value="auto">Auto (local → cloud)</option><option value="cloud">Lichess Cloud</option><option value="stockfish">Stockfish Local</option></select></label>
         <div class="labButtons"><button id="labAnalyse" class="btn primary" type="button">Analyse position</button><button id="labReset" class="btn" type="button">Reset board</button><button id="labFlip" class="btn" type="button">Flip</button><button id="setupToggle" class="btn" type="button">Position setup</button></div>
         <div id="setupPanel" class="setupPanel" hidden>
           <div class="settingsSectionTitle">Position setup</div>
