@@ -20,7 +20,16 @@ function ensureUi(){const panel=document.querySelector('#boardLabView .labPanel'
   $('pgnClear')?.addEventListener('click',()=>{if($('pgnInput'))$('pgnInput').value='';if($('pgnCandidates'))$('pgnCandidates').innerHTML='';if($('pgnMeta'))$('pgnMeta').textContent='';if($('pgnStatus'))$('pgnStatus').textContent='Paste a PGN, then tap Load PGN & analyse.'});
 }
 
-async function cloudChoices(fen){let data=await getPositionEval('cloud',fen).catch(()=>null);if(data?.pvs?.length>=2)return data;const r=await fetch(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=3&variant=standard`,{headers:{Accept:'application/json'}});if(!r.ok)return data?.pvs?.length?data:null;const j=await r.json();if(!j?.pvs?.length)return data?.pvs?.length?data:null;data={source:'Lichess cloud',depth:j.depth||0,pvs:j.pvs.slice(0,3)};await setPositionEval('cloud',fen,data).catch(()=>{});return data}
+async function cloudChoices(fen){
+  let data=await getPositionEval('cloud',fen).catch(()=>null);if(data?.pvs?.length>=2)return data;
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),2500);
+  try{
+    const r=await fetch(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=3&variant=standard`,{headers:{Accept:'application/json'},signal:controller.signal});
+    if(!r.ok)return data?.pvs?.length?data:null;
+    const j=await r.json();if(!j?.pvs?.length)return data?.pvs?.length?data:null;
+    data={source:'Lichess cloud',depth:j.depth||0,pvs:j.pvs.slice(0,3)};await setPositionEval('cloud',fen,data).catch(()=>{});return data;
+  }finally{clearTimeout(timer)}
+}
 
 function renderCandidates(fen,data){const root=$('pgnCandidates');if(!root)return;if(!data?.pvs?.length){root.innerHTML='<div class="pgnStatus">Candidate list unavailable; use the board analysis result below.</div>';return}root.innerHTML=data.pvs.slice(0,3).map((pv,i)=>{const u=firstUci(pv),san=moveSan(fen,u),line=lineSan(fen,pv.moves,6);return `<div class="pgnCandidate"><span>${i+1}.</span><b>${esc(san)}</b><span>${esc(line)}</span></div>`}).join('')}
 
