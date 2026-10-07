@@ -1,5 +1,6 @@
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { getPositionEval,setPositionEval } from './analysis-store.js';
+import { getLocalStockfish } from './local-stockfish.js';
 
 const $=id=>document.getElementById(id);
 const PREF='chess-analyser-pref:';
@@ -43,9 +44,66 @@ function clearAnalysis(){$('labScore').textContent='—';$('labSource').textCont
 function score(pv){if(pv?.mate!==undefined&&pv?.mate!==null&&Number(pv.mate)!==0){const m=Number(pv.mate);return{n:m>0?20:-20,label:(m<0?'-':'')+'M'+Math.abs(m)}}const n=(Number(pv?.cp)||0)/100;return{n,label:(n>=0?'+':'')+n.toFixed(2)}}
 function squareCenter(sq){const f=sq.charCodeAt(0)-97,r=Number(sq[1]),x=orientation==='white'?f:7-f,y=orientation==='white'?8-r:r-1;return{x:(x+.5)*100,y:(y+.5)*100}}
 function draw(pvs){const svg=$('labArrows');svg.innerHTML='<defs><marker id="labArrow" markerWidth="5" markerHeight="5" refX="4.1" refY="2.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L5,2.5 L0,5 Z" fill="#8bc34a"/></marker></defs>';pvs.slice(0,3).forEach((pv,i)=>{const u=String(pv.moves||'').trim().split(/\s+/)[0];if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u))return;const a=squareCenter(u.slice(0,2)),b=squareCenter(u.slice(2,4));svg.insertAdjacentHTML('beforeend',`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${['#8bc34a','#f4c542','#58a6ff'][i]}" stroke-width="${i?10:14}" stroke-linecap="round" opacity=".88" marker-end="url(#labArrow)"/>`)})}
-async function cloud(fen){let data=await getPositionEval('cloud',fen);if(data?.pvs?.length)return data;const r=await fetch(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=3&variant=standard`,{headers:{Accept:'application/json'}});if(r.status===404)return null;if(!r.ok)throw new Error(`Cloud ${r.status}`);const j=await r.json();data=j.pvs?.length?{source:'Lichess cloud',depth:j.depth,pvs:j.pvs.slice(0,3)}:null;if(data)await setPositionEval('cloud',fen,data);return data}
-async function stockfish(fen){let data=await getPositionEval('live',fen);if(data?.pvs?.length)return data;const r=await fetch('https://chess-api.com/v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fen,depth:14,variants:1,maxThinkingTime:180})});if(!r.ok)throw new Error(`Live engine ${r.status}`);const j=await r.json(),best=j.move||j.lan||'',cont=Array.isArray(j.continuationArr)?j.continuationArr.filter(Boolean):[],moves=[best,...cont.filter((m,i)=>!(i===0&&m===best))].filter(Boolean).join(' '),cp=j.eval!=null?Math.round(Number(j.eval)*100):Number(j.centipawns)||0;data={source:'Stockfish live',depth:j.depth||14,pvs:[{cp,mate:j.mate,moves}]};await setPositionEval('live',fen,data);return data}
-async function analyse(){const btn=$('labAnalyse');btn.disabled=true;btn.textContent='Analysing…';try{const fen=chess.fen(),mode=$('labEngine').value;let data;if(mode==='cloud'){data=await cloud(fen);if(!data&&practice){$('labSource').textContent='Cloud unavailable · trying live engine…';data=await stockfish(fen);data.source='Stockfish live · cloud unavailable'}if(!data)throw new Error('No cloud evaluation available for this position. Try Auto or Stockfish Live.')}else if(mode==='stockfish')data=await stockfish(fen);else{try{data=await cloud(fen)}catch{}if(!data)data=await stockfish(fen)}const s=score(data.pvs[0]);$('labScore').textContent=s.label;$('labSource').textContent=`${data.source} · depth ${data.depth??'—'}`;$('labLine').textContent='Best: '+(data.pvs[0].moves||'');$('labEvalFill').style.height=`${Math.max(3,Math.min(97,50+45*(2/Math.PI)*Math.atan(s.n/3)))}%`;draw(data.pvs)}catch(e){$('labSource').textContent=practice?'Training · analysis unavailable':'Analysis unavailable';$('labLine').textContent='Could not analyse: '+e.message}finally{btn.disabled=false;btn.textContent='Analyse position'}}
+async function fetchTimeout(url,options={},ms=3500){
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);
+  try{return await fetch(url,{...options,signal:controller.signal})}
+  finally{clearTimeout(timer)}
+}
+async function cloud(fen){
+  let data=await getPositionEval('cloud',fen);
+  if(data?.pvs?.length)return data;
+  const r=await fetchTimeout(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=3&variant=standard`,{headers:{Accept:'application/json'}},3000);
+  if(r.status===404)return null;
+  if(!r.ok)throw new Error(`Cloud ${r.status}`);
+  const j=await r.json();
+  data=j.pvs?.length?{source:'Lichess cloud',depth:j.depth,pvs:j.pvs.slice(0,3)}:null;
+  if(data)await setPositionEval('cloud',fen,data);
+  return data;
+}
+async function stockfish(fen){
+  const engine=getLocalStockfish();
+  await engine.ready();
+  const result=await engine.analyse(fen,{depth:16,multipv:3,clearHash:true});
+  const lines=(result.lines?.length?result.lines:[{cp:result.cp,mate:result.mate,pv:result.pv,best:result.best}]).slice(0,3);
+  const pvs=lines.map(x=>({cp:x.cp,mate:x.mate,moves:x.pv||x.best||''})).filter(x=>x.moves||Number.isFinite(x.cp)||x.mate!=null);
+  if(!pvs.length)throw new Error('Local Stockfish returned no analysis');
+  return{source:'Stockfish 19 local',depth:result.depth||lines[0]?.depth||16,pvs};
+}
+async function analyse(){
+  const btn=$('labAnalyse');if(!btn||btn.disabled)return;
+  btn.disabled=true;btn.textContent='Analysing…';
+  const started=performance.now();
+  try{
+    const fen=chess.fen(),mode=$('labEngine').value;let data=null;
+    if(mode==='cloud'){
+      $('labSource').textContent='Checking Lichess cloud…';
+      try{data=await cloud(fen)}catch(e){if(e?.name!=='AbortError')throw e}
+      if(!data)throw new Error('No cloud evaluation available for this position.');
+    }else if(mode==='stockfish'){
+      $('labSource').textContent='Starting local Stockfish…';
+      data=await stockfish(fen);
+    }else{
+      $('labSource').textContent='Starting local Stockfish…';
+      try{data=await stockfish(fen)}catch(localError){
+        $('labSource').textContent='Local engine unavailable · trying cloud…';
+        try{data=await cloud(fen)}catch{}
+        if(!data)throw localError;
+      }
+    }
+    if(!data?.pvs?.length)throw new Error('No engine analysis returned');
+    const s=score(data.pvs[0]);
+    $('labScore').textContent=s.label;
+    $('labSource').textContent=`${data.source} · depth ${data.depth??'—'} · ${((performance.now()-started)/1000).toFixed(1)}s`;
+    $('labLine').textContent='Best: '+(data.pvs[0].moves||'');
+    $('labEvalFill').style.height=`${Math.max(3,Math.min(97,50+45*(2/Math.PI)*Math.atan(s.n/3)))}%`;
+    draw(data.pvs);
+  }catch(e){
+    $('labSource').textContent=practice?'Training · analysis unavailable':'Analysis unavailable';
+    $('labLine').textContent=e?.name==='AbortError'?'Analysis timed out. Please retry.':'Could not analyse: '+(e?.message||e);
+  }finally{
+    btn.disabled=false;btn.textContent='Analyse position';
+  }
+}
 function showTab(which){const lab=which==='lab',analytics=which==='analytics',topPlayers=which==='topPlayers';$('analysisView').style.display='none';$('libraryView').style.display='';$('libraryView').hidden=lab||analytics||topPlayers;$('boardLabView').hidden=!lab;$('analyticsView').hidden=!analytics;$('topPlayersView').hidden=!topPlayers;$('gamesTab').classList.toggle('active',which==='games');$('boardLabTab').classList.toggle('active',lab);$('analyticsTab').classList.toggle('active',analytics);$('topPlayersTab')?.classList.toggle('active',topPlayers);if(lab)render();if(analytics)window.dispatchEvent(new CustomEvent('analyticsTabOpened'));if(topPlayers)window.dispatchEvent(new CustomEvent('topPlayersTabOpened'))}
 function loadPractice(detail){if(!detail?.fen||!detail.bestMove)return;try{practice={...detail,attempted:false};chess=new Chess(detail.fen);orientation=chess.turn()==='b'?'black':'white';selected=null;lastMove=null;resetHistory();showTab('lab');panel()?.classList.add('practiceActive');clearAnalysis();render();$('labSource').textContent='Training · from your game';$('labLine').textContent=practicePrompt()}catch(e){practice=null;$('labLine').textContent='Could not load training position: '+e.message}}
 function leavePractice(){practice=null;panel()?.classList.remove('practiceActive')}
