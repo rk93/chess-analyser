@@ -7,6 +7,7 @@ const PREF='chess-analyser-pref:';
 const pref=(k,f)=>localStorage.getItem(PREF+k)||f;
 let chess=new Chess(),orientation='white',selected=null,lastMove=null;
 let dragState=null,practice=null;
+let analysisRun=0;
 let history=[chess.fen()],historyIndex=0;
 
 function pieceSrc(color,type){
@@ -71,25 +72,36 @@ async function stockfish(fen){
 }
 async function analyse(){
   const btn=$('labAnalyse');if(!btn||btn.disabled)return;
+  const run=++analysisRun,fen=chess.fen(),mode=$('labEngine')?.value||'auto';
   btn.disabled=true;btn.textContent='Analysing…';
   const started=performance.now();
   try{
-    const fen=chess.fen(),mode=$('labEngine').value;let data=null;
+    let data=null;
     if(mode==='cloud'){
       $('labSource').textContent='Checking Lichess cloud…';
-      try{data=await cloud(fen)}catch(e){if(e?.name!=='AbortError')throw e}
+      try{data=await cloud(fen)}catch(e){
+        if(e?.name==='AbortError')throw new Error('Lichess cloud timed out');
+        throw e;
+      }
       if(!data)throw new Error('No cloud evaluation available for this position.');
     }else if(mode==='stockfish'){
       $('labSource').textContent='Starting local Stockfish…';
       data=await stockfish(fen);
     }else{
       $('labSource').textContent='Starting local Stockfish…';
-      try{data=await stockfish(fen)}catch(localError){
+      let localError=null;
+      try{data=await stockfish(fen)}catch(e){localError=e}
+      if(run!==analysisRun)return;
+      if(!data){
         $('labSource').textContent='Local engine unavailable · trying cloud…';
         try{data=await cloud(fen)}catch{}
-        if(!data)throw localError;
+      }
+      if(!data){
+        const reason=localError?.message||'unknown local-engine error';
+        throw new Error(`Local Stockfish failed: ${reason}. Cloud fallback was also unavailable.`);
       }
     }
+    if(run!==analysisRun)return;
     if(!data?.pvs?.length)throw new Error('No engine analysis returned');
     const s=score(data.pvs[0]);
     $('labScore').textContent=s.label;
@@ -98,10 +110,11 @@ async function analyse(){
     $('labEvalFill').style.height=`${Math.max(3,Math.min(97,50+45*(2/Math.PI)*Math.atan(s.n/3)))}%`;
     draw(data.pvs);
   }catch(e){
+    if(run!==analysisRun)return;
     $('labSource').textContent=practice?'Training · analysis unavailable':'Analysis unavailable';
-    $('labLine').textContent=e?.name==='AbortError'?'Analysis timed out. Please retry.':'Could not analyse: '+(e?.message||e);
+    $('labLine').textContent='Could not analyse: '+(e?.message||e);
   }finally{
-    btn.disabled=false;btn.textContent='Analyse position';
+    if(run===analysisRun){btn.disabled=false;btn.textContent='Analyse position'}
   }
 }
 function showTab(which){const lab=which==='lab',analytics=which==='analytics',topPlayers=which==='topPlayers';$('analysisView').style.display='none';$('libraryView').style.display='';$('libraryView').hidden=lab||analytics||topPlayers;$('boardLabView').hidden=!lab;$('analyticsView').hidden=!analytics;$('topPlayersView').hidden=!topPlayers;$('gamesTab').classList.toggle('active',which==='games');$('boardLabTab').classList.toggle('active',lab);$('analyticsTab').classList.toggle('active',analytics);$('topPlayersTab')?.classList.toggle('active',topPlayers);if(lab)render();if(analytics)window.dispatchEvent(new CustomEvent('analyticsTabOpened'));if(topPlayers)window.dispatchEvent(new CustomEvent('topPlayersTabOpened'))}
