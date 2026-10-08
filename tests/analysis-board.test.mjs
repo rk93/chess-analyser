@@ -59,3 +59,11 @@ test('engine modules remain syntactically valid',()=>{
     assert.doesNotThrow(()=>execFileSync(process.execPath,['--check',file],{stdio:'pipe'}),file);
   }
 });
+
+
+test('Stockfish worker companion WASM is kept and precached',async()=>{
+  const worker=await readFile('engine/stockfish-19-lite-single.js','utf8');
+  const sw=await readFile('sw.js','utf8');
+  assert.match(worker,/location\.pathname\.replace\(\/\\\.js\$\/i,"\\\.wasm"\)/);
+  assert.ok(sw.includes('./engine/stockfish-19-lite-single.wasm'));
+});
