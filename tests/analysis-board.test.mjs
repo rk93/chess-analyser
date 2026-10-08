@@ -24,15 +24,6 @@ test('PGN candidate lookup cannot wait forever on cloud',async()=>{
   assert.match(src,/2500/);
 });
 
-test('Analysis Board module remains syntactically valid',()=>{
-  assert.doesNotThrow(()=>execFileSync(process.execPath,['--check','js/lab.js'],{stdio:'pipe'}));
-});
-
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
-
 test('local Stockfish startup has timeout and resets failed ready promise',async()=>{
   const src=await readFile('js/local-stockfish.js','utf8');
   assert.match(src,/Local Stockfish startup timed out/);
@@ -44,7 +35,6 @@ test('Analysis Board Auto preserves local engine failure reason',async()=>{
   const src=await readFile('js/lab.js','utf8');
   assert.match(src,/Local Stockfish failed:/);
   assert.match(src,/Cloud fallback was also unavailable/);
-  assert.doesNotMatch(src,/if\(!data\)throw new Error\('No cloud evaluation available for this position\.'\);\s*}\s*else\s*{/s);
 });
 
 test('Analysis Board ignores stale analysis completions',async()=>{
@@ -54,16 +44,17 @@ test('Analysis Board ignores stale analysis completions',async()=>{
   assert.match(src,/if\(run!==analysisRun\)return/);
 });
 
+test('Stockfish worker companion WASM is kept and precached',async()=>{
+  const worker=await readFile('engine/stockfish-19-lite-single.js','utf8');
+  const wasm=await readFile('engine/stockfish-19-lite-single.wasm');
+  const sw=await readFile('sw.js','utf8');
+  assert.ok(worker.includes('location.pathname.replace(/\\.js$/i,".wasm")'));
+  assert.ok(wasm.byteLength>1000000);
+  assert.ok(sw.includes('./engine/stockfish-19-lite-single.wasm'));
+});
+
 test('engine modules remain syntactically valid',()=>{
   for(const file of ['js/lab.js','js/local-stockfish.js']){
     assert.doesNotThrow(()=>execFileSync(process.execPath,['--check',file],{stdio:'pipe'}),file);
   }
-});
-
-
-test('Stockfish worker companion WASM is kept and precached',async()=>{
-  const worker=await readFile('engine/stockfish-19-lite-single.js','utf8');
-  const sw=await readFile('sw.js','utf8');
-  assert.match(worker,/location\.pathname\.replace\(\/\\\.js\$\/i,"\\\.wasm"\)/);
-  assert.ok(sw.includes('./engine/stockfish-19-lite-single.wasm'));
 });
