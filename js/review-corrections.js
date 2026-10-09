@@ -180,7 +180,7 @@ async function deepCorrect(detail){
   if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION){
     const needed=!prior.displayPrecomputed||Number(prior.displayPrecomputedVersion)<2||displayCacheNeedsRepair(prior,ctx.ucis.length);
     if(needed){enrichDisplay(prior,ctx);await cacheSet('review',reviewKey(),prior).catch(()=>{})}
-    refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
+    refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data:prior}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
   }
   if(!await localStockfishAvailable()){const status=$('reviewStatus');if(status)status.textContent='Local Stockfish is unavailable; the quick review remains visible.';return}
   auditing=true;
@@ -192,7 +192,7 @@ async function deepCorrect(detail){
     const data=buildReview(engineData,ctx,prior);
     refreshMoveTags(data);refreshSummary(data);await cacheSet('review',reviewKey(),data);
     if(status)status.textContent=`Stockfish Review v2 ready · all ${ctx.positions.length} positions evaluated · ${targets.length} deeply rechecked · ${data.labels.filter(x=>x==='Blunder').length} blunder${data.labels.filter(x=>x==='Blunder').length===1?'':'s'}.`;
-    window.dispatchEvent(new CustomEvent('reviewNavigation'));
+    window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));
   }catch(e){
     const status=$('reviewStatus');if(status)status.textContent=`Local Stockfish review failed: ${e?.message||e}`;
   }finally{auditing=false}
