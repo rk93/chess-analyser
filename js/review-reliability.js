@@ -111,7 +111,7 @@ function jumpToSummaryMove(row,side){
 function init(){
   observeActiveMove();
   window.addEventListener('gameReviewReady',e=>{review=e.detail?.data||review;cycle.clear();lastRenderedPly=-1;syncToActiveMove(true)});
-  window.addEventListener('reviewNavigation',()=>syncToActiveMove());
+  window.addEventListener('reviewNavigation',()=>syncToActiveMove());window.addEventListener('gameReviewUpdated',e=>{review=e.detail?.data||review;lastRenderedPly=-1;syncToActiveMove(true)});
   document.addEventListener('click',e=>{
     const best=e.target.closest?.('#reviewShowBest');if(best){e.preventDefault();e.stopImmediatePropagation();showBest();return}
     const count=e.target.closest?.('#reviewBreakdown .left,#reviewBreakdown .right');if(count){const n=Number(count.textContent)||0;if(!n)return;e.preventDefault();e.stopImmediatePropagation();jumpToSummaryMove(count.closest('.reviewBreakRow'),count.classList.contains('left')?'white':'black');return}
