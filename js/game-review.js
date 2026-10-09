@@ -12,6 +12,7 @@ const LIVE_FALLBACK_LIMIT=4;
 const TACTICAL_VERIFY_LIMIT=16;
 let running=false,reviewToken=0,restoreTimer=null,activeReview=null,summaryShownForKey='';
 let preparedReview=null,preparedPositions=null,preparedSans=null,preparedBestMoves=null,renderFrame=0,lastRenderedPly=-1;
+let voiceEnabled=false,spokenPly=-1;
 
 const LABELS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Mistake','Blunder'];
 const SYMBOL={Brilliant:'!!',Great:'!',Best:'★',Excellent:'👍',Good:'✓',Book:'📖',Inaccuracy:'?!',Mistake:'?',Blunder:'??'};
@@ -110,12 +111,35 @@ function scoreLabel(cp){const n=(Number(cp)||0)/100;return (n>=0?'+':'')+n.toFix
 function setEvalBar(cp){const n=(Number(cp)||0)/100;$('evalFill').style.height=`${Math.max(3,Math.min(97,50+45*(2/Math.PI)*Math.atan(n/3)))}%`}
 function drawBestArrow(uci){const svg=$('analysisArrows');if(!svg)return;svg.innerHTML='';if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci||''))return;const point=sq=>{const board=$('board'),el=board?.querySelector(`[data-square="${sq}"]`);if(!board||!el)return null;const br=board.getBoundingClientRect(),r=el.getBoundingClientRect();return{x:((r.left+r.width/2-br.left)/br.width)*800,y:((r.top+r.height/2-br.top)/br.height)*800}};const a=point(uci.slice(0,2)),b=point(uci.slice(2,4));if(!a||!b)return;svg.innerHTML=`<defs><marker id="reviewArrow" markerWidth="5" markerHeight="5" refX="4.1" refY="2.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L5,2.5 L0,5 Z" fill="#8bc34a"/></marker></defs><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#8bc34a" stroke-width="16" stroke-linecap="round" opacity=".88" marker-end="url(#reviewArrow)"/>`}
 
+function speakComment(ply,text){
+  if(!voiceEnabled||spokenPly===ply||!('speechSynthesis' in window))return;
+  spokenPly=ply;window.speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(text);
+  utterance.lang='en-GB';utterance.rate=.93;utterance.pitch=1;
+  window.speechSynthesis.speak(utterance);
+}
+function ensureVoiceControl(card){
+  if(card.querySelector('#reviewVoiceToggle'))return;
+  const button=document.createElement('button');
+  button.id='reviewVoiceToggle';button.type='button';button.className='btn';
+  button.textContent='🔇 Coach voice off';
+  button.setAttribute('aria-pressed','false');
+  button.onclick=()=>{
+    voiceEnabled=!voiceEnabled;button.textContent=voiceEnabled?'🔊 Coach voice on':'🔇 Coach voice off';
+    button.setAttribute('aria-pressed',String(voiceEnabled));
+    spokenPly=-1;
+    if(!voiceEnabled&&'speechSynthesis' in window)window.speechSynthesis.cancel();
+    else if(voiceEnabled){const comment=$('reviewGuideComment')?.textContent;if(comment)speakComment(currentPly(),comment)}
+  };
+  card.querySelector('.reviewGuideActions')?.prepend(button);
+}
 function ensureGuideCard(){
   let card=$('reviewGuideCard');if(card)return card;
   card=document.createElement('section');card.id='reviewGuideCard';card.className='reviewGuideCard';card.hidden=true;
   card.innerHTML=`<div class="reviewGuideTitle"><span id="reviewGuideIcon"></span><span id="reviewGuideMove">Game review</span><span id="reviewGuideEval" class="reviewGuideEval">—</span></div><div id="reviewGuideComment" class="reviewGuideComment"></div><div id="reviewGuideMeta" class="reviewGuideMeta"></div><div class="reviewGuideActions"><button id="reviewShowBest" class="btn" type="button">Show best</button><button id="reviewPractice" class="btn" type="button">Practice</button><button id="reviewNext" class="btn primary" type="button">Next</button></div>`;
   const shell=document.querySelector('#analysisView .analysisShell');shell?.parentNode?.insertBefore(card,shell);
   $('reviewNext')?.addEventListener('click',()=>$('next')?.click());
+  ensureVoiceControl(card);
   return card;
 }
 function ensureAutoBestLine(){
@@ -123,6 +147,17 @@ function ensureAutoBestLine(){
   let line=$('reviewAutoBest');
   if(!line){line=document.createElement('div');line.id='reviewAutoBest';line.className='reviewAutoBest';const actions=card.querySelector('.reviewGuideActions');card.insertBefore(line,actions||null)}
   return line;
+}
+function lineSanFor(fen,pv){
+  try{
+    const chess=new Chess(fen),out=[];
+    for(const move of String(pv||'').trim().split(/\s+/).slice(0,8)){
+      if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(move))break;
+      const m=chess.move({from:move.slice(0,2),to:move.slice(2,4),promotion:move[4]||undefined});
+      if(!m)break;out.push(m.san);
+    }
+    return out.join(' ');
+  }catch{return ''}
 }
 function renderAutoBest(i,data,fen){
   const line=ensureAutoBestLine(),prepared=displayLineFor(data,i);
@@ -133,7 +168,11 @@ function renderAutoBest(i,data,fen){
   }
   const bestSan=(prepared.bestSan===prepared.bestUci&&fen)?sanForUci(fen,prepared.bestUci):prepared.bestSan;
   const pv=prepared.line||bestSan;
-  if(line)line.innerHTML=`<div><span>Engine best</span> <b>${escapeHtml(bestSan)}</b></div>${pv&&pv!==bestSan?`<div class="reviewPvLine">${escapeHtml(pv)}</div>`:''}`;
+  const alternatives=(data.localMultiLines?.[i]||[]).slice(1,3).map((item,n)=>{
+    const san=lineSanFor(fen,item.pv);
+    return san?`<div class="reviewPvLine"><span>Line ${n+2}</span> ${escapeHtml(san)}${Number.isFinite(item.cp)?` · ${scoreLabel(item.cp)}`:''}</div>`:'';
+  }).join('');
+  if(line)line.innerHTML=`<div><span>Engine best</span> <b>${escapeHtml(bestSan)}</b></div>${pv&&pv!==bestSan?`<div class="reviewPvLine">${escapeHtml(pv)}</div>`:''}${alternatives}`;
   drawBestArrow(prepared.bestUci);
 }
 function clearBoardBadge(){document.querySelectorAll('#board .boardReviewBadge').forEach(x=>x.remove())}
@@ -174,6 +213,7 @@ function renderGuide(ply,data){
   if(show)show.onclick=()=>{drawBestArrow(best);$('reviewGuideComment').textContent=bestSan?`Best move: ${bestSan}. The green arrow shows the engine's preferred move.`:'The green arrow shows the engine preferred move.'};
   if(practice){const detail=frame?.detail;practice.onclick=e=>launchPractice(e,detail)}
   showBoardBadge(label,frame?.uci);
+  speakComment(ply,$('reviewGuideComment').textContent);
 }
 function renderCurrentMove(){const data=activeReview;if(!data)return;if(preparedPositions&&data.bestMoves!==preparedBestMoves){preparedReview=prepareGuideFrames(data,preparedPositions,preparedSans);preparedBestMoves=data.bestMoves;lastRenderedPly=-1}const ply=currentPly(),cp=data.evals?.[ply];if(cp==null||ply===lastRenderedPly)return;lastRenderedPly=ply;const score=scoreLabel(cp);$('engineScore').textContent=$('mobileScore').textContent=score;$('engineSource').textContent='Game Review';$('mobileSource').textContent='Game Review';setEvalBar(cp);renderGuide(ply,data)}
 function scheduleCurrentMove(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;renderCurrentMove()})}
@@ -190,7 +230,7 @@ function startGuidedReview(){const el=$('reviewSummaryScreen');if(el)el.hidden=t
 
 function displayReview(data,{cached=false,showSummary=true}={}){
   const positions=buildPositions(),sans=moveSans();if(positions.length!==data.evals.length||sans.length!==data.labels.length)return false;
-  preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
+  spokenPly=-1;preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
   const trainable=(data.bestMoves||[]).filter((m,i)=>m&&data.moveVerified?.[i]&&(data.labels[i]==='Mistake'||data.labels[i]==='Blunder')).length,verified=data.moveVerified?.filter(Boolean).length||0;
   $('reviewStatus').textContent=cached?`Saved review ready · ${verified}/${sans.length} moves engine-verified · ${trainable} practice position${trainable===1?'':'s'}.`:`Review ready · ${verified}/${sans.length} moves engine-verified · ${trainable} practice position${trainable===1?'':'s'}.`;
   $('runReview').textContent='Review summary';$('runReview').disabled=false;renderCurrentMove();if(showSummary)showSummaryScreen(data);window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
@@ -228,6 +268,6 @@ async function runReview(){
     const data={version:REVIEW_VERSION,evals,losses,labels,bestMoves,positionExact,moveVerified,tacticalPlan:tactical.plan.map(x=>({index:x.index,reason:x.reason})),whiteAccuracy:accuracy(whiteLoss),blackAccuracy:accuracy(blackLoss),updated:Date.now()};await cacheSet('review',key,data);displayReview(data,{showSummary:true});
   }catch(e){$('reviewStatus').textContent='Game Review failed: '+(e?.name==='AbortError'?'engine request timed out':e.message)}finally{running=false;signalRunning(false);btn.disabled=false;if(!activeReview)btn.textContent='Review game'}
 }
-function resetReviewUI(){reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
+function resetReviewUI(){reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
 function init(){ensureStyles();ensureGuideCard();const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',scheduleCurrentMove));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
