@@ -100,14 +100,15 @@ async function analysePosition(engine,fen,{depth,multipv}){
 
 async function firstPass(ctx){
   const engine=getLocalStockfish();await engine.ready();
-  const n=ctx.positions.length,evals=new Array(n),bestMoves=new Array(n).fill(''),depths=new Array(n).fill(0),pvs=new Array(n).fill(''),secondCps=new Array(n).fill(null);
+  const n=ctx.positions.length,evals=new Array(n),bestMoves=new Array(n).fill(''),depths=new Array(n).fill(0),pvs=new Array(n).fill(''),multiLines=new Array(n).fill(null),secondCps=new Array(n).fill(null);
   for(let i=0;i<n;i++){
     const status=$('reviewStatus');if(status)status.textContent=`Stockfish review ${i+1}/${n} · depth ${BASE_DEPTH}…`;
     const r=await analysePosition(engine,ctx.positions[i],{depth:BASE_DEPTH,multipv:i<n-1?2:1});
     evals[i]=r.cp;bestMoves[i]=r.best||r.lines?.[0]?.best||'';depths[i]=r.depth||BASE_DEPTH;pvs[i]=r.pv||r.lines?.[0]?.pv||'';
+    multiLines[i]=(r.lines||[]).slice(0,3).map(line=>({pv:line.pv||'',cp:line.cp,depth:line.depth||r.depth||BASE_DEPTH}));
     if(r.lines?.[1]&&Number.isFinite(r.lines[1].cp))secondCps[i]=r.lines[1].cp;
   }
-  return{engine,evals,bestMoves,depths,pvs,secondCps};
+  return{engine,evals,bestMoves,depths,pvs,multiLines,secondCps};
 }
 
 function classifyAll(engineData,ctx,prior){
@@ -144,6 +145,7 @@ async function deepen(engineData,ctx,indexes){
     const i=indexes[n],status=$('reviewStatus');if(status)status.textContent=`Deep verification ${n+1}/${indexes.length} · depth ${DEEP_DEPTH}…`;
     const r=await analysePosition(engineData.engine,ctx.positions[i],{depth:DEEP_DEPTH,multipv:i<ctx.positions.length-1?2:1});
     engineData.evals[i]=r.cp;engineData.bestMoves[i]=r.best||r.lines?.[0]?.best||engineData.bestMoves[i];engineData.depths[i]=r.depth||DEEP_DEPTH;engineData.pvs[i]=r.pv||r.lines?.[0]?.pv||engineData.pvs[i];
+    engineData.multiLines[i]=(r.lines||[]).slice(0,3).map(line=>({pv:line.pv||'',cp:line.cp,depth:line.depth||r.depth||DEEP_DEPTH}));
     engineData.secondCps[i]=r.lines?.[1]&&Number.isFinite(r.lines[1].cp)?r.lines[1].cp:null;
   }
 }
@@ -162,7 +164,7 @@ function buildReview(engineData,ctx,prior){
     onlyGapPct:classification.onlyGapPct,
     whiteAccuracy:gameAccuracy(engineData.evals,'white'),
     blackAccuracy:gameAccuracy(engineData.evals,'black'),
-    localDepths:engineData.depths,localPvs:engineData.pvs,secondBestCps:engineData.secondCps,
+    localDepths:engineData.depths,localPvs:engineData.pvs,localMultiLines:engineData.multiLines,secondBestCps:engineData.secondCps,
     localStockfishVersion:LOCAL_REVIEW_VERSION,
     reviewMethod:`Stockfish 19 local · every position depth ${BASE_DEPTH}, critical positions depth ${DEEP_DEPTH} · MultiPV 2 · Lichess Win% loss`,
     updated:Date.now()
@@ -178,7 +180,7 @@ async function deepCorrect(detail){
   if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION){
     const needed=!prior.displayPrecomputed||Number(prior.displayPrecomputedVersion)<2||displayCacheNeedsRepair(prior,ctx.ucis.length);
     if(needed){enrichDisplay(prior,ctx);await cacheSet('review',reviewKey(),prior).catch(()=>{})}
-    refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
+    refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data:prior}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
   }
   if(!await localStockfishAvailable()){const status=$('reviewStatus');if(status)status.textContent='Local Stockfish is unavailable; the quick review remains visible.';return}
   auditing=true;
@@ -190,7 +192,7 @@ async function deepCorrect(detail){
     const data=buildReview(engineData,ctx,prior);
     refreshMoveTags(data);refreshSummary(data);await cacheSet('review',reviewKey(),data);
     if(status)status.textContent=`Stockfish Review v2 ready · all ${ctx.positions.length} positions evaluated · ${targets.length} deeply rechecked · ${data.labels.filter(x=>x==='Blunder').length} blunder${data.labels.filter(x=>x==='Blunder').length===1?'':'s'}.`;
-    window.dispatchEvent(new CustomEvent('reviewNavigation'));
+    window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));
   }catch(e){
     const status=$('reviewStatus');if(status)status.textContent=`Local Stockfish review failed: ${e?.message||e}`;
   }finally{auditing=false}

@@ -58,7 +58,11 @@ async function showBest(){
   if(!review||fetching)return;
   const ply=currentPly(),i=ply-1;if(i<0)return;
   if(renderPreparedBest(i))return;
-  const line=ensureBestLine();if(line){line.classList.add('loadingLine');line.innerHTML='<span>Preparing engine line…</span>'}
+  // A completed review must never stall navigation on cloud requests.
+  // Positions without a verified line remain visibly unavailable until the review is refreshed.
+  const line=ensureBestLine();
+  if(review?.evals?.length){if(line){line.classList.remove('loadingLine');line.textContent='Engine line unavailable for this position.'}return}
+  if(line){line.classList.add('loadingLine');line.innerHTML='<span>Preparing engine line…</span>'}
   const ps=positions(),fen=ps[i];if(!fen)return;
   if(Number(review.localStockfishVersion)>=21)return;
   const btn=$('reviewShowBest'),comment=$('reviewGuideComment');let best='';
@@ -107,7 +111,7 @@ function jumpToSummaryMove(row,side){
 function init(){
   observeActiveMove();
   window.addEventListener('gameReviewReady',e=>{review=e.detail?.data||review;cycle.clear();lastRenderedPly=-1;syncToActiveMove(true)});
-  window.addEventListener('reviewNavigation',()=>syncToActiveMove());
+  window.addEventListener('reviewNavigation',()=>syncToActiveMove());window.addEventListener('gameReviewUpdated',e=>{review=e.detail?.data||review;lastRenderedPly=-1;syncToActiveMove(true)});
   document.addEventListener('click',e=>{
     const best=e.target.closest?.('#reviewShowBest');if(best){e.preventDefault();e.stopImmediatePropagation();showBest();return}
     const count=e.target.closest?.('#reviewBreakdown .left,#reviewBreakdown .right');if(count){const n=Number(count.textContent)||0;if(!n)return;e.preventDefault();e.stopImmediatePropagation();jumpToSummaryMove(count.closest('.reviewBreakRow'),count.classList.contains('left')?'white':'black');return}
