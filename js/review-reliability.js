@@ -58,7 +58,11 @@ async function showBest(){
   if(!review||fetching)return;
   const ply=currentPly(),i=ply-1;if(i<0)return;
   if(renderPreparedBest(i))return;
-  const line=ensureBestLine();if(line){line.classList.add('loadingLine');line.innerHTML='<span>Preparing engine line…</span>'}
+  // A completed review must never stall navigation on cloud requests.
+  // Positions without a verified line remain visibly unavailable until the review is refreshed.
+  const line=ensureBestLine();
+  if(review?.evals?.length){if(line){line.classList.remove('loadingLine');line.textContent='Engine line unavailable for this position.'}return}
+  if(line){line.classList.add('loadingLine');line.innerHTML='<span>Preparing engine line…</span>'}
   const ps=positions(),fen=ps[i];if(!fen)return;
   if(Number(review.localStockfishVersion)>=21)return;
   const btn=$('reviewShowBest'),comment=$('reviewGuideComment');let best='';
