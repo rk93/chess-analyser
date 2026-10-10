@@ -12,6 +12,7 @@ import { cacheSet,simpleHash } from './analysis-store.js';
 import { getLocalStockfish,localStockfishAvailable } from './local-stockfish.js';
 import { classifyStockfishMove,gameAccuracy,moverWinLossPct,moveAccuracyFromLoss } from './review-v2-core.js';
 import { displayCacheNeedsRepair } from './review-display.js';
+import { assertEngineCoverage,reviewCoverage,VERIFIED_REVIEW_VERSION } from './review-coverage.js';
 
 const $=id=>document.getElementById(id);
 const LABELS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Mistake','Blunder'];
@@ -165,7 +166,7 @@ function buildReview(engineData,ctx,prior){
     whiteAccuracy:gameAccuracy(engineData.evals,'white'),
     blackAccuracy:gameAccuracy(engineData.evals,'black'),
     localDepths:engineData.depths,localPvs:engineData.pvs,localMultiLines:engineData.multiLines,secondBestCps:engineData.secondCps,
-    localStockfishVersion:LOCAL_REVIEW_VERSION,
+    localStockfishVersion:LOCAL_REVIEW_VERSION,verifiedReviewVersion:VERIFIED_REVIEW_VERSION,
     reviewMethod:`Stockfish 19 local · every position depth ${BASE_DEPTH}, critical positions depth ${DEEP_DEPTH} · MultiPV 2 · Lichess Win% loss`,
     updated:Date.now()
   };
@@ -177,7 +178,8 @@ async function deepCorrect(detail){
   if(auditing)return;
   const prior=detail?.data;if(!prior?.evals?.length)return;
   const ctx=build();if(ctx.positions.length!==prior.evals.length)return;
-  if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION){
+  const positions=ctx.positions.map(fen=>({terminal:terminalEval(fen)!==null}));
+  if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION&&reviewCoverage(prior,positions).complete){
     const needed=!prior.displayPrecomputed||Number(prior.displayPrecomputedVersion)<2||displayCacheNeedsRepair(prior,ctx.ucis.length);
     if(needed){enrichDisplay(prior,ctx);await cacheSet('review',reviewKey(),prior).catch(()=>{})}
     refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data:prior}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
@@ -189,12 +191,14 @@ async function deepCorrect(detail){
     const engineData=await firstPass(ctx);
     const provisional=classifyAll(engineData,ctx,prior),targets=deepTargets(engineData,ctx,provisional);
     await deepen(engineData,ctx,targets);
+    assertEngineCoverage(engineData,positions);
     const data=buildReview(engineData,ctx,prior);
+    if(!reviewCoverage(data,positions).complete)throw new Error('Coverage validation failed; review not saved');
     refreshMoveTags(data);refreshSummary(data);await cacheSet('review',reviewKey(),data);
     if(status)status.textContent=`Stockfish Review v2 ready · all ${ctx.positions.length} positions evaluated · ${targets.length} deeply rechecked · ${data.labels.filter(x=>x==='Blunder').length} blunder${data.labels.filter(x=>x==='Blunder').length===1?'':'s'}.`;
     window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));
   }catch(e){
-    const status=$('reviewStatus');if(status)status.textContent=`Local Stockfish review failed: ${e?.message||e}`;
+    const status=$('reviewStatus');if(status)status.textContent=`Verified review incomplete — ${e?.message||e}. Retry Review game to repair it.`;
   }finally{auditing=false}
 }
 
