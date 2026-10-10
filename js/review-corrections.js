@@ -177,7 +177,7 @@ function buildReview(engineData,ctx,prior){
 async function deepCorrect(detail){
   if(auditing)return;
   const prior=detail?.data;if(!prior?.evals?.length)return;
-  const ctx=build();if(ctx.positions.length!==prior.evals.length)return;
+  const ctx=build(),originalKey=reviewKey();if(ctx.positions.length!==prior.evals.length)return;
   const positions=ctx.positions.map(fen=>({terminal:terminalEval(fen)!==null}));
   if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION&&reviewCoverage(prior,positions).complete){
     const needed=!prior.displayPrecomputed||Number(prior.displayPrecomputedVersion)<2||displayCacheNeedsRepair(prior,ctx.ucis.length);
@@ -191,10 +191,11 @@ async function deepCorrect(detail){
     const engineData=await firstPass(ctx);
     const provisional=classifyAll(engineData,ctx,prior),targets=deepTargets(engineData,ctx,provisional);
     await deepen(engineData,ctx,targets);
+    if(originalKey!==reviewKey())return; // Avoid writing another game's analysis.
     assertEngineCoverage(engineData,positions);
     const data=buildReview(engineData,ctx,prior);
     if(!reviewCoverage(data,positions).complete)throw new Error('Coverage validation failed; review not saved');
-    refreshMoveTags(data);refreshSummary(data);await cacheSet('review',reviewKey(),data);
+    refreshMoveTags(data);refreshSummary(data);await cacheSet('review',originalKey,data);
     if(status)status.textContent=`Stockfish Review v2 ready · all ${ctx.positions.length} positions evaluated · ${targets.length} deeply rechecked · ${data.labels.filter(x=>x==='Blunder').length} blunder${data.labels.filter(x=>x==='Blunder').length===1?'':'s'}.`;
     window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));
   }catch(e){
