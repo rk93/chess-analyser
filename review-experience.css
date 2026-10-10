@@ -102,3 +102,16 @@
     bottom:calc(6px + env(safe-area-inset-bottom))!important;
   }
 }
+
+/* Review playback controls: clear tap targets and restrained motion. */
+.reviewGuideActions{align-items:center;gap:9px}
+.reviewGuideActions .btn{border-radius:11px;min-height:44px;padding:10px 13px;font-weight:700;cursor:pointer;transition:background-color .18s ease,box-shadow .18s ease,transform .15s ease,border-color .18s ease;touch-action:manipulation}
+.reviewGuideActions .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 5px 14px rgba(23,34,19,.14)}
+.reviewGuideActions .btn:active:not(:disabled){transform:translateY(1px);box-shadow:none}
+.reviewGuideActions .btn:focus-visible{outline:3px solid #357b29;outline-offset:3px}
+.reviewGuideActions .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.reviewGuideActions .reviewPlaybackButton{background:#263c23;color:#fff;border:1px solid #263c23;min-width:104px}
+.reviewGuideActions .reviewPlaybackButton[aria-pressed="true"]{background:#315f36;color:#fff;border-color:#315f36;box-shadow:0 0 0 2px rgba(129,182,76,.2)}
+.reviewPlaybackProgress{display:block;margin-top:9px;text-align:right;color:#666;font-size:12px;font-weight:700;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+@media(max-width:560px){.reviewGuideActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.reviewGuideActions .btn{min-width:0;width:100%}.reviewGuideActions .reviewPlaybackButton{min-width:0}}
+@media(prefers-reduced-motion:reduce){.reviewGuideActions .btn{transition:none}.reviewGuideActions .btn:hover:not(:disabled),.reviewGuideActions .btn:active:not(:disabled){transform:none}}
