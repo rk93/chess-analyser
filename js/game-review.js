@@ -14,6 +14,8 @@ const TACTICAL_VERIFY_LIMIT=16;
 let running=false,reviewToken=0,restoreTimer=null,activeReview=null,summaryShownForKey='';
 let preparedReview=null,preparedPositions=null,preparedSans=null,preparedBestMoves=null,renderFrame=0,lastRenderedPly=-1;
 let voiceEnabled=false,spokenPly=-1;
+const AUTO_PLAY_MS=3000;
+let autoPlaying=false,autoPlayTimer=0;
 
 const LABELS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Mistake','Blunder'];
 const SYMBOL={Brilliant:'!!',Great:'!',Best:'★',Excellent:'👍',Good:'✓',Book:'📖',Inaccuracy:'?!',Mistake:'?',Blunder:'??'};
@@ -134,6 +136,58 @@ function ensureVoiceControl(card){
   };
   card.querySelector('.reviewGuideActions')?.prepend(button);
 }
+function stopAutoPlay(){
+  autoPlaying=false;
+  if(autoPlayTimer){clearTimeout(autoPlayTimer);autoPlayTimer=0}
+  updateAutoPlayControls();
+}
+function updateAutoPlayControls(){
+  const btn=$('reviewAutoPlay'),prev=$('reviewPrev'),next=$('reviewNext');
+  if(btn){
+    btn.textContent=autoPlaying?'⏸ Pause':'▶ Play';
+    btn.setAttribute('aria-pressed',String(autoPlaying));
+    btn.setAttribute('aria-label',autoPlaying?'Pause automatic review':'Play review automatically every 3 seconds');
+  }
+  const total=preparedSans?.length||0,ply=currentPly();
+  if(prev)prev.disabled=ply<=0;
+  if(next)next.disabled=ply>=total;
+  const progress=$('reviewPlaybackProgress');
+  if(progress){progress.textContent=`${ply} / ${total} moves`;progress.setAttribute('aria-label',`Move ${ply} of ${total}`)}
+}
+function queueAutoPlay(){
+  if(autoPlayTimer)clearTimeout(autoPlayTimer);
+  autoPlayTimer=0;
+  if(!autoPlaying)return;
+  if(document.hidden||!activeReview||currentPly()>=preparedSans.length){stopAutoPlay();return}
+  autoPlayTimer=setTimeout(()=>{
+    autoPlayTimer=0;
+    if(!autoPlaying||document.hidden||!activeReview){stopAutoPlay();return}
+    const ply=currentPly();
+    if(ply>=preparedSans.length){stopAutoPlay();return}
+    $('next')?.click();
+    if(currentPly()<=ply){stopAutoPlay();return}
+    queueAutoPlay();
+  },AUTO_PLAY_MS);
+}
+function ensureAutoPlayControls(card){
+  const actions=card.querySelector('.reviewGuideActions');
+  if(!actions||card.querySelector('#reviewAutoPlay'))return;
+  const play=document.createElement('button');
+  play.id='reviewAutoPlay';play.type='button';play.className='btn reviewPlaybackButton';
+  play.title='Automatically advance one move every 3 seconds';
+  play.onclick=()=>{
+    if(autoPlaying){stopAutoPlay();return}
+    if(!activeReview||!preparedSans?.length)return;
+    if(currentPly()>=preparedSans.length)$('start')?.click();
+    autoPlaying=true;updateAutoPlayControls();queueAutoPlay();
+  };
+  const progress=document.createElement('span');
+  progress.id='reviewPlaybackProgress';progress.className='reviewPlaybackProgress';
+  progress.setAttribute('role','status');progress.setAttribute('aria-live','off');
+  actions.prepend(play);
+  actions.after(progress);
+  updateAutoPlayControls();
+}
 function ensureGuideCard(){
   let card=$('reviewGuideCard');if(card)return card;
   card=document.createElement('section');card.id='reviewGuideCard';card.className='reviewGuideCard';card.hidden=true;
@@ -141,6 +195,7 @@ function ensureGuideCard(){
   const shell=document.querySelector('#analysisView .analysisShell');shell?.parentNode?.insertBefore(card,shell);
   $('reviewNext')?.addEventListener('click',()=>$('next')?.click());
   ensureVoiceControl(card);
+  ensureAutoPlayControls(card);
   return card;
 }
 function ensureAutoBestLine(){
@@ -242,7 +297,7 @@ function renderGuide(ply,data){
   showBoardBadge(label,frame?.uci);
   speakComment(ply,$('reviewGuideComment').textContent);
 }
-function renderCurrentMove(){const data=activeReview;if(!data)return;if(preparedPositions&&data.bestMoves!==preparedBestMoves){preparedReview=prepareGuideFrames(data,preparedPositions,preparedSans);preparedBestMoves=data.bestMoves;lastRenderedPly=-1}const ply=currentPly(),cp=data.evals?.[ply];if(cp==null||ply===lastRenderedPly)return;lastRenderedPly=ply;const score=scoreLabel(cp);$('engineScore').textContent=$('mobileScore').textContent=score;$('engineSource').textContent='Game Review';$('mobileSource').textContent='Game Review';setEvalBar(cp);renderGuide(ply,data)}
+function renderCurrentMove(){const data=activeReview;if(!data)return;if(preparedPositions&&data.bestMoves!==preparedBestMoves){preparedReview=prepareGuideFrames(data,preparedPositions,preparedSans);preparedBestMoves=data.bestMoves;lastRenderedPly=-1}const ply=currentPly(),cp=data.evals?.[ply];if(cp==null||ply===lastRenderedPly)return;lastRenderedPly=ply;const score=scoreLabel(cp);$('engineScore').textContent=$('mobileScore').textContent=score;$('engineSource').textContent='Game Review';$('mobileSource').textContent='Game Review';setEvalBar(cp);renderGuide(ply,data);updateAutoPlayControls()}
 function scheduleCurrentMove(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;renderCurrentMove()})}
 
 function summaryHeadline(data){const diff=(Number(data.whiteAccuracy)||0)-(Number(data.blackAccuracy)||0),blunders=data.labels.filter(x=>x==='Blunder').length;if(blunders===0)return'A clean game with no major blunders. Review the strongest decisions move by move.';if(Math.abs(diff)>=15)return'One side played a much more accurate game. Review the key turning points and missed chances.';return'The game had important swings. Review the moves that changed the evaluation.'}
@@ -298,6 +353,6 @@ async function runReview(){
     const data={version:REVIEW_VERSION,evals,losses,labels,bestMoves,positionExact,moveVerified,tacticalPlan:tactical.plan.map(x=>({index:x.index,reason:x.reason})),whiteAccuracy:accuracy(whiteLoss),blackAccuracy:accuracy(blackLoss),updated:Date.now()};await cacheSet('review',key,data);displayReview(data,{showSummary:true});
   }catch(e){$('reviewStatus').textContent='Game Review failed: '+(e?.name==='AbortError'?'engine request timed out':e.message)}finally{running=false;signalRunning(false);btn.disabled=false;if(!activeReview)btn.textContent='Review game'}
 }
-function resetReviewUI(){reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
-function init(){ensureStyles();ensureGuideCard();const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',scheduleCurrentMove));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
+function resetReviewUI(){stopAutoPlay();reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
+function init(){ensureStyles();ensureGuideCard();const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();if(autoPlaying)queueAutoPlay()}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
