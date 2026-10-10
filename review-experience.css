@@ -102,3 +102,134 @@
     bottom:calc(6px + env(safe-area-inset-bottom))!important;
   }
 }
+
+/* Review playback controls: clear tap targets and restrained motion. */
+.reviewGuideActions{align-items:center;gap:9px}
+.reviewGuideActions .btn{border-radius:11px;min-height:44px;padding:10px 13px;font-weight:700;cursor:pointer;transition:background-color .18s ease,box-shadow .18s ease,transform .15s ease,border-color .18s ease;touch-action:manipulation}
+.reviewGuideActions .btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 5px 14px rgba(23,34,19,.14)}
+.reviewGuideActions .btn:active:not(:disabled){transform:translateY(1px);box-shadow:none}
+.reviewGuideActions .btn:focus-visible{outline:3px solid #357b29;outline-offset:3px}
+.reviewGuideActions .btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.reviewGuideActions .reviewPlaybackButton{background:#263c23;color:#fff;border:1px solid #263c23;min-width:104px}
+.reviewGuideActions .reviewPlaybackButton[aria-pressed="true"]{background:#315f36;color:#fff;border-color:#315f36;box-shadow:0 0 0 2px rgba(129,182,76,.2)}
+.reviewPlaybackProgress{display:block;margin-top:9px;text-align:right;color:#666;font-size:12px;font-weight:700;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+@media(max-width:560px){.reviewGuideActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.reviewGuideActions .btn{min-width:0;width:100%}.reviewGuideActions .reviewPlaybackButton{min-width:0}}
+@media(prefers-reduced-motion:reduce){.reviewGuideActions .btn{transition:none}.reviewGuideActions .btn:hover:not(:disabled),.reviewGuideActions .btn:active:not(:disabled){transform:none}}
+
+/* Premium review transport — progressive CSS, no new runtime dependencies. */
+.reviewGuideCard{
+  border:1px solid rgba(28,49,27,.08);
+  box-shadow:0 14px 42px rgba(20,31,17,.13),0 2px 9px rgba(20,31,17,.06);
+}
+.reviewGuideActions{
+  --transport-green:#81b64c;
+  --transport-deep:#24352d;
+  isolation:isolate;
+  align-items:stretch;
+}
+.reviewGuideActions .btn{
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+  -webkit-user-select:none;
+  position:relative;
+  min-height:48px;
+  border:1px solid rgba(48,65,41,.16);
+  border-radius:14px;
+  background:#fff;
+  color:#26342b;
+  font-size:14px;
+  font-weight:760;
+  letter-spacing:-.012em;
+  box-shadow:0 2px 0 rgba(25,37,26,.07),0 3px 9px rgba(25,37,26,.035);
+  transition:background-color 170ms ease,color 170ms ease,border-color 170ms ease,box-shadow 170ms ease,transform 150ms ease;
+}
+.reviewGuideActions .btn:hover:not(:disabled){
+  box-shadow:0 7px 22px rgba(25,37,26,.12);
+  border-color:rgba(81,128,57,.38);
+}
+.reviewGuideActions .btn:active:not(:disabled){
+  transform:translateY(1px) scale(.985);
+  box-shadow:inset 0 2px 4px rgba(12,30,15,.15);
+}
+.reviewGuideActions .btn:focus-visible{
+  outline:3px solid #b3e575;
+  outline-offset:3px;
+}
+.reviewGuideActions .btn:disabled{opacity:.38;filter:saturate(.4)}
+.reviewGuideActions #reviewAutoPlay{
+  background:linear-gradient(155deg,#334b3d,#213629);
+  color:#fff;
+  border-color:#1b3126;
+  font-weight:850;
+  box-shadow:0 5px 15px rgba(27,55,34,.2);
+}
+.reviewGuideActions #reviewAutoPlay[aria-pressed="true"]{
+  background:linear-gradient(155deg,#5f9b41,#397a3c);
+  color:#fff;
+  border-color:#4a8c43;
+  box-shadow:0 0 0 2px rgba(129,182,76,.25),0 5px 18px rgba(40,96,45,.25);
+}
+.reviewGuideActions #reviewNext{
+  background:linear-gradient(155deg,#95c75c,#76aa42)!important;
+  color:#172c1c!important;
+  border-color:#70a23e;
+  font-weight:850;
+  box-shadow:0 5px 15px rgba(96,144,53,.16);
+}
+.reviewPlaybackProgress{
+  margin-top:12px;
+  color:#53645a;
+  font-weight:750;
+  font-variant-numeric:tabular-nums;
+}
+@media(max-width:800px){
+  /* Replace the inherited cramped flex row with a deliberate two-tier transport. */
+  body.review-guided-active #analysisView.reviewProMode .reviewGuideActions{
+    display:grid!important;
+    grid-template-columns:repeat(6,minmax(0,1fr))!important;
+    gap:7px!important;
+    padding:9px!important;
+    border-radius:20px!important;
+    border:1px solid rgba(210,232,194,.18)!important;
+    background:rgba(28,36,31,.97)!important;
+    box-shadow:0 14px 42px rgba(0,0,0,.43),inset 0 1px 0 rgba(255,255,255,.09)!important;
+    -webkit-backdrop-filter:blur(18px);
+    backdrop-filter:blur(18px);
+  }
+  body.review-guided-active #analysisView.reviewProMode .reviewGuideActions .btn{
+    flex:none!important;
+    min-width:0!important;
+    width:100%;
+    min-height:48px!important;
+    padding:10px 6px!important;
+    font-size:13px!important;
+    border-radius:13px!important;
+    line-height:1.15;
+  }
+  body.review-guided-active #analysisView.reviewProMode #reviewPrev{grid-column:1/span 2;grid-row:1}
+  body.review-guided-active #analysisView.reviewProMode #reviewAutoPlay{grid-column:3/span 2;grid-row:1}
+  body.review-guided-active #analysisView.reviewProMode #reviewNext{grid-column:5/span 2;grid-row:1;font-size:13px!important}
+  body.review-guided-active #analysisView.reviewProMode #reviewVoiceToggle{grid-column:1/span 3;grid-row:2}
+  body.review-guided-active #analysisView.reviewProMode #reviewPractice{grid-column:4/span 3;grid-row:2}
+  body.review-guided-active #analysisView.reviewProMode .reviewGuideActions{
+    bottom:calc(8px + env(safe-area-inset-bottom))!important;
+  }
+  body.review-guided-active #analysisView.reviewGuidedMode{
+    padding-bottom:calc(158px + env(safe-area-inset-bottom))!important;
+  }
+  body.review-guided-active #analysisView.reviewGuidedMode .analysisShell{
+    padding-bottom:calc(148px + env(safe-area-inset-bottom))!important;
+  }
+}
+@media(max-width:430px){
+  body.review-guided-active #analysisView.reviewProMode .reviewGuideActions{
+    gap:6px!important;padding:7px!important;bottom:calc(6px + env(safe-area-inset-bottom))!important;
+  }
+  body.review-guided-active #analysisView.reviewProMode .reviewGuideActions .btn{
+    min-height:46px!important;font-size:12px!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .reviewGuideActions .btn{transition:none!important}
+  .reviewGuideActions .btn:hover:not(:disabled),.reviewGuideActions .btn:active:not(:disabled){transform:none!important}
+}
