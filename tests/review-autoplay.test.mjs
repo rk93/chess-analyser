@@ -40,3 +40,12 @@ test('pause and game reset invalidate stale voice completion callbacks',()=>{
   assert.match(source,/generation!==spokenGeneration/);
   assert.match(source,/if\('speechSynthesis' in window\)window\.speechSynthesis\.cancel\(\)/);
 });
+
+test('premium transport layout preserves accessible 48px targets and mobile safe areas',()=>{
+  assert.match(styles,/Premium review transport/);
+  assert.match(styles,/min-height:48px/);
+  assert.match(styles,/grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/);
+  assert.match(styles,/env\(safe-area-inset-bottom\)/);
+  assert.match(styles,/prefers-reduced-motion:reduce/);
+  assert.match(styles,/:focus-visible/);
+});
