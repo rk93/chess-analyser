@@ -2,6 +2,7 @@ import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { cacheGet,cacheSet,getPositionEval,setPositionEval,simpleHash } from './analysis-store.js';
 import { buildTacticalVerificationPlan } from './review-tactics.js';
 import { displayLineFor } from './review-display.js';
+import { reviewCoverage } from './review-coverage.js';
 
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -258,8 +259,11 @@ function displayReview(data,{cached=false,showSummary=true}={}){
   const positions=buildPositions(),sans=moveSans();if(positions.length!==data.evals.length||sans.length!==data.labels.length)return false;
   spokenPly=-1;preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
   const trainable=(data.bestMoves||[]).filter((m,i)=>m&&data.moveVerified?.[i]&&(data.labels[i]==='Mistake'||data.labels[i]==='Blunder')).length,verified=data.moveVerified?.filter(Boolean).length||0;
-  $('reviewStatus').textContent=cached?`Saved review ready · ${verified}/${sans.length} moves engine-verified · ${trainable} practice position${trainable===1?'':'s'}.`:`Review ready · ${verified}/${sans.length} moves engine-verified · ${trainable} practice position${trainable===1?'':'s'}.`;
-  $('runReview').textContent='Review summary';$('runReview').disabled=false;renderCurrentMove();if(showSummary)showSummaryScreen(data);window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
+  const coverage=reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()})));
+  $('reviewStatus').textContent=coverage.complete
+    ?`Verified review ready · all ${sans.length} moves analysed · ${trainable} practice positions.`
+    :`Preview only — ${coverage.missing.length} position(s) still need Stockfish verification. Review is not complete.`;
+  $('runReview').textContent=coverage.complete?'Review summary':'Review preview';$('runReview').disabled=false;renderCurrentMove();if(showSummary&&coverage.complete)showSummaryScreen(data);window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
 }
 async function restoreReview(){clearTimeout(restoreTimer);restoreTimer=setTimeout(async()=>{const sans=moveSans();if(!sans.length)return;const key=reviewKey(),data=await cacheGet('review',key);if(data?.version===REVIEW_VERSION)displayReview(data,{cached:true,showSummary:true})},120)}
 function sampleIndexes(total,max){if(total<=max)return Array.from({length:total},(_,i)=>i);const set=new Set([0,total-1]);for(let n=0;n<max;n++)set.add(Math.round(n*(total-1)/(max-1)));return [...set].sort((a,b)=>a-b)}
@@ -280,9 +284,9 @@ async function runTacticalVerification(positions,sans,evals,bestMoves,positionEx
 }
 async function runReview(){
   if(running)return;
-  if(activeReview){showSummaryScreen(activeReview,{force:true});return}
+  if(activeReview){const coverage=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()})));if(coverage.complete){showSummaryScreen(activeReview,{force:true});return}activeReview=null}
   const positions=buildPositions(),sans=moveSans();if(positions.length<2){$('reviewStatus').textContent='Open a game with moves before running Game Review.';return}
-  const key=reviewKey(),saved=await cacheGet('review',key);if(saved?.version===REVIEW_VERSION&&displayReview(saved,{cached:true,showSummary:true}))return;
+  const key=reviewKey(),saved=await cacheGet('review',key);if(saved?.version===REVIEW_VERSION&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:true}))return;
   running=true;activeReview=null;signalRunning(true);const token=++reviewToken,btn=$('runReview');btn.disabled=true;btn.textContent='Reviewing…';clearTags();$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;const evals=new Array(positions.length).fill(null),bestMoves=new Array(positions.length).fill(''),positionExact=new Array(positions.length).fill(false);
   try{
     await runCloudPass(positions,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
