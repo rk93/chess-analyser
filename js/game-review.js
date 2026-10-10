@@ -206,7 +206,7 @@ function coachComment(data,i,frame){
   else if(played.includes('+'))effects.push('gives check');
   if(played.startsWith('O-O'))effects.push('castles to improve king safety');
   if(move?.promotion)effects.push(`promotes the pawn to a ${pieceNames[move.promotion]}`);
-  const intro=effects.length?`${played} ${effects.join(' and ')}.`:`${played} develops the ${actor}.`;
+  const intro=effects.length?`${played} ${effects.join(' and ')}.`:`${played} moves the ${actor}.`;
   const loss=Number(data.lossPct?.[i]);
   const severity=label==='Blunder'?'This is a serious error':label==='Mistake'?'This is a costly mistake':label==='Inaccuracy'?'This is slightly imprecise':label==='Best'||label==='Great'||label==='Brilliant'?'Strong play':label==='Book'?'This follows established opening play':'This is a reasonable move';
   const evalText=Number.isFinite(before)&&Number.isFinite(after)?` The evaluation changes from ${scoreLabel(before)} to ${scoreLabel(after)} from White's perspective.`:'';
