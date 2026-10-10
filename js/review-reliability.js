@@ -44,14 +44,9 @@ function ensureBestLine(){
   return line;
 }
 function renderPreparedBest(i){
-  const best=review?.bestMoves?.[i]||'';if(!best)return false;
-  // The main review renderer owns the board arrow; do not overwrite it here.
-  const bestSan=review?.bestSans?.[i]||best,lineSan=review?.bestLines?.[i]||bestSan,line=ensureBestLine();
-  if(line){
-    line.classList.remove('loadingLine');
-    line.innerHTML=`<div><span>Engine best</span> <b>${bestSan}</b></div>${lineSan&&lineSan!==bestSan?`<div class="reviewPvLine">${lineSan}</div>`:''}`;
-  }
-  return true;
+  // game-review.js owns the best-line panel and arrow. Do not overwrite its
+  // MultiPV alternatives or compete with its current-position arrow.
+  return !!review?.bestMoves?.[i];
 }
 
 async function showBest(){
@@ -61,7 +56,7 @@ async function showBest(){
   // A completed review must never stall navigation on cloud requests.
   // Positions without a verified line remain visibly unavailable until the review is refreshed.
   const line=ensureBestLine();
-  if(review?.evals?.length){if(line){line.classList.remove('loadingLine');line.textContent='Engine line unavailable for this position.'}return}
+  if(review?.evals?.length)return; // Main review owns the unavailable state too.
   if(line){line.classList.add('loadingLine');line.innerHTML='<span>Preparing engine line…</span>'}
   const ps=positions(),fen=ps[i];if(!fen)return;
   if(Number(review.localStockfishVersion)>=21)return;
