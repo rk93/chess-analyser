@@ -15,7 +15,9 @@ let running=false,reviewToken=0,restoreTimer=null,activeReview=null,summaryShown
 let preparedReview=null,preparedPositions=null,preparedSans=null,preparedBestMoves=null,renderFrame=0,lastRenderedPly=-1;
 let voiceEnabled=false,spokenPly=-1;
 const AUTO_PLAY_MS=3000;
-let autoPlaying=false,autoPlayTimer=0;
+let autoPlaying=false,autoPlayTimer=0,autoPlayGeneration=0,spokenGeneration=0;
+const COACH_PAUSE_MS=700,COACH_MAX_WAIT_MS=45000;
+let spokenPending=false;
 
 const LABELS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Mistake','Blunder'];
 const SYMBOL={Brilliant:'!!',Great:'!',Best:'★',Excellent:'👍',Good:'✓',Book:'📖',Inaccuracy:'?!',Mistake:'?',Blunder:'??'};
@@ -116,10 +118,20 @@ function drawBestArrow(uci){const svg=$('analysisArrows');if(!svg)return;svg.inn
 
 function speakComment(ply,text){
   if(!voiceEnabled||spokenPly===ply||!('speechSynthesis' in window))return;
-  spokenPly=ply;window.speechSynthesis.cancel();
+  const generation=++spokenGeneration;
+  spokenPly=ply;
+  spokenPending=true;
+  window.speechSynthesis.cancel();
   const utterance=new SpeechSynthesisUtterance(text);
   utterance.lang='en-GB';utterance.rate=.96;utterance.pitch=1;
-  window.speechSynthesis.speak(utterance);
+  const finished=()=>{
+    if(generation!==spokenGeneration)return;
+    spokenPending=false;
+    if(autoPlaying&&currentPly()===ply)queueAutoPlay(COACH_PAUSE_MS);
+  };
+  utterance.onend=finished;
+  utterance.onerror=finished;
+  try{window.speechSynthesis.speak(utterance)}catch{finished()}
 }
 function ensureVoiceControl(card){
   if(card.querySelector('#reviewVoiceToggle'))return;
@@ -131,14 +143,18 @@ function ensureVoiceControl(card){
     voiceEnabled=!voiceEnabled;button.textContent=voiceEnabled?'🔊 Coach voice on':'🔇 Coach voice off';
     button.setAttribute('aria-pressed',String(voiceEnabled));
     spokenPly=-1;
-    if(!voiceEnabled&&'speechSynthesis' in window)window.speechSynthesis.cancel();
+    if(!voiceEnabled){spokenGeneration++;spokenPending=false;if('speechSynthesis' in window)window.speechSynthesis.cancel();if(autoPlaying)queueAutoPlay()}
+
     else if(voiceEnabled){const comment=$('reviewGuideComment')?.textContent;if(comment)speakComment(currentPly(),comment)}
   };
   card.querySelector('.reviewGuideActions')?.prepend(button);
 }
 function stopAutoPlay(){
   autoPlaying=false;
+  autoPlayGeneration++;
   if(autoPlayTimer){clearTimeout(autoPlayTimer);autoPlayTimer=0}
+  spokenGeneration++;spokenPending=false;spokenPly=-1;
+  if('speechSynthesis' in window)window.speechSynthesis.cancel();
   updateAutoPlayControls();
 }
 function updateAutoPlayControls(){
@@ -154,20 +170,31 @@ function updateAutoPlayControls(){
   const progress=$('reviewPlaybackProgress');
   if(progress){progress.textContent=`${ply} / ${total} moves`;progress.setAttribute('aria-label',`Move ${ply} of ${total}`)}
 }
-function queueAutoPlay(){
+function queueAutoPlay(delay=null){
   if(autoPlayTimer)clearTimeout(autoPlayTimer);
   autoPlayTimer=0;
+  const generation=++autoPlayGeneration;
   if(!autoPlaying)return;
   if(document.hidden||!activeReview||currentPly()>=preparedSans.length){stopAutoPlay();return}
+  // Voice-on playback follows speech-end events. A safety timeout prevents
+  // indefinite stalls in browsers that never fire onend/onerror.
+  const waitingForVoice=voiceEnabled&&spokenPending;
+  const wait=delay??(waitingForVoice?COACH_MAX_WAIT_MS:AUTO_PLAY_MS);
   autoPlayTimer=setTimeout(()=>{
+    if(generation!==autoPlayGeneration)return;
     autoPlayTimer=0;
     if(!autoPlaying||document.hidden||!activeReview){stopAutoPlay();return}
     const ply=currentPly();
     if(ply>=preparedSans.length){stopAutoPlay();return}
+    if(waitingForVoice){
+      spokenGeneration++;spokenPending=false;
+      if('speechSynthesis' in window)window.speechSynthesis.cancel();
+    }
     $('next')?.click();
     if(currentPly()<=ply){stopAutoPlay();return}
-    queueAutoPlay();
-  },AUTO_PLAY_MS);
+    // The navigation event re-renders and starts narration; a fallback
+    // timer is rescheduled there only after the current move is rendered.
+  },wait);
 }
 function ensureAutoPlayControls(card){
   const actions=card.querySelector('.reviewGuideActions');
@@ -179,7 +206,9 @@ function ensureAutoPlayControls(card){
     if(autoPlaying){stopAutoPlay();return}
     if(!activeReview||!preparedSans?.length)return;
     if(currentPly()>=preparedSans.length)$('start')?.click();
-    autoPlaying=true;updateAutoPlayControls();queueAutoPlay();
+    autoPlaying=true;updateAutoPlayControls();
+    if(voiceEnabled&&currentPly()>0){spokenPly=-1;speakComment(currentPly(),$('reviewGuideComment')?.textContent||'')}
+    queueAutoPlay();
   };
   const progress=document.createElement('span');
   progress.id='reviewPlaybackProgress';progress.className='reviewPlaybackProgress';
@@ -296,6 +325,7 @@ function renderGuide(ply,data){
   if(practice){const detail=frame?.detail;practice.onclick=e=>launchPractice(e,detail)}
   showBoardBadge(label,frame?.uci);
   speakComment(ply,$('reviewGuideComment').textContent);
+  if(autoPlaying)queueAutoPlay();
 }
 function renderCurrentMove(){const data=activeReview;if(!data)return;if(preparedPositions&&data.bestMoves!==preparedBestMoves){preparedReview=prepareGuideFrames(data,preparedPositions,preparedSans);preparedBestMoves=data.bestMoves;lastRenderedPly=-1}const ply=currentPly(),cp=data.evals?.[ply];if(cp==null||ply===lastRenderedPly)return;lastRenderedPly=ply;const score=scoreLabel(cp);$('engineScore').textContent=$('mobileScore').textContent=score;$('engineSource').textContent='Game Review';$('mobileSource').textContent='Game Review';setEvalBar(cp);renderGuide(ply,data);updateAutoPlayControls()}
 function scheduleCurrentMove(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;renderCurrentMove()})}
@@ -354,5 +384,5 @@ async function runReview(){
   }catch(e){$('reviewStatus').textContent='Game Review failed: '+(e?.name==='AbortError'?'engine request timed out':e.message)}finally{running=false;signalRunning(false);btn.disabled=false;if(!activeReview)btn.textContent='Review game'}
 }
 function resetReviewUI(){stopAutoPlay();reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
-function init(){ensureStyles();ensureGuideCard();const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();if(autoPlaying)queueAutoPlay()}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
+function init(){ensureStyles();ensureGuideCard();const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
