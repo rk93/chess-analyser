@@ -26,3 +26,17 @@ test('autoplay has accessible pause and progress controls',()=>{
   assert.match(styles,/:focus-visible/);
   assert.match(styles,/prefers-reduced-motion/);
 });
+
+test('coach narration drives autoplay rather than interrupting speech',()=>{
+  assert.match(source,/utterance\.onend=finished/);
+  assert.match(source,/utterance\.onerror=finished/);
+  assert.match(source,/queueAutoPlay\(COACH_PAUSE_MS\)/);
+  assert.match(source,/voiceEnabled&&spokenPending/);
+  assert.match(source,/COACH_MAX_WAIT_MS=45000/);
+  assert.match(source,/generation!==autoPlayGeneration/);
+});
+test('pause and game reset invalidate stale voice completion callbacks',()=>{
+  assert.match(source,/spokenGeneration\+\+;spokenPending=false;spokenPly=-1/);
+  assert.match(source,/generation!==spokenGeneration/);
+  assert.match(source,/if\('speechSynthesis' in window\)window\.speechSynthesis\.cancel\(\)/);
+});
