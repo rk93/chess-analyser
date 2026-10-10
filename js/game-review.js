@@ -115,7 +115,7 @@ function speakComment(ply,text){
   if(!voiceEnabled||spokenPly===ply||!('speechSynthesis' in window))return;
   spokenPly=ply;window.speechSynthesis.cancel();
   const utterance=new SpeechSynthesisUtterance(text);
-  utterance.lang='en-GB';utterance.rate=.93;utterance.pitch=1;
+  utterance.lang='en-GB';utterance.rate=.96;utterance.pitch=1;
   window.speechSynthesis.speak(utterance);
 }
 function ensureVoiceControl(card){
@@ -163,7 +163,7 @@ function renderAutoBest(i,data,fen){
   const line=ensureAutoBestLine(),prepared=displayLineFor(data,i);
   if(!prepared.bestUci){
     if(line)line.textContent='No engine move available for this position.';
-    drawBestArrow('');
+    drawBestArrow(data.bestMoves?.[i+1]||'');
     return;
   }
   const bestSan=(prepared.bestSan===prepared.bestUci&&fen)?sanForUci(fen,prepared.bestUci):prepared.bestSan;
@@ -173,7 +173,9 @@ function renderAutoBest(i,data,fen){
     return san?`<div class="reviewPvLine"><span>Line ${n+2}</span> ${escapeHtml(san)}${Number.isFinite(item.cp)?` · ${scoreLabel(item.cp)}`:''}</div>`:'';
   }).join('');
   if(line)line.innerHTML=`<div><span>Engine best</span> <b>${escapeHtml(bestSan)}</b></div>${pv&&pv!==bestSan?`<div class="reviewPvLine">${escapeHtml(pv)}</div>`:''}${alternatives}`;
-  drawBestArrow(prepared.bestUci);
+  // The board shows the position AFTER the played move. Arrow must originate
+  // from that position, not from the previous (pre-move) position.
+  drawBestArrow(data.bestMoves?.[i+1]||'');
 }
 function clearBoardBadge(){document.querySelectorAll('#board .boardReviewBadge').forEach(x=>x.remove())}
 function showBoardBadge(label,uci){clearBoardBadge();if(!uci)return;const sq=uci.slice(2,4),el=$('board')?.querySelector(`[data-square="${sq}"]`);if(!el)return;const b=document.createElement('span');b.className=`boardReviewBadge badge-${BADGE[label]||'good'}`;b.textContent=SYMBOL[label]||'✓';b.title=label;el.appendChild(b)}
@@ -189,6 +191,30 @@ function commentForMove({label,played,bestSan,verified,before,after,ply}){
   if(label==='Mistake')return`${played} is a mistake. It gives away a meaningful part of the position.${bestSan?` A better move was ${bestSan}.`:''}`;
   if(label==='Blunder')return`${played} is a blunder. It causes a large evaluation swing.${bestSan?` The engine preferred ${bestSan}.`:''}`;
   return`${played} has been reviewed.`;
+}
+function coachComment(data,i,frame){
+  const played=frame?.played||'',label=data.labels?.[i]||'Good',ply=i+1;
+  const before=Number(data.evals?.[i]),after=Number(data.evals?.[i+1]);
+  const bestSan=frame?.bestSan||'',verified=!!data.moveVerified?.[i],beforeFen=frame?.fen;
+  let move=null,game=null;
+  try{game=new Chess(beforeFen);move=game.move(played)}catch{}
+  const pieceNames={p:'pawn',n:'knight',b:'bishop',r:'rook',q:'queen',k:'king'};
+  const actor=move?pieceNames[move.piece]:'piece';
+  const effects=[];
+  if(move?.captured)effects.push(`captures a ${pieceNames[move.captured]}`);
+  if(played.includes('#'))effects.push('delivers checkmate');
+  else if(played.includes('+'))effects.push('gives check');
+  if(played.startsWith('O-O'))effects.push('castles to improve king safety');
+  if(move?.promotion)effects.push(`promotes the pawn to a ${pieceNames[move.promotion]}`);
+  const intro=effects.length?`${played} ${effects.join(' and ')}.`:`${played} moves the ${actor}.`;
+  const loss=Number(data.lossPct?.[i]);
+  const severity=label==='Blunder'?'This is a serious error':label==='Mistake'?'This is a costly mistake':label==='Inaccuracy'?'This is slightly imprecise':label==='Best'||label==='Great'||label==='Brilliant'?'Strong play':label==='Book'?'This follows established opening play':'This is a reasonable move';
+  const evalText=Number.isFinite(before)&&Number.isFinite(after)?` The evaluation changes from ${scoreLabel(before)} to ${scoreLabel(after)} from White's perspective.`:'';
+  const alternative=bestSan&&bestSan!==played&&verified?` The engine preferred ${bestSan} instead.`:'';
+  const pv=String(data.bestLines?.[i]||'').trim();
+  const sequence=pv&&pv!==bestSan&&verified?` One stronger continuation is ${pv}.`:'';
+  const accuracy=Number.isFinite(loss)&&loss>=10?` That costs roughly ${loss.toFixed(1)} percentage points of winning chances.`:'';
+  return `${intro} ${severity}.${alternative}${accuracy||evalText}${sequence}`;
 }
 function prepareGuideFrames(data,positions,sans){
   // Prepare all move text and legal positions once while the summary is being displayed.
@@ -206,11 +232,11 @@ function prepareGuideFrames(data,positions,sans){
 }
 function renderGuide(ply,data){
   const card=ensureGuideCard();if(!card)return;
-  if(ply===0){card.hidden=false;$('reviewGuideIcon').textContent='✓';$('reviewGuideMove').textContent='Review ready';$('reviewGuideEval').textContent=scoreLabel(data.evals?.[0]);$('reviewGuideComment').textContent='Use Next, Previous, or tap any move to step through the review.';$('reviewGuideMeta').textContent='Move feedback is loaded from the saved review — navigation does not need a new engine request.';$('reviewShowBest').hidden=true;$('reviewPractice').hidden=true;const auto=ensureAutoBestLine();if(auto)auto.textContent='Best line will appear as you review each move.';drawBestArrow('');return}
+  if(ply===0){card.hidden=false;$('reviewGuideIcon').textContent='✓';$('reviewGuideMove').textContent='Review ready';$('reviewGuideEval').textContent=scoreLabel(data.evals?.[0]);$('reviewGuideComment').textContent='Use Next, Previous, or tap any move to step through the review.';$('reviewGuideMeta').textContent='Move feedback is loaded from the saved review — navigation does not need a new engine request.';$('reviewShowBest').hidden=true;$('reviewPractice').hidden=true;const auto=ensureAutoBestLine();if(auto)auto.textContent='Best line will appear as you review each move.';drawBestArrow(data.bestMoves?.[0]||'');return}
   const i=ply-1,frame=preparedReview?.[i],label=data.labels?.[i]||'Good',played=frame?.played||`Move ${ply}`,best=frame?.best||data.bestMoves?.[i]||'',bestSan=frame?.bestSan||'',verified=!!data.moveVerified?.[i],before=data.evals?.[i],after=data.evals?.[i+1];
-  card.hidden=false;$('reviewGuideIcon').textContent=SYMBOL[label]||'✓';$('reviewGuideMove').textContent=`${played} · ${label}`;$('reviewGuideEval').textContent=scoreLabel(after);$('reviewGuideComment').textContent=commentForMove({label,played,bestSan,verified,before,after,ply});$('reviewGuideMeta').textContent=verified?'Engine-verified move classification':'Estimated classification from nearby reviewed positions';
+  card.hidden=false;$('reviewGuideIcon').textContent=SYMBOL[label]||'✓';$('reviewGuideMove').textContent=`${played} · ${label}`;$('reviewGuideEval').textContent=scoreLabel(after);$('reviewGuideComment').textContent=coachComment(data,i,frame);$('reviewGuideMeta').textContent=verified?'Engine-verified move classification':'Estimated classification from nearby reviewed positions';
   const positions=preparedPositions;renderAutoBest(i,data,positions[i]?.fen);const show=$('reviewShowBest'),practice=$('reviewPractice');show.hidden=!best||!verified;practice.hidden=!(verified&&(label==='Mistake'||label==='Blunder')&&best);
-  if(show)show.onclick=()=>{drawBestArrow(best);$('reviewGuideComment').textContent=bestSan?`Best move: ${bestSan}. The green arrow shows the engine's preferred move.`:'The green arrow shows the engine preferred move.'};
+  if(show)show.onclick=()=>{drawBestArrow(data.bestMoves?.[ply]||'');$('reviewGuideComment').textContent=bestSan?`Best move: ${bestSan}. The green arrow shows the engine's preferred move.`:'The green arrow shows the engine preferred move.'};
   if(practice){const detail=frame?.detail;practice.onclick=e=>launchPractice(e,detail)}
   showBoardBadge(label,frame?.uci);
   speakComment(ply,$('reviewGuideComment').textContent);
