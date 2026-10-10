@@ -45,7 +45,7 @@ function ensureBestLine(){
 }
 function renderPreparedBest(i){
   const best=review?.bestMoves?.[i]||'';if(!best)return false;
-  drawWhenReady(best);
+  // The main review renderer owns the board arrow; do not overwrite it here.
   const bestSan=review?.bestSans?.[i]||best,lineSan=review?.bestLines?.[i]||bestSan,line=ensureBestLine();
   if(line){
     line.classList.remove('loadingLine');
@@ -69,7 +69,7 @@ async function showBest(){
   fetching=true;if(btn){btn.disabled=true;btn.textContent='Finding best…'};
   try{best=await fetchBest(fen);if(best){review.bestMoves=review.bestMoves||[];review.bestMoves[i]=best;await cacheSet('review',reviewKey(),review).catch(()=>{})}}finally{fetching=false;if(btn){btn.disabled=false;btn.textContent='Show best'}}
   if(!best){if(line){line.classList.remove('loadingLine');line.textContent='Best line unavailable for this position.'}if(comment&&!comment.textContent)comment.textContent='A verified best move is not available for this position yet.';return}
-  drawWhenReady(best);
+  // The main review renderer owns the board arrow; do not overwrite it here.
   const bestSan=sanForUci(fen,best);if(line){line.classList.remove('loadingLine');line.innerHTML=`<div><span>Engine best</span> <b>${bestSan}</b></div>`}
 }
 
