@@ -66,8 +66,14 @@ async function showBest(){
   const ps=positions(),fen=ps[i];if(!fen)return;
   if(Number(review.localStockfishVersion)>=21)return;
   const btn=$('reviewShowBest'),comment=$('reviewGuideComment');let best='';
+  const owner=review,key=reviewKey(),isCurrent=()=>review===owner&&reviewKey()===key&&currentPly()===ply;
   fetching=true;if(btn){btn.disabled=true;btn.textContent='Finding best…'};
-  try{best=await fetchBest(fen);if(best){review.bestMoves=review.bestMoves||[];review.bestMoves[i]=best;await cacheSet('review',reviewKey(),review).catch(()=>{})}}finally{fetching=false;if(btn){btn.disabled=false;btn.textContent='Show best'}}
+  try{
+    best=await fetchBest(fen);
+    if(!isCurrent())return;
+    if(best){owner.bestMoves=owner.bestMoves||[];owner.bestMoves[i]=best;await cacheSet('review',key,owner).catch(()=>{})}
+  }finally{fetching=false;if(btn&&isCurrent()){btn.disabled=false;btn.textContent='Show best'}}
+  if(!isCurrent())return;
   if(!best){if(line){line.classList.remove('loadingLine');line.textContent='Best line unavailable for this position.'}if(comment&&!comment.textContent)comment.textContent='A verified best move is not available for this position yet.';return}
   // The main review renderer owns the board arrow; do not overwrite it here.
   const bestSan=sanForUci(fen,best);if(line){line.classList.remove('loadingLine');line.innerHTML=`<div><span>Engine best</span> <b>${bestSan}</b></div>`}
