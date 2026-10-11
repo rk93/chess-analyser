@@ -28,7 +28,8 @@ test('local Stockfish startup has timeout and resets failed ready promise',async
   const src=await readFile('js/local-stockfish.js','utf8');
   assert.match(src,/Local Stockfish startup timed out/);
   assert.match(src,/this\.readyPromise=null/);
-  assert.match(src,/this\.worker\?\.terminate/);
+  assert.match(src,/this\.discardWorker\(worker\)/);
+  assert.match(src,/worker\.terminate\(\)/);
 });
 
 test('Analysis Board Auto preserves local engine failure reason',async()=>{
