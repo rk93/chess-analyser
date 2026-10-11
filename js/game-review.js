@@ -362,7 +362,19 @@ function displayReview(data,{cached=false,showSummary=true}={}){
     :`Preview only — ${coverage.missing.length} position(s) still need Stockfish verification. Review is not complete.`;
   $('runReview').textContent=coverage.complete?'Review summary':'Review preview';$('runReview').disabled=false;renderCurrentMove();if(showSummary&&coverage.complete)showSummaryScreen(data);window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
 }
-async function restoreReview(){clearTimeout(restoreTimer);restoreTimer=setTimeout(async()=>{const sans=moveSans();if(!sans.length)return;const key=reviewKey(),data=await cacheGet('review',key);if(data?.version===REVIEW_VERSION)displayReview(data,{cached:true,showSummary:true})},120)}
+async function restoreReview(){
+  clearTimeout(restoreTimer);
+  const generation=reviewToken;
+  restoreTimer=setTimeout(async()=>{
+    const sans=moveSans();if(!sans.length)return;
+    const key=reviewKey(),data=await cacheGet('review',key);
+    if(generation!==reviewToken||key!==reviewKey())return;
+    const positions=buildPositions();
+    const complete=data?.version===REVIEW_VERSION&&reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete;
+    if(data?.version===REVIEW_VERSION)displayReview(data,{cached:true,showSummary:!complete});
+    window.dispatchEvent(new CustomEvent('gameReviewCacheChecked',{detail:{key,complete:!!complete,hasReview:!!data}}));
+  },120);
+}
 function sampleIndexes(total,max){if(total<=max)return Array.from({length:total},(_,i)=>i);const set=new Set([0,total-1]);for(let n=0;n<max;n++)set.add(Math.round(n*(total-1)/(max-1)));return [...set].sort((a,b)=>a-b)}
 async function fillCached(positions,evals,bestMoves,positionExact){for(let i=0;i<positions.length;i++){const e=await cloudEval(positions[i].fen,{network:false});if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}if(i%24===23)await sleep(0)}}
 async function runCloudPass(positions,evals,bestMoves,positionExact,token){await fillCached(positions,evals,bestMoves,positionExact);const candidates=sampleIndexes(positions.length,MAX_FRESH_CLOUD).filter(i=>evals[i]==null);let next=0,done=0,stop=false;async function worker(){while(!stop){const n=next++;if(n>=candidates.length||token!==reviewToken)return;const i=candidates[n];try{const e=await cloudEval(positions[i].fen);if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}}catch(e){if(e?.rateLimited)stop=true}done++;$('reviewStatus').textContent=`Quick review ${Math.min(done,candidates.length)}/${candidates.length}…`;if(done%8===0)await sleep(30)}}await Promise.all(Array.from({length:Math.min(CLOUD_CONCURRENCY,candidates.length||1)},worker))}
@@ -383,7 +395,7 @@ async function runReview(){
   if(running)return;
   if(activeReview){const coverage=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()})));if(coverage.complete){showSummaryScreen(activeReview,{force:true});return}activeReview=null}
   const positions=buildPositions(),sans=moveSans();if(positions.length<2){$('reviewStatus').textContent='Open a game with moves before running Game Review.';return}
-  const key=reviewKey(),saved=await cacheGet('review',key);if(saved?.version===REVIEW_VERSION&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:true}))return;
+  const key=reviewKey(),requestedToken=reviewToken,saved=await cacheGet('review',key);if(requestedToken!==reviewToken||key!==reviewKey())return;if(saved?.version===REVIEW_VERSION&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:false}))return;
   running=true;activeReview=null;signalRunning(true);const token=++reviewToken,btn=$('runReview');btn.disabled=true;btn.textContent='Reviewing…';clearTags();$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;const evals=new Array(positions.length).fill(null),bestMoves=new Array(positions.length).fill(''),positionExact=new Array(positions.length).fill(false);
   try{
     await runCloudPass(positions,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
