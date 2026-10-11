@@ -233,3 +233,27 @@
   .reviewGuideActions .btn{transition:none!important}
   .reviewGuideActions .btn:hover:not(:disabled),.reviewGuideActions .btn:active:not(:disabled){transform:none!important}
 }
+
+/* Mobile chess-first review: keep the board visible; details follow beneath. */
+@media(max-width:800px){
+  body.review-guided-active #analysisView.reviewProMode .reviewGuideCard,
+  #analysisView .reviewGuideCard{
+    margin:10px auto 18px;
+    width:calc(100% - 16px);
+    max-width:760px;
+    scroll-margin-top:12px;
+  }
+  body.review-guided-active #analysisView.reviewProMode .reviewGuideActions{
+    bottom:calc(7px + env(safe-area-inset-bottom))!important;
+    grid-template-columns:repeat(6,minmax(0,1fr))!important;
+  }
+  body.review-guided-active #analysisView.reviewGuidedMode{
+    padding-bottom:calc(158px + env(safe-area-inset-bottom))!important;
+  }
+  #analysisView .reviewGuideMeta{font-size:11px}
+}
+@media(max-width:800px) and (max-height:740px){
+  #analysisView .reviewGuideCard{padding:10px 12px}
+  #analysisView .reviewGuideComment{font-size:14px;line-height:1.35}
+  body.review-guided-active #analysisView.reviewProMode .reviewGuideActions .btn{min-height:44px!important}
+}
