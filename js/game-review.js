@@ -3,6 +3,7 @@ import { cacheGet,cacheSet,getPositionEval,setPositionEval,simpleHash } from './
 import { buildTacticalVerificationPlan } from './review-tactics.js';
 import { displayLineFor } from './review-display.js';
 import { reviewCoverage } from './review-coverage.js';
+import {getReviewDepthPreset,reviewDepthIsCurrent,REVIEW_DEPTH_SETTING} from './review-depth.js';
 
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -352,7 +353,7 @@ function showSummaryScreen(data,{force=false}={}){
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function startGuidedReview(){const el=$('reviewSummaryScreen');if(el)el.hidden=true;$('start')?.click();setTimeout(()=>{$('next')?.click();setTimeout(renderCurrentMove,0)},20)}
 
-function displayReview(data,{cached=false,showSummary=true}={}){
+function displayReview(data,{cached=false,showSummary=true,dispatchReady=true}={}){
   const positions=buildPositions(),sans=moveSans();if(positions.length!==data.evals.length||sans.length!==data.labels.length)return false;
   spokenPly=-1;preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
   const trainable=(data.bestMoves||[]).filter((m,i)=>m&&data.moveVerified?.[i]&&(data.labels[i]==='Mistake'||data.labels[i]==='Blunder')).length,verified=data.moveVerified?.filter(Boolean).length||0;
@@ -360,7 +361,7 @@ function displayReview(data,{cached=false,showSummary=true}={}){
   $('reviewStatus').textContent=coverage.complete
     ?`Verified review ready · all ${sans.length} moves analysed · ${trainable} practice positions.`
     :`Preview only — ${coverage.missing.length} position(s) still need Stockfish verification. Review is not complete.`;
-  $('runReview').textContent=coverage.complete?'Review summary':'Review preview';$('runReview').disabled=false;renderCurrentMove();if(showSummary&&coverage.complete)showSummaryScreen(data);window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
+  $('runReview').textContent=coverage.complete?'Review summary':'Review preview';$('runReview').disabled=false;renderCurrentMove();if(showSummary&&coverage.complete)showSummaryScreen(data);if(dispatchReady)window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
 }
 async function restoreReview(){
   clearTimeout(restoreTimer);
@@ -370,8 +371,8 @@ async function restoreReview(){
     const key=reviewKey(),data=await cacheGet('review',key);
     if(generation!==reviewToken||key!==reviewKey())return;
     const positions=buildPositions();
-    const complete=data?.version===REVIEW_VERSION&&reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete;
-    if(data?.version===REVIEW_VERSION)displayReview(data,{cached:true,showSummary:!complete});
+    const complete=data?.version===REVIEW_VERSION&&reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&reviewDepthIsCurrent(data,getReviewDepthPreset());
+    if(data?.version===REVIEW_VERSION)displayReview(data,{cached:true,showSummary:!complete,dispatchReady:!mobileReview()||complete});
     window.dispatchEvent(new CustomEvent('gameReviewCacheChecked',{detail:{key,complete:!!complete,hasReview:!!data}}));
   },120);
 }
@@ -393,9 +394,9 @@ async function runTacticalVerification(positions,sans,evals,bestMoves,positionEx
 }
 async function runReview(){
   if(running)return;
-  if(activeReview){const coverage=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()})));if(coverage.complete){showSummaryScreen(activeReview,{force:true});return}activeReview=null}
+  if(activeReview){const coverage=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()})));if(coverage.complete&&reviewDepthIsCurrent(activeReview,getReviewDepthPreset())){showSummaryScreen(activeReview,{force:true});return}activeReview=null}
   const positions=buildPositions(),sans=moveSans();if(positions.length<2){$('reviewStatus').textContent='Open a game with moves before running Game Review.';return}
-  const key=reviewKey(),requestedToken=reviewToken,saved=await cacheGet('review',key);if(requestedToken!==reviewToken||key!==reviewKey())return;if(saved?.version===REVIEW_VERSION&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:false}))return;
+  const key=reviewKey(),requestedToken=reviewToken,saved=await cacheGet('review',key);if(requestedToken!==reviewToken||key!==reviewKey())return;if(saved?.version===REVIEW_VERSION&&reviewDepthIsCurrent(saved,getReviewDepthPreset())&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:false}))return;
   running=true;activeReview=null;signalRunning(true);const token=++reviewToken,btn=$('runReview');btn.disabled=true;btn.textContent='Reviewing…';clearTags();$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;const evals=new Array(positions.length).fill(null),bestMoves=new Array(positions.length).fill(''),positionExact=new Array(positions.length).fill(false);
   try{
     await runCloudPass(positions,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
@@ -407,6 +408,48 @@ async function runReview(){
     const data={version:REVIEW_VERSION,evals,losses,labels,bestMoves,positionExact,moveVerified,tacticalPlan:tactical.plan.map(x=>({index:x.index,reason:x.reason})),whiteAccuracy:accuracy(whiteLoss),blackAccuracy:accuracy(blackLoss),updated:Date.now()};await cacheSet('review',key,data);displayReview(data,{showSummary:true});
   }catch(e){$('reviewStatus').textContent='Game Review failed: '+(e?.name==='AbortError'?'engine request timed out':e.message)}finally{running=false;signalRunning(false);btn.disabled=false;if(!activeReview)btn.textContent='Review game'}
 }
-function resetReviewUI(){stopAutoPlay();reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
-function init(){ensureStyles();ensureGuideCard();window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
+function resetReviewUI(){resetAutoReviewFlow();stopAutoPlay();reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
+const AUTO_REVIEW_OPT_IN='chess-auto-review-future-games';
+let autoFlowKey='',autoFlowStartedKey='';
+function mobileReview(){return window.matchMedia('(max-width:800px)').matches}
+function closeDepthPrompt(){document.getElementById('reviewDepthPrompt')?.remove()}
+function showDepthPrompt(key){
+  if(!mobileReview()||key!==reviewKey()||document.getElementById('reviewDepthPrompt'))return;
+  const overlay=document.createElement('div');overlay.id='reviewDepthPrompt';overlay.className='reviewDepthOverlay';
+  overlay.innerHTML='<div class="reviewDepthDialog" role="dialog" aria-modal="true" aria-labelledby="reviewDepthTitle"><h2 id="reviewDepthTitle">Review this game</h2><p>Choose how deeply Stockfish analyses. Autoplay starts after verification.</p><label for="reviewOpenDepth">Review quality</label><select id="reviewOpenDepth" class="input"><option value="ultra">Ultra Fast · 4 / 6</option><option value="fast">Fast · 8 / 12</option><option value="balanced">Balanced · 12 / 16</option><option value="deep">Deep · 16 / 20</option></select><label class="reviewDepthRemember"><input id="reviewRememberAuto" type="checkbox"> Automatically review future games</label><div class="reviewDepthButtons"><button id="reviewDepthCancel" class="btn" type="button">Not now</button><button id="reviewDepthStart" class="btn primary" type="button">Start review</button></div></div>';
+  document.body.appendChild(overlay);
+  const input=$('reviewOpenDepth');input.value=getReviewDepthPreset().key;input.focus();
+  $('reviewDepthCancel').onclick=closeDepthPrompt;
+  overlay.addEventListener('keydown',e=>{if(e.key==='Escape'){e.preventDefault();closeDepthPrompt()}});
+  $('reviewDepthStart').onclick=()=>{
+    if(key!==reviewKey()){closeDepthPrompt();return}
+    try{localStorage.setItem(REVIEW_DEPTH_SETTING,input.value);if($('reviewRememberAuto')?.checked)localStorage.setItem(AUTO_REVIEW_OPT_IN,'true')}catch{}
+    const settingsDepth=$('reviewDepth');if(settingsDepth)settingsDepth.value=input.value;
+    closeDepthPrompt();autoFlowStartedKey=key;$('runReview')?.click();
+  };
+}
+function handleAutoReviewCache(e){
+  const {key,complete}=e.detail||{};
+  if(!mobileReview()||!key||key!==reviewKey())return;
+  autoFlowKey=key;
+  if(complete)return;
+  if(localStorage.getItem(AUTO_REVIEW_OPT_IN)==='true'){if(autoFlowStartedKey!==key){autoFlowStartedKey=key;$('runReview')?.click()}}
+  else showDepthPrompt(key);
+}
+function handleVerifiedAutoReview(e){
+  const key=e.detail?.key;
+  if(!mobileReview()||!key||key!==reviewKey()||document.hidden)return;
+  closeDepthPrompt();autoFlowStartedKey=key;
+  // The same game may generate repeated verification notifications.
+  if(autoFlowKey===key+'|playing')return;
+  autoFlowKey=key+'|playing';
+  startGuidedReview();
+  setTimeout(()=>{
+    if(key!==reviewKey()||!activeReview||document.hidden)return;
+    const btn=$('reviewAutoPlay');
+    if(btn&&!autoPlaying)btn.click();
+  },90);
+}
+function resetAutoReviewFlow(){autoFlowKey='';autoFlowStartedKey='';closeDepthPrompt()}
+function init(){ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

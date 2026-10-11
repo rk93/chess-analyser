@@ -257,3 +257,16 @@
   #analysisView .reviewGuideComment{font-size:14px;line-height:1.35}
   body.review-guided-active #analysisView.reviewProMode .reviewGuideActions .btn{min-height:44px!important}
 }
+
+/* Mobile-first depth selection before long-running Stockfish review. */
+.reviewDepthOverlay{position:fixed;inset:0;z-index:10010;background:rgba(10,17,13,.65);display:grid;place-items:center;padding:18px}
+.reviewDepthDialog{width:min(100%,420px);max-height:calc(100dvh - 36px);overflow:auto;background:#fff;color:#203125;border-radius:18px;padding:22px;box-shadow:0 14px 55px rgba(0,0,0,.3);display:grid;gap:12px}
+.reviewDepthDialog h2{margin:0;font-size:22px}
+.reviewDepthDialog p{margin:0;color:#546054;line-height:1.4}
+.reviewDepthDialog select{min-height:48px;width:100%}
+.reviewDepthRemember{display:flex;align-items:center;gap:10px;font-size:14px}
+.reviewDepthRemember input{width:20px;height:20px}
+.reviewDepthButtons{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.reviewDepthButtons .btn{min-height:48px}
+.reviewDepthDialog :focus-visible{outline:3px solid #81b64c;outline-offset:2px}
+@media(max-width:480px){.reviewDepthDialog{padding:18px}}
