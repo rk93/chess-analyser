@@ -310,3 +310,90 @@
   body.review-guided-active #analysisView.reviewProMode .reviewGuideActions .btn{min-height:48px!important;font-size:11px!important}
 }
 @media(prefers-reduced-motion:reduce){#analysisView .reviewGuideActions .btn.premiumTapped{animation:none}}
+
+/* Chess-first desktop analysis layout: uninterrupted board in centre,
+   coach, moves and playback in an independently scrollable right panel. */
+@media(min-width:1050px){
+  #analysisView{width:100%;max-width:1680px;margin-inline:auto}
+  #analysisView .analysisShell{
+    display:grid!important;
+    grid-template-columns:minmax(450px, min(65vw, 890px)) minmax(340px, 440px)!important;
+    justify-content:center!important;
+    align-items:start!important;
+    gap:clamp(12px,1.5vw,24px)!important;
+  }
+  #analysisView .boardColumn{width:100%;max-width:890px;margin-inline:auto;min-width:0}
+  #analysisView .boardWrap{width:100%;height:auto;max-width:890px;margin:0 auto}
+  #analysisView .boardStage{max-width:100%;aspect-ratio:1}
+  #analysisView .playerStrip{height:43px;border-radius:8px;padding-inline:14px}
+  #analysisView .sidePanel{
+    min-width:0;min-height:0;
+    display:flex;flex-direction:column;
+    height:clamp(620px,calc(100dvh - 92px),980px);
+    border-radius:16px!important;
+    border:1px solid #45413d;
+    box-shadow:0 12px 35px rgba(0,0,0,.22);
+    overflow:hidden;
+  }
+  #analysisView .sidePanel>.gameHeader{flex:none;padding:12px 16px 10px}
+  #analysisView .sidePanel>.panelNav{flex:none}
+  #analysisView .sidePanel>.enginePanel{flex:none;padding:8px 12px}
+  #analysisView .sidePanel>.reviewGuideCard{
+    flex:none;order:0;
+    width:calc(100% - 16px)!important;
+    margin:8px!important;padding:12px!important;
+    border-radius:13px!important;
+    box-shadow:0 2px 12px rgba(0,0,0,.14)!important;
+    max-height:35vh;
+    overflow-y:auto;
+  }
+  #analysisView .sidePanel>.reviewGuideCard[hidden]{display:none!important}
+  #analysisView .sidePanel .reviewGuideComment{font-size:13px!important;line-height:1.35!important}
+  #analysisView .sidePanel .reviewGuideTitle{font-size:15px!important}
+  #analysisView .sidePanel .reviewAutoBest{font-size:12px!important}
+  #analysisView .sidePanel .reviewGuideActions{
+    display:grid!important;
+    position:static!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    gap:5px!important;padding:5px!important;margin-top:8px!important;
+    border-radius:12px!important;
+  }
+  #analysisView .sidePanel .reviewGuideActions .btn{
+    min-width:0!important;min-height:44px!important;
+    padding:8px 4px!important;font-size:12px!important;
+    white-space:normal;line-height:1.2;
+  }
+  #analysisView .sidePanel #reviewPrev{grid-column:1;grid-row:1}
+  #analysisView .sidePanel #reviewAutoPlay{grid-column:2;grid-row:1}
+  #analysisView .sidePanel #reviewNext{grid-column:3;grid-row:1}
+  #analysisView .sidePanel #reviewShowBest{grid-column:1;grid-row:2}
+  #analysisView .sidePanel #reviewVoiceToggle{grid-column:2;grid-row:2}
+  #analysisView .sidePanel #reviewPractice{grid-column:3;grid-row:2}
+  #analysisView .sidePanel>.reviewPanel{flex:none;padding:8px 12px}
+  #analysisView .sidePanel>.moves{
+    flex:1 1 auto;
+    min-height:140px;max-height:none!important;
+    overflow-y:auto;overscroll-behavior:contain;
+    padding:8px 12px!important;
+    scrollbar-width:thin;
+  }
+  #analysisView .sidePanel>.controls{
+    flex:none;position:static!important;bottom:auto!important;
+    margin-top:auto;padding:10px 12px!important;
+    background:#242622;border-top:1px solid #464d40;
+  }
+  #analysisView .sidePanel .ctrl{min-height:52px;height:52px;border-radius:11px}
+  #analysisView .sidePanel .ctrl:active{transform:translateY(2px) scale(.97)}
+  #analysisView .sidePanel .move{min-height:35px}
+  #analysisView .sidePanel .move.active{background:rgba(129,182,76,.24);border-left:3px solid #81b64c}
+  #analysisView .sidePanel .moveRow{min-height:38px}
+}
+@media(min-width:1050px) and (max-width:1270px){
+  #analysisView .analysisShell{grid-template-columns:minmax(420px,1fr) minmax(330px,390px)!important}
+  #analysisView .sidePanel>.reviewGuideCard{max-height:32vh}
+}
+@media(min-width:1050px) and (max-height:700px){
+  #analysisView .sidePanel{height:calc(100dvh - 65px)}
+  #analysisView .sidePanel>.reviewGuideCard{max-height:31vh}
+  #analysisView .sidePanel>.moves{min-height:85px}
+}
