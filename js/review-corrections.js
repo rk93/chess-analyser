@@ -180,12 +180,13 @@ async function deepCorrect(detail){
   if(auditing)return;
   const prior=detail?.data;if(!prior?.evals?.length)return;
   const config=getReviewDepthPreset();
-  const ctx=build(),originalKey=reviewKey();if(ctx.positions.length!==prior.evals.length)return;
+  const ctx=build(),originalKey=reviewKey();if(detail?.key&&detail.key!==originalKey)return;if(ctx.positions.length!==prior.evals.length)return;
   const positions=ctx.positions.map(fen=>({terminal:terminalEval(fen)!==null}));
   if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION&&reviewCoverage(prior,positions).complete&&reviewDepthIsCurrent(prior,config)){
     const needed=!prior.displayPrecomputed||Number(prior.displayPrecomputedVersion)<2||displayCacheNeedsRepair(prior,ctx.ucis.length);
-    if(needed){enrichDisplay(prior,ctx);await cacheSet('review',reviewKey(),prior).catch(()=>{})}
-    refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data:prior}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
+    if(needed){enrichDisplay(prior,ctx);await cacheSet('review',originalKey,prior).catch(()=>{})}
+    if(originalKey!==reviewKey())return;
+    refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data:prior}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));window.dispatchEvent(new CustomEvent('gameReviewVerified',{detail:{key:originalKey,cached:true}}));return;
   }
   if(!await localStockfishAvailable()){const status=$('reviewStatus');if(status)status.textContent='Local Stockfish is unavailable; the quick review remains visible.';return}
   auditing=true;
@@ -199,8 +200,9 @@ async function deepCorrect(detail){
     const data=buildReview(engineData,ctx,prior,config);
     if(!reviewCoverage(data,positions).complete)throw new Error('Coverage validation failed; review not saved');
     refreshMoveTags(data);refreshSummary(data);await cacheSet('review',originalKey,data);
+    if(originalKey!==reviewKey())return;
     if(status)status.textContent=`Stockfish Review v2 ready · all ${ctx.positions.length} positions evaluated · ${targets.length} deeply rechecked · ${data.labels.filter(x=>x==='Blunder').length} blunder${data.labels.filter(x=>x==='Blunder').length===1?'':'s'}.`;
-    window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));
+    window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));window.dispatchEvent(new CustomEvent('gameReviewVerified',{detail:{key:originalKey,cached:false}}));
   }catch(e){
     const status=$('reviewStatus');if(status)status.textContent=`Verified review incomplete — ${e?.message||e}. Retry Review game to repair it.`;
   }finally{auditing=false}
