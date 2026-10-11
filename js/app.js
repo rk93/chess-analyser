@@ -24,7 +24,38 @@ function syncMetaKey(u){return `chess-sync-meta:${u.toLowerCase()}`}
 function readSyncMeta(u){try{return JSON.parse(localStorage.getItem(syncMetaKey(u))||'null')||{archives:[],lastSync:0}}catch{return {archives:[],lastSync:0}}}
 function writeSyncMeta(u,meta){localStorage.setItem(syncMetaKey(u),JSON.stringify(meta))}
 async function sync({automatic=false}={}){const button=$('sync');try{button.disabled=true;const u=$('user').value.trim();if(!u)throw new Error('Enter a Chess.com username');localStorage.setItem('chess-username',u);$('status').textContent=automatic?'Checking Chess.com for new games…':'Finding Chess.com archives…';const a=await getJSON(`https://api.chess.com/pub/player/${encodeURIComponent(u)}/games/archives`);const archives=a.archives||[];const before=await allGames();const existing=new Set(before.map(gameKey));let meta=readSyncMeta(u);if(before.length&&(!meta.archives||!meta.archives.length))meta.archives=[...archives];const known=new Set(meta.archives||[]),neverSynced=archives.filter(x=>!known.has(x)),recent=archives.slice(-2);let targets=[...new Set([...neverSynced,...recent])];if(!before.length)targets=[...archives];let newCount=0;for(let i=0;i<targets.length;i++){$('status').textContent=`${automatic?'Auto-sync':'Sync'} ${i+1}/${targets.length} · ${newCount} new game${newCount===1?'':'s'}`;const d=await getJSON(targets[i]),batch=d.games||[];for(const g of batch){if(!existing.has(gameKey(g))){existing.add(gameKey(g));newCount++}}await putGames(batch)}const games=await allGames();renderGames(games,u);meta={archives:[...archives],lastSync:Date.now()};writeSyncMeta(u,meta);const time=new Date(meta.lastSync).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});$('status').textContent=newCount?`${newCount} new game${newCount===1?'':'s'} synced · ${games.length} saved · ${time}`:`Up to date · ${games.length} games saved · checked ${time}`}catch(e){$('status').textContent=(automatic?'Auto-sync failed: ':'Sync failed: ')+e.message}finally{button.disabled=false}}
-function renderGames(games,u){$('games').innerHTML='';if(!games.length){$('games').innerHTML='<div class="game">No saved games yet.</div>';return}games.forEach(g=>{const isWhite=g.white.username.toLowerCase()===u.toLowerCase(),me=isWhite?g.white:g.black,opp=isWhite?g.black:g.white;const result=me.result==='win'?'Win':(['checkmated','resigned','timeout','lose'].includes(me.result)?'Loss':'Draw');const d=document.createElement('div');d.className='game';d.innerHTML=`<b>${me.username} ${me.rating??''}</b> — ${opp.username} ${opp.rating??''}<div class="muted">${result} · ${formatTimeControl(g.time_control)} · ${new Date((g.end_time||0)*1000).toLocaleString()}</div>`;d.onclick=()=>openGame(g,u);$('games').appendChild(d)})}
+const playerAvatarCache=new Map();
+function playerAvatar(username){
+  const key=String(username||'').toLowerCase();
+  if(!playerAvatarCache.has(key))playerAvatarCache.set(key,getJSON('https://api.chess.com/pub/player/'+encodeURIComponent(key))
+    .then(profile=>{const url=profile?.avatar;return typeof url==='string'&&url.startsWith('https://')?url:null})
+    .catch(()=>null));
+  return playerAvatarCache.get(key);
+}
+let avatarObserver=null;
+function renderGames(games,u){
+  const root=$('games');root.replaceChildren();avatarObserver?.disconnect();
+  if(!games.length){const empty=document.createElement('div');empty.className='game';empty.textContent='No saved games yet.';root.appendChild(empty);return}
+  avatarObserver=typeof IntersectionObserver==='function'?new IntersectionObserver(entries=>{
+    for(const entry of entries){if(!entry.isIntersecting)continue;avatarObserver?.unobserve(entry.target);entry.target.loadAvatar?.()}
+  },{rootMargin:'120px'}):null;
+  games.forEach(g=>{
+    const isWhite=String(g.white?.username||'').toLowerCase()===u.toLowerCase(),me=isWhite?g.white:g.black,opp=isWhite?g.black:g.white;
+    const result=me.result==='win'?'Win':(['checkmated','resigned','timeout','lose'].includes(me.result)?'Loss':'Draw');
+    const d=document.createElement('div');d.className='game gameWithAvatar';d.tabIndex=0;d.setAttribute('role','button');
+    const avatar=document.createElement('span');avatar.className='gamePlayerAvatar';avatar.textContent=String(opp.username||'?').slice(0,1).toUpperCase();
+    const image=document.createElement('img');image.alt='';image.loading='lazy';image.hidden=true;avatar.appendChild(image);
+    d.loadAvatar=async()=>{const url=await playerAvatar(opp.username);if(!url||!d.isConnected)return;image.onload=()=>{image.hidden=false};image.onerror=()=>{image.hidden=true};image.src=url};
+    const body=document.createElement('div');body.className='gamePlayerDetails';
+    const title=document.createElement('b');title.textContent=`${me.username} ${me.rating??''} — ${opp.username} ${opp.rating??''}`;
+    const info=document.createElement('div');info.className='muted';info.textContent=`${result} · ${formatTimeControl(g.time_control)} · ${new Date((g.end_time||0)*1000).toLocaleString()}`;
+    body.append(title,info);d.append(avatar,body);
+    d.onclick=()=>openGame(g,u);
+    d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openGame(g,u)}};
+    root.appendChild(d);
+    if(avatarObserver)avatarObserver.observe(d);else if(root.children.length<=5)d.loadAvatar();
+  });
+}
 function formatTimeControl(tc){if(!tc)return 'Game';if(tc.includes('+')){const [s,i]=tc.split('+').map(Number);return `${Math.round(s/60)}+${i}`}const s=Number(tc);return Number.isFinite(s)?`${Math.round(s/60)} min`:tc}
 function parseInitialFen(pgn){const m=pgn.match(/^\[FEN\s+"([^"]+)"\]/m);return m?m[1]:null}
 function freshChess(){const fen=parseInitialFen(selectedGame?.pgn||'');return fen?new Chess(fen):new Chess()}
