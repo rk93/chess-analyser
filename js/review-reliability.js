@@ -78,7 +78,7 @@ function syncToActiveMove(force=false){
     syncRaf=0;
     const ply=currentPly();
     keepShowBestAvailable();
-    if(!review||ply===0){lastRenderedPly=0;$('analysisArrows')?.replaceChildren();return}
+    if(!review||ply===0){lastRenderedPly=0;return}
     if(!force&&ply===lastRenderedPly)return;
     lastRenderedPly=ply;
     showBest().catch(()=>{});
@@ -108,7 +108,7 @@ function init(){
   window.addEventListener('gameReviewReady',e=>{review=e.detail?.data||review;cycle.clear();lastRenderedPly=-1;syncToActiveMove(true)});
   window.addEventListener('reviewNavigation',()=>syncToActiveMove());window.addEventListener('gameReviewUpdated',e=>{review=e.detail?.data||review;lastRenderedPly=-1;syncToActiveMove(true)});
   document.addEventListener('click',e=>{
-    const best=e.target.closest?.('#reviewShowBest');if(best){e.preventDefault();e.stopImmediatePropagation();showBest();return}
+    const best=e.target.closest?.('#reviewShowBest');if(best){if(review?.evals?.length)return; e.preventDefault();e.stopImmediatePropagation();showBest();return}
     const count=e.target.closest?.('#reviewBreakdown .left,#reviewBreakdown .right');if(count){const n=Number(count.textContent)||0;if(!n)return;e.preventDefault();e.stopImmediatePropagation();jumpToSummaryMove(count.closest('.reviewBreakRow'),count.classList.contains('left')?'white':'black');return}
   },true);
 }
