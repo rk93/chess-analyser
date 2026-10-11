@@ -104,7 +104,7 @@ class LocalStockfish{
         if(settled)return;
         const line=String(e.data||'');
         parseInfo(line,state,turn);
-        const m=line.match(/^bestmove\\s+(\\S+)/);
+        const m=line.match(/^bestmove\s+(\S+)/);
         if(m){
           state.best=m[1]&&m[1]!=='(none)'?m[1]:'';
           const lines=[...state.lines.values()].sort((a,b)=>a.multipv-b.multipv);
