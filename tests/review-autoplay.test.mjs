@@ -4,8 +4,8 @@ import {readFile} from 'node:fs/promises';
 const source=await readFile('js/game-review.js','utf8');
 const styles=await readFile('review-experience.css','utf8');
 
-test('review autoplay advances every three seconds and only when enabled',()=>{
-  assert.match(source,/const AUTO_PLAY_MS=300/);
+test('review autoplay uses the saved speed when enabled',()=>{
+  assert.match(source,/getAutoPlayMs\(\)/);
   assert.match(source,/setTimeout\(\(\)=>\{/);
   assert.match(source,/\$\('next'\)\?\.click\(\)/);
   assert.match(source,/if\(!autoPlaying\|\|document\.hidden\|\|!activeReview\)/);
