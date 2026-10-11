@@ -222,10 +222,26 @@ function ensureAutoPlayControls(card){
 function positionReviewCard(){
   const card=$('reviewGuideCard'),shell=document.querySelector('#analysisView .analysisShell');
   if(!card||!shell||!shell.parentNode)return;
-  const narrow=window.matchMedia('(max-width: 800px)').matches;
-  // Board first on phones: commentary below the board, playback stays fixed.
-  if(narrow&&shell.nextElementSibling!==card)shell.after(card);
-  else if(!narrow&&shell.previousElementSibling!==card)shell.before(card);
+  const desktop=window.matchMedia('(min-width: 1100px)').matches;
+  let layout=$('reviewDesktopLayout');
+  if(desktop){
+    if(!layout){
+      layout=document.createElement('div');
+      layout.id='reviewDesktopLayout';
+      layout.className='reviewDesktopLayout';
+      shell.before(layout);
+    }
+    if(card.parentElement!==layout||layout.firstElementChild!==card)layout.prepend(card);
+    if(shell.parentElement!==layout)layout.append(shell);
+  }else{
+    // Restore the normal DOM flow on mobile and smaller desktop windows.
+    // The board remains first on phones; mid-size layouts stay stacked.
+    if(layout){
+      layout.before(shell);
+      shell.after(card);
+      layout.remove();
+    }else if(shell.nextElementSibling!==card)shell.after(card);
+  }
 }
 function ensureGuideCard(){
   let card=$('reviewGuideCard');
