@@ -13,14 +13,15 @@ import { getLocalStockfish,localStockfishAvailable } from './local-stockfish.js'
 import { classifyStockfishMove,gameAccuracy,moverWinLossPct,moveAccuracyFromLoss } from './review-v2-core.js';
 import { displayCacheNeedsRepair } from './review-display.js';
 import { assertEngineCoverage,reviewCoverage,VERIFIED_REVIEW_VERSION } from './review-coverage.js';
+import { getReviewDepthPreset,reviewDepthIsCurrent } from './review-depth.js';
 
 const $=id=>document.getElementById(id);
 const LABELS=['Brilliant','Great','Best','Excellent','Good','Book','Inaccuracy','Mistake','Blunder'];
 const SYMBOL={Brilliant:'!!',Great:'!',Best:'★',Excellent:'✓',Good:'✓',Book:'📖',Inaccuracy:'?!',Mistake:'?',Blunder:'??'};
 const BADGE={Brilliant:'brilliant',Great:'great',Best:'best',Excellent:'excellent',Good:'good',Book:'book',Inaccuracy:'inaccuracy',Mistake:'mistake',Blunder:'blunder'};
 const LOCAL_REVIEW_VERSION=21;
-const BASE_DEPTH=16;
-const DEEP_DEPTH=20;
+const BASE_DEPTH=8;
+const DEEP_DEPTH=12;
 let auditing=false;
 
 function moveEls(){return [...document.querySelectorAll('#moves .move')]}
@@ -99,14 +100,14 @@ async function analysePosition(engine,fen,{depth,multipv}){
   return engine.analyse(fen,{depth,multipv,clearHash:true});
 }
 
-async function firstPass(ctx){
+async function firstPass(ctx,config){
   const engine=getLocalStockfish();await engine.ready();
   const n=ctx.positions.length,evals=new Array(n),bestMoves=new Array(n).fill(''),depths=new Array(n).fill(0),pvs=new Array(n).fill(''),multiLines=new Array(n).fill(null),secondCps=new Array(n).fill(null);
   for(let i=0;i<n;i++){
-    const status=$('reviewStatus');if(status)status.textContent=`Stockfish review ${i+1}/${n} · depth ${BASE_DEPTH}…`;
-    const r=await analysePosition(engine,ctx.positions[i],{depth:BASE_DEPTH,multipv:i<n-1?2:1});
-    evals[i]=r.cp;bestMoves[i]=r.best||r.lines?.[0]?.best||'';depths[i]=r.depth||BASE_DEPTH;pvs[i]=r.pv||r.lines?.[0]?.pv||'';
-    multiLines[i]=(r.lines||[]).slice(0,3).map(line=>({pv:line.pv||'',cp:line.cp,depth:line.depth||r.depth||BASE_DEPTH}));
+    const status=$('reviewStatus');if(status)status.textContent=`Stockfish review ${i+1}/${n} · depth ${config.base}…`;
+    const r=await analysePosition(engine,ctx.positions[i],{depth:config.base,multipv:i<n-1?2:1});
+    evals[i]=r.cp;bestMoves[i]=r.best||r.lines?.[0]?.best||'';depths[i]=r.depth||config.base;pvs[i]=r.pv||r.lines?.[0]?.pv||'';
+    multiLines[i]=(r.lines||[]).slice(0,3).map(line=>({pv:line.pv||'',cp:line.cp,depth:line.depth||r.depth||config.base}));
     if(r.lines?.[1]&&Number.isFinite(r.lines[1].cp))secondCps[i]=r.lines[1].cp;
   }
   return{engine,evals,bestMoves,depths,pvs,multiLines,secondCps};
@@ -141,17 +142,17 @@ function deepTargets(engineData,ctx,classification){
   return [...set].filter(i=>i>=0&&i<ctx.positions.length&&terminalEval(ctx.positions[i])===null).sort((a,b)=>a-b);
 }
 
-async function deepen(engineData,ctx,indexes){
+async function deepen(engineData,ctx,indexes,config){
   for(let n=0;n<indexes.length;n++){
-    const i=indexes[n],status=$('reviewStatus');if(status)status.textContent=`Deep verification ${n+1}/${indexes.length} · depth ${DEEP_DEPTH}…`;
-    const r=await analysePosition(engineData.engine,ctx.positions[i],{depth:DEEP_DEPTH,multipv:i<ctx.positions.length-1?2:1});
-    engineData.evals[i]=r.cp;engineData.bestMoves[i]=r.best||r.lines?.[0]?.best||engineData.bestMoves[i];engineData.depths[i]=r.depth||DEEP_DEPTH;engineData.pvs[i]=r.pv||r.lines?.[0]?.pv||engineData.pvs[i];
-    engineData.multiLines[i]=(r.lines||[]).slice(0,3).map(line=>({pv:line.pv||'',cp:line.cp,depth:line.depth||r.depth||DEEP_DEPTH}));
+    const i=indexes[n],status=$('reviewStatus');if(status)status.textContent=`Deep verification ${n+1}/${indexes.length} · depth ${config.critical}…`;
+    const r=await analysePosition(engineData.engine,ctx.positions[i],{depth:config.critical,multipv:i<ctx.positions.length-1?2:1});
+    engineData.evals[i]=r.cp;engineData.bestMoves[i]=r.best||r.lines?.[0]?.best||engineData.bestMoves[i];engineData.depths[i]=r.depth||config.critical;engineData.pvs[i]=r.pv||r.lines?.[0]?.pv||engineData.pvs[i];
+    engineData.multiLines[i]=(r.lines||[]).slice(0,3).map(line=>({pv:line.pv||'',cp:line.cp,depth:line.depth||r.depth||config.critical}));
     engineData.secondCps[i]=r.lines?.[1]&&Number.isFinite(r.lines[1].cp)?r.lines[1].cp:null;
   }
 }
 
-function buildReview(engineData,ctx,prior){
+function buildReview(engineData,ctx,prior,config){
   let classification=classifyAll(engineData,ctx,prior);
   const result={
     evals:engineData.evals,bestMoves:engineData.bestMoves,
@@ -167,7 +168,8 @@ function buildReview(engineData,ctx,prior){
     blackAccuracy:gameAccuracy(engineData.evals,'black'),
     localDepths:engineData.depths,localPvs:engineData.pvs,localMultiLines:engineData.multiLines,secondBestCps:engineData.secondCps,
     localStockfishVersion:LOCAL_REVIEW_VERSION,verifiedReviewVersion:VERIFIED_REVIEW_VERSION,
-    reviewMethod:`Stockfish 19 local · every position depth ${BASE_DEPTH}, critical positions depth ${DEEP_DEPTH} · MultiPV 2 · Lichess Win% loss`,
+    reviewDepthKey:config.key,reviewBaseDepth:config.base,reviewCriticalDepth:config.critical,
+    reviewMethod:`Stockfish 19 local · every position depth ${config.base}, critical positions depth ${config.critical} · MultiPV 2 · Lichess Win% loss`,
     updated:Date.now()
   };
   Object.assign(prior,result);
@@ -177,9 +179,10 @@ function buildReview(engineData,ctx,prior){
 async function deepCorrect(detail){
   if(auditing)return;
   const prior=detail?.data;if(!prior?.evals?.length)return;
+  const config=getReviewDepthPreset();
   const ctx=build(),originalKey=reviewKey();if(ctx.positions.length!==prior.evals.length)return;
   const positions=ctx.positions.map(fen=>({terminal:terminalEval(fen)!==null}));
-  if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION&&reviewCoverage(prior,positions).complete){
+  if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION&&reviewCoverage(prior,positions).complete&&reviewDepthIsCurrent(prior,config)){
     const needed=!prior.displayPrecomputed||Number(prior.displayPrecomputedVersion)<2||displayCacheNeedsRepair(prior,ctx.ucis.length);
     if(needed){enrichDisplay(prior,ctx);await cacheSet('review',reviewKey(),prior).catch(()=>{})}
     refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data:prior}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));return;
@@ -188,12 +191,12 @@ async function deepCorrect(detail){
   auditing=true;
   try{
     const status=$('reviewStatus');if(status)status.textContent='Starting authoritative local Stockfish review…';
-    const engineData=await firstPass(ctx);
+    const engineData=await firstPass(ctx,config);
     const provisional=classifyAll(engineData,ctx,prior),targets=deepTargets(engineData,ctx,provisional);
-    await deepen(engineData,ctx,targets);
+    await deepen(engineData,ctx,targets,config);
     if(originalKey!==reviewKey())return; // Avoid writing another game's analysis.
     assertEngineCoverage(engineData,positions);
-    const data=buildReview(engineData,ctx,prior);
+    const data=buildReview(engineData,ctx,prior,config);
     if(!reviewCoverage(data,positions).complete)throw new Error('Coverage validation failed; review not saved');
     refreshMoveTags(data);refreshSummary(data);await cacheSet('review',originalKey,data);
     if(status)status.textContent=`Stockfish Review v2 ready · all ${ctx.positions.length} positions evaluated · ${targets.length} deeply rechecked · ${data.labels.filter(x=>x==='Blunder').length} blunder${data.labels.filter(x=>x==='Blunder').length===1?'':'s'}.`;
