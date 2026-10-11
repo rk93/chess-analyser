@@ -13,7 +13,7 @@ test('review autoplay advances every three seconds and only when enabled',()=>{
 
 test('autoplay stops at game boundaries, reset and hidden tabs',()=>{
   assert.match(source,/currentPly\(\)>=preparedSans\.length/);
-  assert.match(source,/function resetReviewUI\(\)\{stopAutoPlay\(\)/);
+  assert.match(source,/function resetReviewUI\(\)\{(?:resetAutoReviewFlow\(\);)?stopAutoPlay\(\)/);
   assert.match(source,/visibilitychange/);
   assert.match(source,/if\(document\.hidden\)stopAutoPlay\(\)/);
 });
