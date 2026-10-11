@@ -32,3 +32,7 @@
   .gamesPager .btn{min-height:46px}
 }
 @media(prefers-reduced-motion:reduce){:where(button,.btn,.ctrl,.homeTab,#flip).premiumTapped{animation:none}}
+
+/* Explain the product in one sentence, without displacing saved games. */
+#libraryView .libraryIntro{margin:8px 4px 12px;color:#c3cabd;font-size:13px;line-height:1.45}
+#games>.game[hidden]{display:none!important}
