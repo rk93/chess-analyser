@@ -234,13 +234,12 @@ function positionReviewCard(){
     if(card.parentElement!==layout||layout.firstElementChild!==card)layout.prepend(card);
     if(shell.parentElement!==layout)layout.append(shell);
   }else{
-    // Restore the normal DOM flow on mobile and smaller desktop windows.
-    // The board remains first on phones; mid-size layouts stay stacked.
+    // Keep the compact coach card above the board on mobile and tablets.
     if(layout){
       layout.before(shell);
-      shell.after(card);
+      shell.before(card);
       layout.remove();
-    }else if(shell.nextElementSibling!==card)shell.after(card);
+    }else if(shell.previousElementSibling!==card)shell.before(card);
   }
 }
 function ensureGuideCard(){
