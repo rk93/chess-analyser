@@ -30,5 +30,17 @@ function setOnlyActive(id){document.querySelectorAll('.homeTabs .homeTab').forEa
 function decorateNav(){const nav=document.querySelector('.homeTabs');if(!nav)return;ensureSettingsNav();nav.classList.add('modernNav');nav.querySelectorAll('.homeTab').forEach(paintNavButton)}
 function hideSettingsPage(){const v=$('settingsView');if(v)v.hidden=true}
 function showSettingsPage(){const v=ensureSettingsPage();for(const id of ['libraryView','boardLabView','explorerView','puzzlesView','analyticsView','topPlayersView']){const el=$(id);if(el)el.hidden=true}if($('analysisView'))$('analysisView').style.display='none';v.hidden=false;setOnlyActive('settingsNav');window.scrollTo({top:0,behavior:'instant'})}
-function observe(){window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
+function installPressFeedback(){
+  document.addEventListener('pointerdown',event=>{
+    const el=event.target.closest?.('button,.btn,.ctrl,#flip');
+    if(!el||el.disabled)return;
+    el.classList.remove('premiumTapped');
+    void el.offsetWidth;
+    el.classList.add('premiumTapped');
+  },{passive:true});
+  document.addEventListener('animationend',event=>{
+    if(event.target.classList?.contains('premiumTapped'))event.target.classList.remove('premiumTapped');
+  });
+}
+function observe(){installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
