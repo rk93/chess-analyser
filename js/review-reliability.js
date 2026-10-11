@@ -44,14 +44,9 @@ function ensureBestLine(){
   return line;
 }
 function renderPreparedBest(i){
-  const best=review?.bestMoves?.[i]||'';if(!best)return false;
-  // The main review renderer owns the board arrow; do not overwrite it here.
-  const bestSan=review?.bestSans?.[i]||best,lineSan=review?.bestLines?.[i]||bestSan,line=ensureBestLine();
-  if(line){
-    line.classList.remove('loadingLine');
-    line.innerHTML=`<div><span>Engine best</span> <b>${bestSan}</b></div>${lineSan&&lineSan!==bestSan?`<div class="reviewPvLine">${lineSan}</div>`:''}`;
-  }
-  return true;
+  // game-review.js exclusively renders reviewAutoBest (including MultiPV).
+  // Do not replace complete lines with legacy one-line fallbacks.
+  return !!review?.bestMoves?.[i];
 }
 
 async function showBest(){
@@ -61,7 +56,7 @@ async function showBest(){
   // A completed review must never stall navigation on cloud requests.
   // Positions without a verified line remain visibly unavailable until the review is refreshed.
   const line=ensureBestLine();
-  if(review?.evals?.length){if(line){line.classList.remove('loadingLine');line.textContent='Engine line unavailable for this position.'}return}
+  if(review?.evals?.length)return; // Preview/verified panel owns its missing-data state.
   if(line){line.classList.add('loadingLine');line.innerHTML='<span>Preparing engine line…</span>'}
   const ps=positions(),fen=ps[i];if(!fen)return;
   if(Number(review.localStockfishVersion)>=21)return;
@@ -83,7 +78,7 @@ function syncToActiveMove(force=false){
     syncRaf=0;
     const ply=currentPly();
     keepShowBestAvailable();
-    if(!review||ply===0){lastRenderedPly=0;$('analysisArrows')?.replaceChildren();return}
+    if(!review||ply===0){lastRenderedPly=0;return}
     if(!force&&ply===lastRenderedPly)return;
     lastRenderedPly=ply;
     showBest().catch(()=>{});
@@ -113,7 +108,7 @@ function init(){
   window.addEventListener('gameReviewReady',e=>{review=e.detail?.data||review;cycle.clear();lastRenderedPly=-1;syncToActiveMove(true)});
   window.addEventListener('reviewNavigation',()=>syncToActiveMove());window.addEventListener('gameReviewUpdated',e=>{review=e.detail?.data||review;lastRenderedPly=-1;syncToActiveMove(true)});
   document.addEventListener('click',e=>{
-    const best=e.target.closest?.('#reviewShowBest');if(best){e.preventDefault();e.stopImmediatePropagation();showBest();return}
+    const best=e.target.closest?.('#reviewShowBest');if(best){if(review?.evals?.length)return; e.preventDefault();e.stopImmediatePropagation();showBest();return}
     const count=e.target.closest?.('#reviewBreakdown .left,#reviewBreakdown .right');if(count){const n=Number(count.textContent)||0;if(!n)return;e.preventDefault();e.stopImmediatePropagation();jumpToSummaryMove(count.closest('.reviewBreakRow'),count.classList.contains('left')?'white':'black');return}
   },true);
 }

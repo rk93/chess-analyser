@@ -5,7 +5,7 @@ const source=await readFile('js/game-review.js','utf8');
 const styles=await readFile('review-experience.css','utf8');
 
 test('review autoplay advances every three seconds and only when enabled',()=>{
-  assert.match(source,/const AUTO_PLAY_MS=1000/);
+  assert.match(source,/const AUTO_PLAY_MS=300/);
   assert.match(source,/setTimeout\(\(\)=>\{/);
   assert.match(source,/\$\('next'\)\?\.click\(\)/);
   assert.match(source,/if\(!autoPlaying\|\|document\.hidden\|\|!activeReview\)/);

@@ -14,7 +14,7 @@ const TACTICAL_VERIFY_LIMIT=16;
 let running=false,reviewToken=0,restoreTimer=null,activeReview=null,summaryShownForKey='';
 let preparedReview=null,preparedPositions=null,preparedSans=null,preparedBestMoves=null,renderFrame=0,lastRenderedPly=-1;
 let voiceEnabled=false,spokenPly=-1;
-const AUTO_PLAY_MS=1000;
+const AUTO_PLAY_MS=300;
 let autoPlaying=false,autoPlayTimer=0,autoPlayGeneration=0,spokenGeneration=0;
 const COACH_PAUSE_MS=700,COACH_MAX_WAIT_MS=45000;
 let spokenPending=false;
@@ -162,7 +162,7 @@ function updateAutoPlayControls(){
   if(btn){
     btn.textContent=autoPlaying?'⏸ Pause':'▶ Play';
     btn.setAttribute('aria-pressed',String(autoPlaying));
-    btn.setAttribute('aria-label',autoPlaying?'Pause automatic review':'Play review automatically every 1 second');
+    btn.setAttribute('aria-label',autoPlaying?'Pause automatic review':'Play review automatically every 0.3 seconds');
   }
   const total=preparedSans?.length||0,ply=currentPly();
   if(prev)prev.disabled=ply<=0;
@@ -201,7 +201,7 @@ function ensureAutoPlayControls(card){
   if(!actions||card.querySelector('#reviewAutoPlay'))return;
   const play=document.createElement('button');
   play.id='reviewAutoPlay';play.type='button';play.className='btn reviewPlaybackButton';
-  play.title='Automatically advance one move every 1 second';
+  play.title='Automatically advance one move every 0.3 seconds';
   play.onclick=()=>{
     if(autoPlaying){stopAutoPlay();return}
     if(!activeReview||!preparedSans?.length)return;
@@ -259,7 +259,7 @@ function lineSanFor(fen,pv){
 function renderAutoBest(i,data,fen){
   const line=ensureAutoBestLine(),prepared=displayLineFor(data,i);
   if(!prepared.bestUci){
-    if(line)line.textContent='No engine move available for this position.';
+    if(line)line.textContent='Best line not yet verified for this position. Run a full Stockfish review to populate it.';
     drawBestArrow(data.bestMoves?.[i+1]||'');
     return;
   }
