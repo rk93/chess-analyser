@@ -33,6 +33,13 @@ function playerAvatar(username){
   return playerAvatarCache.get(key);
 }
 let avatarObserver=null;
+function classifyGameTimeControl(tc){
+  const s=String(tc||'');if(!s||s.includes('/'))return 'other';
+  const [base,increment='0']=s.split('+');const seconds=Number(base),inc=Number(increment);
+  if(!Number.isFinite(seconds)||!Number.isFinite(inc))return 'other';
+  const effective=seconds+40*inc;
+  return effective<180?'bullet':effective<600?'blitz':'rapid';
+}
 function renderGames(games,u){
   const root=$('games');root.replaceChildren();avatarObserver?.disconnect();
   if(!games.length){const empty=document.createElement('div');empty.className='game';empty.textContent='No saved games yet.';root.appendChild(empty);return}
@@ -43,6 +50,10 @@ function renderGames(games,u){
     const isWhite=String(g.white?.username||'').toLowerCase()===u.toLowerCase(),me=isWhite?g.white:g.black,opp=isWhite?g.black:g.white;
     const result=me.result==='win'?'Win':(['checkmated','resigned','timeout','lose'].includes(me.result)?'Loss':'Draw');
     const d=document.createElement('div');d.className='game gameWithAvatar';d.tabIndex=0;d.setAttribute('role','button');
+    // Filtering uses structured Chess.com fields, never visible text or ratings.
+    d.dataset.result=result.toLowerCase();
+    d.dataset.speed=String(g.time_class||'').toLowerCase()||classifyGameTimeControl(g.time_control);
+    d.dataset.opponent=String(opp.username||'').toLowerCase();
     const avatar=document.createElement('span');avatar.className='gamePlayerAvatar';avatar.textContent=String(opp.username||'?').slice(0,1).toUpperCase();
     const image=document.createElement('img');image.alt='';image.loading='lazy';image.hidden=true;avatar.appendChild(image);
     d.loadAvatar=async()=>{const url=await playerAvatar(opp.username);if(!url||!d.isConnected)return;image.onload=()=>{image.hidden=false;avatar.classList.add('hasAvatar')};image.onerror=()=>{image.hidden=true;avatar.classList.remove('hasAvatar')};image.src=url};
