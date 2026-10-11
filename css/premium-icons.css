@@ -1,0 +1,24 @@
+/* Premium vector navigation and controls. Designed as a lightweight progressive enhancement. */
+:root{--ui-accent:#81b64c;--ui-accent-soft:rgba(129,182,76,.18);--ui-ring:rgba(166,231,101,.8)}
+.uiIcon{width:23px;height:23px;flex:none;display:block;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;overflow:visible}
+.homeTabs{gap:7px;padding:7px;border:1px solid rgba(255,255,255,.08);background:linear-gradient(180deg,#292724,#201e1c);box-shadow:0 6px 24px rgba(0,0,0,.12)}
+.homeTab{min-width:0;min-height:60px;display:flex;align-items:center;justify-content:center;gap:9px;position:relative;border:1px solid transparent;border-radius:12px;font-size:14px;letter-spacing:.01em;color:#d1cec8;cursor:pointer;transition:background .15s ease,color .15s ease,box-shadow .15s ease,transform .12s ease,border-color .15s ease;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.homeTab .uiIcon{width:24px;height:24px;stroke-width:2.15;filter:drop-shadow(0 2px 1px rgba(0,0,0,.3))}
+.homeTab:hover:not(.active){background:#37342f;color:#fff;border-color:#565047}
+.homeTab.active{background:linear-gradient(160deg,#42682e,#243f24);border-color:#93d562;color:#eaffd9;box-shadow:inset 0 1px rgba(255,255,255,.13),0 0 0 1px rgba(129,182,76,.12),0 3px 12px rgba(39,97,29,.23)}
+.homeTab.active .uiIcon{color:#c8f2a7;filter:drop-shadow(0 0 5px rgba(154,234,94,.4))}
+.homeTab:active,.btn:active,.ctrl:active,.backBtn:active{transform:scale(.95);filter:brightness(1.18)}
+.homeTab:focus-visible,.btn:focus-visible,.ctrl:focus-visible,.backBtn:focus-visible{outline:3px solid var(--ui-ring);outline-offset:2px}
+.btn,.ctrl,.backBtn{cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;transition:background .15s ease,box-shadow .15s ease,transform .12s ease,filter .12s ease}
+.btn{border:1px solid rgba(255,255,255,.08);border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.12),inset 0 -2px rgba(0,0,0,.12)}
+.btn.primary,.ctrl.primary{background:linear-gradient(180deg,#90c758,#679c38);color:#102008;border-color:rgba(190,255,130,.32)}
+.btn:hover:not(:disabled),.ctrl:hover:not(:disabled){filter:brightness(1.12)}
+.btn:disabled,.ctrl:disabled{cursor:not-allowed;opacity:.52}
+.settingsBtn .uiIcon{width:20px;height:20px}
+.controls{gap:8px}
+.ctrl{min-width:44px;min-height:48px;border:1px solid rgba(255,255,255,.09);border-radius:11px;background:linear-gradient(180deg,#514c45,#3b3833);box-shadow:0 2px 8px rgba(0,0,0,.2),inset 0 1px rgba(255,255,255,.05)}
+.ctrl .uiIcon{height:25px;width:25px;fill:none;stroke:currentColor}
+.ctrl.primary{box-shadow:0 3px 14px rgba(92,151,54,.3)}
+@media(max-width:800px){.homeTabs{margin:8px 10px;gap:5px;padding:5px}.homeTab{min-height:62px;flex-direction:column;gap:4px;padding:7px 3px;font-size:11px;line-height:1.15}.homeTab .uiIcon{height:23px;width:23px}.homeTabLabel{text-align:center;white-space:normal}.controls{gap:6px}}
+@media(max-width:360px){.homeTab{font-size:10px}.homeTab .uiIcon{width:21px;height:21px}}
+@media(prefers-reduced-motion:reduce){.homeTab,.btn,.ctrl,.backBtn{transition:none}}
