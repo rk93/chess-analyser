@@ -218,7 +218,10 @@ function ensureAutoPlayControls(card){
   updateAutoPlayControls();
 }
 function ensureGuideCard(){
-  let card=$('reviewGuideCard');if(card)return card;
+  let card=$('reviewGuideCard');
+  // Other review modules may have created this card already; controls must be
+  // installed even when reusing the existing DOM node.
+  if(card){ensureVoiceControl(card);ensureAutoPlayControls(card);return card;}
   card=document.createElement('section');card.id='reviewGuideCard';card.className='reviewGuideCard';card.hidden=true;
   card.innerHTML=`<div class="reviewGuideTitle"><span id="reviewGuideIcon"></span><span id="reviewGuideMove">Game review</span><span id="reviewGuideEval" class="reviewGuideEval">—</span></div><div id="reviewGuideComment" class="reviewGuideComment"></div><div id="reviewGuideMeta" class="reviewGuideMeta"></div><div class="reviewGuideActions"><button id="reviewShowBest" class="btn" type="button">Show best</button><button id="reviewPractice" class="btn" type="button">Practice</button><button id="reviewNext" class="btn primary" type="button">Next</button></div>`;
   const shell=document.querySelector('#analysisView .analysisShell');shell?.parentNode?.insertBefore(card,shell);
