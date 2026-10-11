@@ -45,7 +45,7 @@ function renderGames(games,u){
     const d=document.createElement('div');d.className='game gameWithAvatar';d.tabIndex=0;d.setAttribute('role','button');
     const avatar=document.createElement('span');avatar.className='gamePlayerAvatar';avatar.textContent=String(opp.username||'?').slice(0,1).toUpperCase();
     const image=document.createElement('img');image.alt='';image.loading='lazy';image.hidden=true;avatar.appendChild(image);
-    d.loadAvatar=async()=>{const url=await playerAvatar(opp.username);if(!url||!d.isConnected)return;image.onload=()=>{image.hidden=false};image.onerror=()=>{image.hidden=true};image.src=url};
+    d.loadAvatar=async()=>{const url=await playerAvatar(opp.username);if(!url||!d.isConnected)return;image.onload=()=>{image.hidden=false;avatar.classList.add('hasAvatar')};image.onerror=()=>{image.hidden=true;avatar.classList.remove('hasAvatar')};image.src=url};
     const body=document.createElement('div');body.className='gamePlayerDetails';
     const title=document.createElement('b');title.textContent=`${me.username} ${me.rating??''} — ${opp.username} ${opp.rating??''}`;
     const info=document.createElement('div');info.className='muted';info.textContent=`${result} · ${formatTimeControl(g.time_control)} · ${new Date((g.end_time||0)*1000).toLocaleString()}`;
@@ -53,7 +53,10 @@ function renderGames(games,u){
     d.onclick=()=>openGame(g,u);
     d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openGame(g,u)}};
     root.appendChild(d);
-    if(avatarObserver)avatarObserver.observe(d);else if(root.children.length<=5)d.loadAvatar();
+    // Start loading the first visible page immediately: pagination may hide cards
+    // before an IntersectionObserver ever fires on mobile.
+    if(root.children.length<=5)d.loadAvatar();
+    else if(avatarObserver)avatarObserver.observe(d);
   });
 }
 function formatTimeControl(tc){if(!tc)return 'Game';if(tc.includes('+')){const [s,i]=tc.split('+').map(Number);return `${Math.round(s/60)}+${i}`}const s=Number(tc);return Number.isFinite(s)?`${Math.round(s/60)} min`:tc}
