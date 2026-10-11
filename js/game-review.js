@@ -4,6 +4,7 @@ import { buildTacticalVerificationPlan } from './review-tactics.js';
 import { displayLineFor } from './review-display.js';
 import { reviewCoverage } from './review-coverage.js';
 import {getReviewDepthPreset,reviewDepthIsCurrent,REVIEW_DEPTH_SETTING} from './review-depth.js';
+import {getAutoPlayMs} from './review-playback-settings.js';
 
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -15,7 +16,7 @@ const TACTICAL_VERIFY_LIMIT=16;
 let running=false,reviewToken=0,restoreTimer=null,activeReview=null,summaryShownForKey='';
 let preparedReview=null,preparedPositions=null,preparedSans=null,preparedBestMoves=null,renderFrame=0,lastRenderedPly=-1;
 let voiceEnabled=false,spokenPly=-1;
-const AUTO_PLAY_MS=300;
+const AUTO_PLAY_MS=300; // fallback default; user setting is read when scheduling
 let autoPlaying=false,autoPlayTimer=0,autoPlayGeneration=0,spokenGeneration=0;
 const COACH_PAUSE_MS=700,COACH_MAX_WAIT_MS=45000;
 let spokenPending=false;
@@ -163,7 +164,7 @@ function updateAutoPlayControls(){
   if(btn){
     btn.textContent=autoPlaying?'⏸ Pause':'▶ Play';
     btn.setAttribute('aria-pressed',String(autoPlaying));
-    btn.setAttribute('aria-label',autoPlaying?'Pause automatic review':'Play review automatically every 0.3 seconds');
+    btn.setAttribute('aria-label',autoPlaying?'Pause automatic review':`Play review automatically every ${(getAutoPlayMs()/1000).toFixed(1)} seconds`);
   }
   const total=preparedSans?.length||0,ply=currentPly();
   if(prev)prev.disabled=ply<=0;
@@ -180,7 +181,7 @@ function queueAutoPlay(delay=null){
   // Voice-on playback follows speech-end events. A safety timeout prevents
   // indefinite stalls in browsers that never fire onend/onerror.
   const waitingForVoice=voiceEnabled&&spokenPending;
-  const wait=delay??(waitingForVoice?COACH_MAX_WAIT_MS:AUTO_PLAY_MS);
+  const wait=delay??(waitingForVoice?COACH_MAX_WAIT_MS:getAutoPlayMs());
   autoPlayTimer=setTimeout(()=>{
     if(generation!==autoPlayGeneration)return;
     autoPlayTimer=0;
@@ -202,7 +203,7 @@ function ensureAutoPlayControls(card){
   if(!actions||card.querySelector('#reviewAutoPlay'))return;
   const play=document.createElement('button');
   play.id='reviewAutoPlay';play.type='button';play.className='btn reviewPlaybackButton';
-  play.title='Automatically advance one move every 0.3 seconds';
+  play.title='Automatically advance moves at your selected speed';
   play.onclick=()=>{
     if(autoPlaying){stopAutoPlay();return}
     if(!activeReview||!preparedSans?.length)return;
@@ -451,5 +452,5 @@ function handleVerifiedAutoReview(e){
   },90);
 }
 function resetAutoReviewFlow(){autoFlowKey='';autoFlowStartedKey='';closeDepthPrompt()}
-function init(){ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
+function init(){ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('reviewAutoPlaySpeedChanged',()=>{updateAutoPlayControls();if(autoPlaying&&!spokenPending)queueAutoPlay();});window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
