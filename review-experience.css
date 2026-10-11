@@ -396,7 +396,7 @@
     height:46px!important;min-height:46px!important;padding:3px 11px!important;
   }
   body.review-guided-active #analysisView.reviewGuidedMode #reviewGuideCard:not([hidden]){
-    max-height:110px!important;overflow:hidden!important;
+    max-height:118px!important;overflow-y:auto!important;overscroll-behavior:contain!important;
     margin:4px 8px!important;padding:7px 10px!important;
   }
   body.review-guided-active #analysisView.reviewGuidedMode .reviewGuideComment{
@@ -404,7 +404,6 @@
     overflow:hidden;font-size:12px!important;line-height:1.25!important;
   }
   body.review-guided-active #analysisView.reviewGuidedMode #reviewGuideMeta,
-  body.review-guided-active #analysisView.reviewGuidedMode #reviewAutoBest,
   body.review-guided-active #analysisView.reviewGuidedMode .reviewPlaybackProgress{
     display:none!important;
   }
