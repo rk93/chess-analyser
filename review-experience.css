@@ -310,3 +310,47 @@
   body.review-guided-active #analysisView.reviewProMode .reviewGuideActions .btn{min-height:48px!important;font-size:11px!important}
 }
 @media(prefers-reduced-motion:reduce){#analysisView .reviewGuideActions .btn.premiumTapped{animation:none}}
+
+/* Wide-screen Game Review: coach on the left, board and analysis on the right. */
+@media(min-width:1100px){
+  #analysisView .reviewDesktopLayout{
+    display:grid;
+    grid-template-columns:minmax(255px,300px) minmax(0,1fr);
+    gap:16px;
+    align-items:start;
+    width:100%;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard[hidden]){
+    display:block;
+  }
+  #analysisView .reviewDesktopLayout > #reviewGuideCard{
+    width:100%;
+    min-width:0;
+    max-height:calc(100dvh - 24px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    position:sticky;
+    top:12px;
+    margin:0;
+    padding:14px 13px;
+  }
+  #analysisView .reviewDesktopLayout > .analysisShell{
+    min-width:0;
+    width:100%;
+    grid-template-columns:minmax(0,1.5fr) minmax(275px,1fr);
+  }
+  #analysisView .reviewDesktopLayout .reviewGuideActions{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px;
+  }
+  #analysisView .reviewDesktopLayout .reviewGuideActions .btn{
+    width:100%;
+    min-width:0;
+    padding:9px 5px;
+    font-size:12px;
+    white-space:normal;
+  }
+  #analysisView .reviewDesktopLayout .reviewGuideComment{font-size:14px;line-height:1.4}
+  #analysisView .reviewDesktopLayout .reviewGuideTitle{font-size:16px}
+}
