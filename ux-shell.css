@@ -32,3 +32,33 @@
   .gamesPager .btn{min-height:46px}
 }
 @media(prefers-reduced-motion:reduce){:where(button,.btn,.ctrl,.homeTab,#flip).premiumTapped{animation:none}}
+
+/* Desktop workspace: navigation rail | spacious board | review and move list. */
+@media(min-width:1050px){
+  body{overflow-x:hidden}
+  .app{max-width:none!important;width:100%;padding:14px 18px 20px 108px!important}
+  .homeTabs.modernNav{
+    position:fixed!important;
+    z-index:1200;
+    top:0!important;bottom:0!important;left:0!important;right:auto!important;
+    width:90px!important;margin:0!important;padding:14px 6px!important;
+    border-radius:0 14px 14px 0!important;
+    display:flex!important;flex-direction:column!important;gap:6px!important;
+    align-items:stretch!important;justify-content:flex-start!important;
+    overflow-y:auto!important;overflow-x:hidden!important;
+    background:#1d1e1b!important;border-right:1px solid #454b40!important;
+  }
+  .modernNav .homeTab{
+    display:flex!important;flex-direction:column!important;align-items:center!important;
+    gap:7px!important;width:100%!important;min-width:0!important;min-height:75px!important;
+    padding:11px 3px!important;border-radius:10px!important;font-size:11px!important;
+    line-height:1.2!important;white-space:normal!important;text-align:center!important;
+  }
+  .modernNav .navIcon{width:27px!important;height:27px!important}
+  .modernNav .navLabel{display:block;overflow-wrap:anywhere}
+  #analysisView .topbar{max-width:1600px;margin:0 auto 12px!important;padding:0 6px}
+}
+@media(min-width:1450px){
+  .app{padding-left:116px!important;padding-right:26px!important}
+  .homeTabs.modernNav{width:98px!important}
+}

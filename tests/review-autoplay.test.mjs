@@ -61,9 +61,9 @@ test('service worker revalidates CSS and JS instead of indefinitely serving stal
   assert.match(sw,/if\(asset\)\{e\.respondWith\(fetch/);
 });
 
-test('mobile review puts board before commentary while leaving desktop unchanged',()=>{
+test('mobile review keeps board first while desktop uses right side review panel',()=>{
  assert.match(source,/function positionReviewCard\(\)/);
  assert.match(source,/shell\.after\(card\)/);
- assert.match(source,/shell\.before\(card\)/);
+ assert.match(source,/panel\.insertBefore\(card,review\)/);
  assert.match(source,/addEventListener\('resize',positionReviewCard/);
 });

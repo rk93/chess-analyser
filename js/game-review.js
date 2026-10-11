@@ -221,11 +221,18 @@ function ensureAutoPlayControls(card){
 }
 function positionReviewCard(){
   const card=$('reviewGuideCard'),shell=document.querySelector('#analysisView .analysisShell');
-  if(!card||!shell||!shell.parentNode)return;
+  if(!card||!shell)return;
   const narrow=window.matchMedia('(max-width: 800px)').matches;
-  // Board first on phones: commentary below the board, playback stays fixed.
-  if(narrow&&shell.nextElementSibling!==card)shell.after(card);
-  else if(!narrow&&shell.previousElementSibling!==card)shell.before(card);
+  if(narrow){
+    // Preserve the board-first mobile flow.
+    if(shell.nextElementSibling!==card)shell.after(card);
+  }else{
+    // Desktop layout: keep the board in the large middle column and
+    // put coach commentary inside the review panel on the right.
+    const panel=shell.querySelector('.sidePanel');
+    const review=panel?.querySelector('.reviewPanel');
+    if(panel&&review&&card.nextElementSibling!==review)panel.insertBefore(card,review);
+  }
 }
 function ensureGuideCard(){
   let card=$('reviewGuideCard');
