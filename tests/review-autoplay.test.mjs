@@ -5,7 +5,7 @@ const source=await readFile('js/game-review.js','utf8');
 const styles=await readFile('review-experience.css','utf8');
 
 test('review autoplay advances every three seconds and only when enabled',()=>{
-  assert.match(source,/const AUTO_PLAY_MS=3000/);
+  assert.match(source,/const AUTO_PLAY_MS=1000/);
   assert.match(source,/setTimeout\(\(\)=>\{/);
   assert.match(source,/\$\('next'\)\?\.click\(\)/);
   assert.match(source,/if\(!autoPlaying\|\|document\.hidden\|\|!activeReview\)/);
@@ -59,4 +59,11 @@ test('service worker revalidates CSS and JS instead of indefinitely serving stal
   assert.match(sw,/chess-analyser-pages-v83/);
   assert.match(sw,/cache:'no-cache'/);
   assert.match(sw,/if\(asset\)\{e\.respondWith\(fetch/);
+});
+
+test('mobile review puts board before commentary while leaving desktop unchanged',()=>{
+ assert.match(source,/function positionReviewCard\(\)/);
+ assert.match(source,/shell\.after\(card\)/);
+ assert.match(source,/shell\.before\(card\)/);
+ assert.match(source,/addEventListener\('resize',positionReviewCard/);
 });
