@@ -51,6 +51,7 @@ class LocalStockfish{
             if(settled)return;
             settled=true;
             cleanup();
+            worker.addEventListener('error',()=>this.discardWorker(worker));
             resolve(this);
           }
         }catch(err){fail(err)}
@@ -81,7 +82,7 @@ class LocalStockfish{
     await this.ready();
     const worker=this.worker;
     if(!worker)throw new Error('Local Stockfish worker unavailable');
-    const turn=String(fen).split(/\\s+/)[1]||'w';
+    const turn=String(fen).split(/\s+/)[1]||'w';
     return new Promise((resolve,reject)=>{
       const state={depth:0,cp:0,mate:null,pv:'',best:'',lines:new Map()};
       let timer=null,settled=false;
