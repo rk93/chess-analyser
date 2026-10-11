@@ -3,7 +3,7 @@ import { cacheGet,cacheSet,getPositionEval,setPositionEval,simpleHash } from './
 import { buildTacticalVerificationPlan } from './review-tactics.js';
 import { displayLineFor } from './review-display.js';
 import { reviewCoverage } from './review-coverage.js';
-import {getReviewDepthPreset,REVIEW_DEPTH_SETTING} from './review-depth.js';
+import {getReviewDepthPreset,reviewDepthIsCurrent,REVIEW_DEPTH_SETTING} from './review-depth.js';
 
 const $=id=>document.getElementById(id);
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -353,7 +353,7 @@ function showSummaryScreen(data,{force=false}={}){
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function startGuidedReview(){const el=$('reviewSummaryScreen');if(el)el.hidden=true;$('start')?.click();setTimeout(()=>{$('next')?.click();setTimeout(renderCurrentMove,0)},20)}
 
-function displayReview(data,{cached=false,showSummary=true}={}){
+function displayReview(data,{cached=false,showSummary=true,dispatchReady=true}={}){
   const positions=buildPositions(),sans=moveSans();if(positions.length!==data.evals.length||sans.length!==data.labels.length)return false;
   spokenPly=-1;preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
   const trainable=(data.bestMoves||[]).filter((m,i)=>m&&data.moveVerified?.[i]&&(data.labels[i]==='Mistake'||data.labels[i]==='Blunder')).length,verified=data.moveVerified?.filter(Boolean).length||0;
@@ -361,7 +361,7 @@ function displayReview(data,{cached=false,showSummary=true}={}){
   $('reviewStatus').textContent=coverage.complete
     ?`Verified review ready · all ${sans.length} moves analysed · ${trainable} practice positions.`
     :`Preview only — ${coverage.missing.length} position(s) still need Stockfish verification. Review is not complete.`;
-  $('runReview').textContent=coverage.complete?'Review summary':'Review preview';$('runReview').disabled=false;renderCurrentMove();if(showSummary&&coverage.complete)showSummaryScreen(data);window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
+  $('runReview').textContent=coverage.complete?'Review summary':'Review preview';$('runReview').disabled=false;renderCurrentMove();if(showSummary&&coverage.complete)showSummaryScreen(data);if(dispatchReady)window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
 }
 async function restoreReview(){
   clearTimeout(restoreTimer);
@@ -371,8 +371,8 @@ async function restoreReview(){
     const key=reviewKey(),data=await cacheGet('review',key);
     if(generation!==reviewToken||key!==reviewKey())return;
     const positions=buildPositions();
-    const complete=data?.version===REVIEW_VERSION&&reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&data.reviewDepthKey===getReviewDepthPreset().key;
-    if(data?.version===REVIEW_VERSION)displayReview(data,{cached:true,showSummary:!complete});
+    const complete=data?.version===REVIEW_VERSION&&reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&reviewDepthIsCurrent(data,getReviewDepthPreset());
+    if(data?.version===REVIEW_VERSION)displayReview(data,{cached:true,showSummary:!complete,dispatchReady:!mobileReview()||complete});
     window.dispatchEvent(new CustomEvent('gameReviewCacheChecked',{detail:{key,complete:!!complete,hasReview:!!data}}));
   },120);
 }
@@ -394,9 +394,9 @@ async function runTacticalVerification(positions,sans,evals,bestMoves,positionEx
 }
 async function runReview(){
   if(running)return;
-  if(activeReview){const coverage=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()})));if(coverage.complete){showSummaryScreen(activeReview,{force:true});return}activeReview=null}
+  if(activeReview){const coverage=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()})));if(coverage.complete&&reviewDepthIsCurrent(activeReview,getReviewDepthPreset())){showSummaryScreen(activeReview,{force:true});return}activeReview=null}
   const positions=buildPositions(),sans=moveSans();if(positions.length<2){$('reviewStatus').textContent='Open a game with moves before running Game Review.';return}
-  const key=reviewKey(),requestedToken=reviewToken,saved=await cacheGet('review',key);if(requestedToken!==reviewToken||key!==reviewKey())return;if(saved?.version===REVIEW_VERSION&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:false}))return;
+  const key=reviewKey(),requestedToken=reviewToken,saved=await cacheGet('review',key);if(requestedToken!==reviewToken||key!==reviewKey())return;if(saved?.version===REVIEW_VERSION&&reviewDepthIsCurrent(saved,getReviewDepthPreset())&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:false}))return;
   running=true;activeReview=null;signalRunning(true);const token=++reviewToken,btn=$('runReview');btn.disabled=true;btn.textContent='Reviewing…';clearTags();$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;const evals=new Array(positions.length).fill(null),bestMoves=new Array(positions.length).fill(''),positionExact=new Array(positions.length).fill(false);
   try{
     await runCloudPass(positions,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
