@@ -461,3 +461,82 @@
     max-height:82px!important;
   }
 }
+
+/* Review viewport v2: applies whenever review data is shown, including
+   cached review, preview, or direct navigation (not only guided mode). */
+@media(max-width:800px){
+  body.review-has-data #analysisView{
+    --review-board-edge:min(calc(100vw - 36px),max(135px,calc(100dvh - 390px)));
+    height:calc(100dvh - env(safe-area-inset-bottom))!important;
+    max-height:calc(100dvh - env(safe-area-inset-bottom))!important;
+    min-height:0!important;overflow:hidden!important;
+    padding:0!important;
+  }
+  body.review-has-data #analysisView>.topbar{height:46px!important;min-height:46px!important;padding:2px 10px!important}
+  body.review-has-data #analysisView #reviewGuideCard:not([hidden]){
+    max-height:114px!important;min-height:0!important;
+    overflow-y:auto!important;overscroll-behavior:contain!important;
+    margin:4px 8px 5px!important;padding:7px 10px!important;
+    width:calc(100% - 16px)!important;
+  }
+  body.review-has-data #analysisView .reviewGuideComment{
+    font-size:12px!important;line-height:1.25!important;
+    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;
+  }
+  body.review-has-data #analysisView #reviewGuideMeta,
+  body.review-has-data #analysisView .reviewPlaybackProgress{display:none!important}
+  body.review-has-data #analysisView .reviewGuideTitle{font-size:15px!important}
+  body.review-has-data #analysisView .reviewGuideActions{
+    display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;
+    position:fixed!important;z-index:120!important;
+    left:8px!important;right:8px!important;
+    bottom:calc(6px + env(safe-area-inset-bottom))!important;
+    padding:6px!important;gap:5px!important;margin:0!important;
+    background:#242a24!important;border-radius:15px!important;
+  }
+  body.review-has-data #analysisView .reviewGuideActions .btn{
+    min-height:48px!important;width:100%!important;min-width:0!important;
+    padding:5px 3px!important;font-size:12px!important;
+  }
+  body.review-has-data #analysisView #reviewPrev{grid-column:1/span 2;grid-row:1}
+  body.review-has-data #analysisView #reviewAutoPlay{grid-column:3/span 2;grid-row:1}
+  body.review-has-data #analysisView #reviewNext{grid-column:5/span 2;grid-row:1}
+  body.review-has-data #analysisView #reviewShowBest{grid-column:1/span 2;grid-row:2}
+  body.review-has-data #analysisView #reviewVoiceToggle{grid-column:3/span 2;grid-row:2}
+  body.review-has-data #analysisView #reviewPractice{grid-column:5/span 2;grid-row:2}
+  body.review-has-data #analysisView .analysisShell{display:block!important;min-height:0!important;padding:0!important;margin:0!important}
+  body.review-has-data #analysisView .boardColumn{
+    width:calc(var(--review-board-edge) + 25px)!important;max-width:100%!important;
+    margin:0 auto!important;
+  }
+  body.review-has-data #analysisView .playerStrip{height:22px!important;font-size:11px!important;padding:0 5px!important}
+  body.review-has-data #analysisView .playerPiece{height:17px!important;width:17px!important}
+  body.review-has-data #analysisView .boardWrap{
+    width:calc(var(--review-board-edge) + 25px)!important;
+    height:var(--review-board-edge)!important;aspect-ratio:auto!important;
+  }
+  body.review-has-data #analysisView .evalBar{width:25px!important}
+  body.review-has-data #analysisView .boardStage{
+    width:var(--review-board-edge)!important;height:var(--review-board-edge)!important;
+    flex:none!important;aspect-ratio:1/1!important;
+  }
+  body.review-has-data #analysisView .sidePanel{min-height:0!important;border:0!important;overflow:visible!important}
+  body.review-has-data #analysisView .sidePanel>:not(#moves):not(#reviewProMoveStrip){display:none!important}
+  body.review-has-data #analysisView #moves,
+  body.review-has-data #analysisView #reviewProMoveStrip{
+    position:fixed!important;z-index:110!important;
+    left:8px!important;right:8px!important;
+    bottom:calc(142px + env(safe-area-inset-bottom))!important;
+    height:37px!important;min-height:37px!important;max-height:37px!important;
+    display:flex!important;overflow-x:auto!important;overflow-y:hidden!important;
+    white-space:nowrap!important;padding:2px!important;
+    background:rgba(35,35,32,.96)!important;
+  }
+  body.review-has-data #analysisView #moves .moveRow{display:flex!important;flex:0 0 auto!important;min-height:32px!important}
+  body.review-has-data #analysisView #moves .move{padding:5px!important;flex:0 0 auto!important}
+  body.review-has-data #analysisView #moves .moveNumber{padding:5px 2px!important}
+  body.review-has-data #analysisView:has(#reviewProMoveStrip) #moves{display:none!important}
+  body.review-has-data #analysisView .controls,
+  body.review-has-data #analysisView .mobileEngineDock,
+  body.review-has-data .modernNav{display:none!important}
+}
