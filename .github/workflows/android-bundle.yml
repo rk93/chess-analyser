@@ -26,8 +26,8 @@ jobs:
       - name: Check Android bootstrap
         run: |
           if [ ! -f android/twa/twa-manifest.json ]; then
-            echo "::notice::Android TWA project is not bootstrapped yet. Follow android/README.md for the one-time Bubblewrap initialization."
-            exit 0
+            echo "::error::Android project not initialized yet. Follow android/README.md and commit the generated Bubblewrap project before building."
+            exit 1
           fi
       - name: Setup Java
         if: ${{ hashFiles('android/twa/twa-manifest.json') != '' }}
