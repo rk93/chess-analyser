@@ -1,0 +1,55 @@
+name: Android Bundle
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'android/**'
+      - '.github/workflows/android-bundle.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Web regression tests
+        run: npm test
+      - name: Check Android bootstrap
+        run: |
+          if [ ! -f android/twa/twa-manifest.json ]; then
+            echo "::notice::Android TWA project is not bootstrapped yet. Follow android/README.md for the one-time Bubblewrap initialization."
+            exit 0
+          fi
+      - name: Setup Java
+        if: ${{ hashFiles('android/twa/twa-manifest.json') != '' }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Setup Android SDK
+        if: ${{ hashFiles('android/twa/twa-manifest.json') != '' }}
+        uses: android-actions/setup-android@v3
+      - name: Install Bubblewrap
+        if: ${{ hashFiles('android/twa/twa-manifest.json') != '' }}
+        run: npm install -g @bubblewrap/cli
+      - name: Build unsigned verification bundle
+        if: ${{ hashFiles('android/twa/twa-manifest.json') != '' }}
+        working-directory: android/twa
+        run: bubblewrap build --skipSigning
+      - name: Upload unsigned bundle
+        if: ${{ hashFiles('android/twa/twa-manifest.json') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: unsigned-android-bundle-not-for-play
+          path: android/twa/*.aab
+          if-no-files-found: warn
+          retention-days: 7
