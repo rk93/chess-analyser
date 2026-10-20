@@ -1,0 +1,9 @@
+# Keep upload signing credentials out of Git
+*.keystore
+*.jks
+*.p12
+*.key
+local.properties
+.gradle/
+build/
+**/build/
