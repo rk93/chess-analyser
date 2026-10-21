@@ -76,7 +76,7 @@ function parseInitialFen(pgn){const m=pgn.match(/^\[FEN\s+"([^"]+)"\]/m);return 
 function freshChess(){const fen=parseInitialFen(selectedGame?.pgn||'');return fen?new Chess(fen):new Chess()}
 function freshFromPgn(pgn){const c=new Chess();c.loadPgn(pgn);return c}
 function openGame(g,u){selectedGame=g;const parsed=freshFromPgn(g.pgn);mainMoves=parsed.history({verbose:true});orientation=g.white.username.toLowerCase()===u.toLowerCase()?'white':'black';currentPly=0;variation=false;selectedSquare=null;lastMove=null;currentChess=freshChess();$('libraryView').style.display='none';$('analysisView').style.display='block';$('gameTitle').textContent=`${g.white.username} ${g.white.rating??''} — ${g.black.username} ${g.black.rating??''}`;$('gameMeta').textContent=`${new Date((g.end_time||0)*1000).toLocaleString()} · ${formatTimeControl(g.time_control)} · ${g.rated?'Rated':'Casual'}`;renderAll();window.scrollTo(0,0)}
-function gotoPly(ply){ply=Math.max(0,Math.min(mainMoves.length,ply));const old=currentPly,wasVariation=variation;currentChess=freshChess();lastMove=null;for(let i=0;i<ply;i++){const m=mainMoves[i];lastMove=currentChess.move({from:m.from,to:m.to,promotion:m.promotion})}currentPly=ply;variation=false;selectedSquare=null;legalTargets=[];clearEval();renderBoard();if(wasVariation){renderMoves()}else{const moves=document.querySelectorAll('#moves .move');if(moves.length!==mainMoves.length)renderMoves();else{if(old>0)moves[old-1]?.classList.remove('active');if(ply>0)moves[ply-1]?.classList.add('active')}}$('variationNote').textContent='';if(old!==ply)playMoveSound(lastMove?.captured!=null)}
+function gotoPly(ply){ply=Math.max(0,Math.min(mainMoves.length,ply));const old=currentPly,wasVariation=variation;currentChess=freshChess();lastMove=null;for(let i=0;i<ply;i++){const m=mainMoves[i];lastMove=currentChess.move({from:m.from,to:m.to,promotion:m.promotion})}currentPly=ply;variation=false;selectedSquare=null;legalTargets=[];clearEval();renderBoard();if(wasVariation){renderMoves()}else{const moves=document.querySelectorAll('#moves .move');if(moves.length!==mainMoves.length)renderMoves();else{if(old>0)moves[old-1]?.classList.remove('active');if(ply>0)moves[ply-1]?.classList.add('active')}}$('variationNote').textContent='';renderMobileMoveStrip();if(old!==ply)playMoveSound(lastMove?.captured!=null)}
 function renderAll(){renderPlayers();renderBoard();renderMoves();$('variationNote').textContent=variation?'Exploring your variation. Use return to go back to the game.':''}
 function renderPlayers(){const topColor=orientation==='white'?'black':'white',bottomColor=orientation,top=topColor==='white'?selectedGame.white:selectedGame.black,bottom=bottomColor==='white'?selectedGame.white:selectedGame.black;const h=(p,c)=>`<span class="playerName">${pieceSvg(c==='white'?'w':'b','p','playerPiece')}<span>${p.username}</span></span><span>${p.rating??''}</span>`;$('topPlayer').innerHTML=h(top,topColor);$('bottomPlayer').innerHTML=h(bottom,bottomColor)}
 function squareOrder(){const files=orientation==='white'?['a','b','c','d','e','f','g','h']:['h','g','f','e','d','c','b','a'],ranks=orientation==='white'?[8,7,6,5,4,3,2,1]:[1,2,3,4,5,6,7,8];return ranks.flatMap(r=>files.map(f=>f+r))}
@@ -87,16 +87,41 @@ function renderBoard(){const b=$('board');b.innerHTML='';squareOrder().forEach((
 function tapSquare(sq){if(selectedSquare){if(tryUserMove(selectedSquare,sq))return;selectedSquare=null;legalTargets=[]}const p=currentChess.get(sq);if(p&&p.color===currentChess.turn()){selectedSquare=sq;legalTargets=currentChess.moves({square:sq,verbose:true});renderBoard()}}
 function tryUserMove(from,to){const moves=currentChess.moves({square:from,verbose:true}).filter(m=>m.to===to);if(!moves.length)return false;try{lastMove=currentChess.move({from,to,promotion:moves.some(m=>m.promotion)?'q':undefined});variation=true;selectedSquare=null;legalTargets=[];clearEval();renderAll();playMoveSound(lastMove?.captured!=null);return true}catch{return false}}
 function renderMoves(){const box=$('moves');box.innerHTML='';for(let i=0;i<mainMoves.length;i+=2){const row=document.createElement('div');row.className='moveRow';row.innerHTML=`<div class="moveNo">${Math.floor(i/2)+1}.</div>`;for(let j=0;j<2;j++){const idx=i+j;if(idx<mainMoves.length){const btn=document.createElement('div');btn.className='move'+(!variation&&currentPly===idx+1?' active':'');btn.textContent=mainMoves[idx].san;btn.onclick=()=>gotoPly(idx+1);row.appendChild(btn)}else row.appendChild(document.createElement('div'))}box.appendChild(row)}
- let strip=$('mobileReviewMoves');
- if(!strip){strip=document.createElement('div');strip.id='mobileReviewMoves';strip.className='mobileReviewMoves';strip.setAttribute('aria-label','Game move notation');$('bottomPlayer')?.after(strip)}
+
+ renderMobileMoveStrip();
+}
+function renderMobileMoveStrip(){
+ if(!selectedGame)return;
+ let shell=$('mobileReviewMoves');
+ if(!shell){
+  shell=document.createElement('div');shell.id='mobileReviewMoves';shell.className='mobileReviewMoves';shell.setAttribute('aria-label','Game moves and PGN');
+  $('bottomPlayer')?.after(shell);
+ }
+ let strip=$('mobileReviewMoveList');
+ if(!strip){strip=document.createElement('div');strip.id='mobileReviewMoveList';strip.className='mobileReviewMoveList';shell.append(strip)}
  strip.replaceChildren();
- const first=Math.max(0,currentPly-3),last=Math.min(mainMoves.length,currentPly+4);
+ const first=Math.max(0,currentPly-5),last=Math.min(mainMoves.length,currentPly+6);
  for(let i=first;i<last;i++){
    const btn=document.createElement('button');btn.type='button';btn.className='mobileReviewMove'+(currentPly===i+1?' selected':'');
    btn.textContent=(i%2===0?(Math.floor(i/2)+1)+'. ':'')+mainMoves[i].san;
+   btn.setAttribute('aria-current',currentPly===i+1?'step':'false');
    btn.onclick=()=>gotoPly(i+1);strip.append(btn);
  }
- const active=strip.querySelector('.selected');if(active)requestAnimationFrame(()=>active.scrollIntoView({block:'nearest',inline:'center'}));
+ let copyBtn=$('copyGamePgn');
+ if(!copyBtn){
+   copyBtn=document.createElement('button');copyBtn.id='copyGamePgn';copyBtn.className='copyGamePgn';copyBtn.type='button';
+   copyBtn.textContent='Copy PGN';copyBtn.title='Copy entire game PGN to clipboard';copyBtn.setAttribute('aria-label','Copy entire game PGN');
+   copyBtn.onclick=async()=>{
+     const pgn=selectedGame?.pgn||'';
+     if(!pgn){copyBtn.textContent='No PGN';return}
+     try{await navigator.clipboard.writeText(pgn);copyBtn.textContent='Copied ✓'}
+     catch{const t=document.createElement('textarea');t.value=pgn;t.style.position='fixed';t.style.opacity='0';document.body.append(t);t.select();const ok=document.execCommand('copy');t.remove();copyBtn.textContent=ok?'Copied ✓':'Copy failed'}
+     setTimeout(()=>{if(copyBtn.isConnected)copyBtn.textContent='Copy PGN'},1700);
+   };
+   shell.append(copyBtn);
+ }
+ const active=strip.querySelector('.selected');
+ if(active)requestAnimationFrame(()=>active.scrollIntoView({block:'nearest',inline:'nearest',behavior:'instant'}));
 }
 function clearArrows(){$('analysisArrows').innerHTML=''}
 function clearEval(){$('engineScore').textContent='—';$('engineSource').textContent='Ready';$('mobileScore').textContent='—';$('mobileSource').textContent='Ready';$('mobileLine').textContent='Tap Analyse to show the best move arrow.';$('bestLine').textContent='Choose a position and tap Analyse. The suggested move will be drawn directly on the board.';$('evalFill').style.height='50%';clearArrows()}
