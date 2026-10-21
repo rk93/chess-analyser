@@ -72,35 +72,12 @@ async function stockfish(fen){
 }
 async function analyse(){
   const btn=$('labAnalyse');if(!btn||btn.disabled)return;
-  const run=++analysisRun,fen=chess.fen(),mode=$('labEngine')?.value||'auto';
+  const run=++analysisRun,fen=chess.fen();
   btn.disabled=true;btn.textContent='Analysing…';
   const started=performance.now();
   try{
-    let data=null;
-    if(mode==='cloud'){
-      $('labSource').textContent='Checking Lichess cloud…';
-      try{data=await cloud(fen)}catch(e){
-        if(e?.name==='AbortError')throw new Error('Lichess cloud timed out');
-        throw e;
-      }
-      if(!data)throw new Error('No cloud evaluation available for this position.');
-    }else if(mode==='stockfish'){
-      $('labSource').textContent='Starting local Stockfish…';
-      data=await stockfish(fen);
-    }else{
-      $('labSource').textContent='Starting local Stockfish…';
-      let localError=null;
-      try{data=await stockfish(fen)}catch(e){localError=e}
-      if(run!==analysisRun)return;
-      if(!data){
-        $('labSource').textContent='Local engine unavailable · trying cloud…';
-        try{data=await cloud(fen)}catch{}
-      }
-      if(!data){
-        const reason=localError?.message||'unknown local-engine error';
-        throw new Error(`Local Stockfish failed: ${reason}. Cloud fallback was also unavailable.`);
-      }
-    }
+    $('labSource').textContent='Starting local Stockfish…';
+    const data=await stockfish(fen);
     if(run!==analysisRun)return;
     if(!data?.pvs?.length)throw new Error('No engine analysis returned');
     const s=score(data.pvs[0]);
