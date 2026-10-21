@@ -328,3 +328,31 @@
 .labPracticeButtons{display:flex;gap:8px;justify-content:center}
 .labPracticeButtons .btn{min-height:40px;flex:1;max-width:240px;border-radius:9px;padding:6px 9px;font-size:13px;font-weight:800}
 @media(min-width:801px){.labPracticeCoachDock{left:auto;right:16px;transform:none;bottom:20px;width:min(360px,calc(100vw - 32px))}}
+
+/* Keep every primary destination visible on phone screens, including Home.
+   An eight-item 4x2 dock avoids invisible off-screen navigation buttons. */
+@media (max-width:800px){
+ body{padding-bottom:calc(128px + env(safe-area-inset-bottom))!important}
+ .homeTabs.modernNav{
+  position:fixed!important;display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  left:8px!important;right:8px!important;top:auto!important;
+  bottom:calc(6px + env(safe-area-inset-bottom))!important;
+  width:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;gap:2px!important;padding:5px!important;
+  z-index:3000!important;box-sizing:border-box!important;
+ }
+ .homeTabs.modernNav .homeTab{
+  display:flex!important;flex-direction:column!important;align-items:center!important;
+  justify-content:center!important;min-width:0!important;max-width:none!important;
+  width:auto!important;flex:none!important;min-height:48px!important;
+  padding:3px 2px!important;font-size:10px!important;gap:1px!important;
+  white-space:normal!important;
+ }
+ .homeTabs.modernNav .homeTab .navIcon,
+ .homeTabs.modernNav .homeTab .navIcon svg{width:19px!important;height:19px!important}
+ .homeTabs.modernNav .homeTab .navLabel,
+ .homeTabs.modernNav .homeTab .homeTabLabel{font-size:10px!important;line-height:1.05!important}
+ #homeView{padding-bottom:136px}
+ /* The analysis transport is intentionally kept separate from the app tabs. */
+ body:has(#analysisView[style*="display: block"]) .homeTabs.modernNav{display:none!important}
+}
