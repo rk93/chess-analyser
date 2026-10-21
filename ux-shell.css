@@ -42,3 +42,16 @@
 @media(max-width:800px){
   body:has(#analysisView[style*="display: block"]) .modernNav{display:none!important}
 }
+
+/* The analysis dock belongs to document flow, never over the move controls. */
+@media(max-width:800px){
+ #analysisView:not(:has(#reviewGuideCard:not([hidden]))) #mobileEngineDock{
+   position:relative!important;inset:auto!important;left:auto!important;right:auto!important;
+   bottom:auto!important;z-index:1!important;
+   width:calc(100% - 16px)!important;margin:10px 8px 24px!important;
+   box-shadow:none!important;
+ }
+ #analysisView:not(:has(#reviewGuideCard:not([hidden]))) .analysisShell{
+   padding-bottom:12px!important;
+ }
+}
