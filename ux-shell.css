@@ -197,3 +197,21 @@
  #analysisView #reviewGuideCard .reviewGuideTitle{display:flex!important;align-items:center!important;gap:6px!important}
  #analysisView #reviewGuideCard .reviewGuideEval{margin-left:auto!important;flex-shrink:0!important}
 }
+
+
+/* Kiranova's original illustrated chess coach. Four frames: friendly,
+   thinking, celebrating, concerned. Embedded artwork is hosted locally. */
+.coachAvatar{display:inline-block;flex:none;width:48px;height:48px;background-image:url("assets/kiranova-coach-atlas.svg");background-repeat:no-repeat;background-size:400% 100%;background-position:0 0;border-radius:50%;vertical-align:middle}
+.coachWelcome{background-position:0% 0%}
+.coachThinking,[data-coach-mood="thinking"]{background-position:33.333% 0%}
+.coachHappy,[data-coach-mood="happy"]{background-position:66.667% 0%}
+.coachConcerned,[data-coach-mood="concerned"]{background-position:100% 0%}
+.onboardingIntro .coachWelcome{display:block;width:84px;height:84px;margin:0 auto 12px;filter:drop-shadow(0 3px 8px rgba(0,0,0,.16))}
+#libraryView .libraryIntro.withCoach{display:flex;align-items:center;gap:12px}
+#libraryView .libraryIntro .coachWelcome{width:62px;height:62px}
+#puzzlesView .puzzleHeading .coachAvatar{width:43px;height:43px}
+#analysisView .reviewGuideTitle::before{content:"";display:inline-block;flex:none;width:33px;height:33px;background-image:url("assets/kiranova-coach-atlas.svg");background-size:400% 100%;background-position:33.333% 0%;background-repeat:no-repeat;border-radius:50%}
+#analysisView #reviewGuideCard[data-coach-mood="friendly"] .reviewGuideTitle::before{background-position:0% 0%}
+#analysisView #reviewGuideCard[data-coach-mood="happy"] .reviewGuideTitle::before{background-position:66.667% 0%}
+#analysisView #reviewGuideCard[data-coach-mood="concerned"] .reviewGuideTitle::before{background-position:100% 0%}
+@media(max-width:800px){#libraryView .libraryIntro.withCoach{gap:8px}#libraryView .libraryIntro .coachWelcome{width:48px;height:48px}#analysisView .reviewGuideTitle::before{width:29px;height:29px}}
