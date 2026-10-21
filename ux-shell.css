@@ -278,3 +278,11 @@
  body.review-guided-active #analysisView .reviewGuideActions:has(#reviewShowBest[hidden]) #reviewNext{grid-column:3!important}
  body.review-guided-active #analysisView .reviewGuideActions #reviewShowBest[hidden]{display:none!important}
 }
+
+@media(max-width:800px){
+ body.review-guided-active #analysisView.reviewProMode #reviewGuideCard .reviewGuideActions #reviewShowBest:not([hidden]){
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  visibility:visible!important;opacity:1!important;grid-column:4!important;grid-row:1!important;
+  position:static!important;
+ }
+}
