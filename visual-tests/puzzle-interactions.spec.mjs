@@ -6,6 +6,7 @@ test('puzzle highlights legal targets and supports settings on mobile',async({pa
  await page.goto('/');
  await page.locator('#puzzlesTab').click();
  await expect(page.locator('#puzzleTurn')).toHaveText(/White to move/);
+ await expect(page.locator('#puzzleCoachAvatar')).toBeVisible();
  await expect(page.locator('#puzzleBoard .piece')).toHaveCount(32);
  await expect(page.locator('#puzzleStatus')).toContainText('Your move');
  const selectable=page.locator('#puzzleBoard [data-square="a2"]');
