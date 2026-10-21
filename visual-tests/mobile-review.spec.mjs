@@ -5,7 +5,7 @@ test('saved review keeps board and move controls usable on mobile', async ({ pag
   await page.evaluate(() => {
     for (const id of ['libraryView','boardLabView','analyticsView','topPlayersView']) document.getElementById(id)?.setAttribute('hidden','');
     const view=document.getElementById('analysisView');
-    view.hidden=false; view.style.display='block'; view.classList.add('reviewProMode');
+    view.hidden=false; view.style.display='block'; view.classList.add('reviewProMode');document.body.classList.add('review-guided-active');
     const shell=view.querySelector('.analysisShell');
     let layout=document.getElementById('reviewDesktopLayout');
     if (!layout) {
@@ -26,6 +26,7 @@ test('saved review keeps board and move controls usable on mobile', async ({ pag
     const strip=document.createElement('div');strip.id='reviewProMoveStrip';strip.textContent='1. e4 e5 2. Nf3 Nc6 3. d4 exd4';view.querySelector('.sidePanel').prepend(strip);
     document.getElementById('topPlayer').textContent='Black 1414';
     document.getElementById('bottomPlayer').textContent='White 1434';
+    const stats=document.createElement('aside');stats.id='reviewPositionStats';stats.className='reviewPositionStats';stats.innerHTML='<span class="positionStatsIcon">♟</span><span class="positionStatsMain"><b>12,546 master games</b><small>White 42% · Draw 36% · Black 22%</small></span>';document.getElementById('bottomPlayer').after(stats);
   });
   const board=page.locator('#analysisView .boardStage');
   const next=page.locator('#reviewNext');
@@ -41,6 +42,10 @@ test('saved review keeps board and move controls usable on mobile', async ({ pag
   // Catch controls obscuring the board, not just whether each is visible.
   expect(n.y).toBeGreaterThanOrEqual(b.y + b.height - 2);
   await expect(page.locator('.modernNav')).toBeHidden();
+  await expect(page.locator('#reviewPositionStats')).toBeVisible();
+  const buttons=await Promise.all(['reviewPrev','reviewAutoPlay','reviewNext','reviewShowBest'].map(id=>page.locator('#'+id).boundingBox()));
+  for(let i=1;i<buttons.length;i++)expect(buttons[i].x).toBeGreaterThanOrEqual(buttons[i-1].x+buttons[i-1].width-2);
+  for(const btn of buttons){expect(btn.y).toBeGreaterThanOrEqual(b.y+b.height-2);expect(btn.x+btn.width).toBeLessThanOrEqual(page.viewportSize().width+2)}
   expect(n.y+n.height).toBeLessThan(800);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBeTruthy();
   await page.screenshot({path:testInfo.outputPath('mobile-review.png'),fullPage:true});
