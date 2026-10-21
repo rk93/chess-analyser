@@ -55,3 +55,42 @@
    padding-bottom:12px!important;
  }
 }
+
+
+/* Mobile back-navigation regression: review-only rules must never hide tabs
+   after analysisView has been closed. */
+@media(max-width:800px){
+ body:has(#analysisView[style*="display: none"]) .modernNav,
+ body:has(#libraryView[style*="display: block"]) .modernNav{
+   display:flex!important;
+ }
+ .modernNav .homeTab{font-size:clamp(10px,2.7vw,12px)!important;font-weight:700!important;gap:5px!important}
+ .modernNav .navIcon,.modernNav .navIcon svg{width:25px!important;height:25px!important}
+ .modernNav{padding:7px 5px!important;min-height:68px!important}
+}
+/* Coordinates stay on the board in either orientation. */
+#analysisView #board .sq{position:relative}
+#analysisView #board .boardCoordinate{
+ position:absolute;z-index:4;pointer-events:none;
+ font-weight:850;font-size:clamp(9px,2.6vw,13px);line-height:1;
+ text-shadow:0 0 2px rgba(0,0,0,.10);
+}
+#analysisView #board .rankCoordinate{top:3px;left:3px}
+#analysisView #board .fileCoordinate{bottom:3px;right:3px}
+#analysisView #board .sq.light .boardCoordinate{color:#6c8a4c}
+#analysisView #board .sq.dark .boardCoordinate{color:#e7eed5}
+.mobileReviewMoves{display:none}
+@media(max-width:800px){
+ #analysisView .mobileReviewMoves{
+  display:flex;gap:5px;align-items:center;min-height:41px;
+  width:min(100%,440px);padding:4px 8px;margin:4px auto 8px;
+  overflow-x:auto;white-space:nowrap;scrollbar-width:none;
+  background:#302d29;border-radius:11px;
+ }
+ #analysisView .mobileReviewMove{
+  flex:0 0 auto;min-height:31px;padding:5px 8px;border-radius:7px;
+  border:0;background:transparent;color:#e7e3dd;font-weight:750;
+  font-size:13px;touch-action:manipulation;
+ }
+ #analysisView .mobileReviewMove.selected{background:#81b64c;color:#1a2512}
+}
