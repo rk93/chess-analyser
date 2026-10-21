@@ -153,3 +153,32 @@ test('Pip coaching practises a verified mistake before optionally revealing answ
  await expect(page.locator('#labLine')).toContainText('Stockfish recommends e4');
  await page.screenshot({path:testInfo.outputPath('pip-practice-revealed.png'),fullPage:false});
 });
+
+test('all bottom tabs remain present after analysis, Home and repeated navigation',async({page})=>{
+ await page.goto('/');
+ const tabs=['homeDashboardTab','gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav'];
+ const assertDock=async()=>{
+  const positions=await page.locator('.homeTabs.modernNav').evaluate(nav=>({
+   nav:nav.getBoundingClientRect().toJSON(),
+   tabs:[...nav.querySelectorAll('.homeTab')].map(el=>({id:el.id,rect:el.getBoundingClientRect().toJSON(),visible:getComputedStyle(el).visibility!=='hidden'}))
+  }));
+  expect(positions.tabs.length).toBeGreaterThanOrEqual(8);
+  for(const tab of tabs){
+   const button=positions.tabs.find(x=>x.id===tab);
+   expect(button).toBeTruthy();expect(button.visible).toBe(true);
+   expect(button.rect.width).toBeGreaterThan(20);
+   expect(button.rect.left).toBeGreaterThanOrEqual(-1);
+   expect(button.rect.right).toBeLessThanOrEqual(page.viewportSize().width+1);
+  }
+ };
+ await assertDock();
+ await page.locator('#gamesTab').click();
+ await assertDock();
+ await page.locator('#homeDashboardTab').click();
+ await assertDock();
+ for(const tab of ['puzzlesTab','explorerTab','analyticsTab','topPlayersTab','boardLabTab','settingsNav','homeDashboardTab']){
+  await page.locator('#'+tab).click();
+  await assertDock();
+ }
+ await page.screenshot({path:'test-results/nav-all-tabs-after-home.png',fullPage:false});
+});
