@@ -58,7 +58,7 @@ test('service worker revalidates CSS and JS instead of indefinitely serving stal
   const sw=await readFile('sw.js','utf8');
   assert.match(sw,/chess-analyser-pages-v\\d+/);
   assert.match(sw,/cache:'no-cache'/);
-  assert.match(sw,/if\(asset\)\{e\.respondWith\(fetch/);
+  assert.match(sw,/const revalidate=/);
 });
 
 test('mobile review puts translucent commentary above board while wide desktop uses a side panel',()=>{
