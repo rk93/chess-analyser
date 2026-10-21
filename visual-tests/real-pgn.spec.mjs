@@ -57,7 +57,7 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
   const activeMove=page.locator('#mobileReviewMoveList .mobileReviewMove.selected');
   await expect(activeMove).toHaveCount(1);
   await expect(activeMove).toHaveAttribute('aria-current','step');
-  expect((await activeMove.innerText()).trim()).toContain('Nf3');
+  expect((await activeMove.innerText()).trim()).toContain('e5');
   expect(await page.locator('#mobileReviewMoveList').evaluate(e=>e.scrollWidth>=e.clientWidth)).toBeTruthy();
   await page.locator('#copyGamePgn').click();
   await expect(page.locator('#copyGamePgn')).toContainText(/Copied|Copy failed/);
