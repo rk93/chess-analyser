@@ -461,3 +461,89 @@
     max-height:82px!important;
   }
 }
+
+
+/* Mobile Game Review: board-first layout for ALL saved/active reviews.
+   Do not depend on review-guided-active (saved reviews often lack that state).
+   Keep additional coach detail below the chessboard and transport reachable. */
+@media (max-width:800px){
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])){
+    display:flex!important;
+    flex-direction:column!important;
+    gap:0!important;
+    min-width:0;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) > .analysisShell{
+    order:0!important;
+    width:100%!important;
+    min-width:0!important;
+    padding:0!important;
+    margin:0!important;
+    display:block!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) > #reviewGuideCard{
+    order:1!important;
+    width:calc(100% - 16px)!important;
+    margin:10px 8px 90px!important;
+    max-height:none!important;
+    overflow:visible!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .boardColumn{
+    width:100%!important;max-width:100%!important;
+    margin:0 auto!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .boardWrap{
+    width:min(calc(100vw - 12px),calc(100dvh - 248px))!important;
+    max-width:100%!important;
+    aspect-ratio:1/1!important;
+    height:auto!important;
+    margin:0 auto!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .boardStage{
+    aspect-ratio:1/1!important;
+    width:100%!important;
+    height:auto!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .sidePanel{
+    min-width:0!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .sidePanel > :not(#reviewProMoveStrip){
+    display:none!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewProMoveStrip{
+    display:flex!important;
+    max-height:46px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideActions{
+    position:fixed!important;
+    display:grid!important;
+    grid-template-columns:repeat(3,minmax(0,1fr))!important;
+    left:8px!important;right:8px!important;
+    bottom:calc(8px + env(safe-area-inset-bottom))!important;
+    padding:7px!important;gap:6px!important;
+    z-index:1600!important;
+    background:rgba(32,38,32,.97)!important;
+    border-radius:15px!important;
+    box-shadow:0 8px 26px rgba(0,0,0,.4)!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideActions .btn{
+    min-width:0!important;
+    min-height:42px!important;
+    width:100%!important;
+    font-size:12px!important;
+    padding:6px 4px!important;
+  }
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewPrev{grid-column:1!important;grid-row:1!important}
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewAutoPlay{grid-column:2!important;grid-row:1!important}
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewNext{grid-column:3!important;grid-row:1!important}
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewShowBest{grid-column:1!important;grid-row:2!important}
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewVoiceToggle{grid-column:2!important;grid-row:2!important}
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewPractice{grid-column:3!important;grid-row:2!important}
+  body:has(#analysisView .reviewDesktopLayout > #reviewGuideCard:not([hidden])) .modernNav{display:none!important}
+  body:has(#analysisView .reviewDesktopLayout > #reviewGuideCard:not([hidden])){padding-bottom:calc(110px + env(safe-area-inset-bottom))!important}
+  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideComment{
+    font-size:13px!important;line-height:1.35!important;
+  }
+}
