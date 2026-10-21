@@ -356,7 +356,7 @@ function showReviewProgress(ply){
  const total=preparedSans?.length||0;
  let el=document.getElementById('reviewPositionStats');
  if(!el){el=document.createElement('div');el.id='reviewPositionStats';el.className='reviewPositionStats reviewMoveProgress';el.setAttribute('aria-label','Game review progress');}
- const anchor=document.getElementById('reviewProMoveStrip')||document.getElementById('bottomPlayer');
+ const anchor=document.getElementById('bottomPlayer');
  if(anchor&&el.previousElementSibling!==anchor)anchor.after(el);
  el.hidden=!total;
  if(!total)return;
