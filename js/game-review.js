@@ -332,11 +332,12 @@ function coachComment(data,i,frame){
   const loss=Number(data.lossPct?.[i]);
   const severity=label==='Blunder'?'This is a serious error':label==='Mistake'?'This is a costly mistake':label==='Inaccuracy'?'This is slightly imprecise':label==='Best'||label==='Great'||label==='Brilliant'?'Strong play':label==='Book'?'This follows established opening play':'This is a reasonable move';
   const evalText=Number.isFinite(before)&&Number.isFinite(after)?` The evaluation changes from ${scoreLabel(before)} to ${scoreLabel(after)} from White's perspective.`:'';
-  const alternative=bestSan&&bestSan!==played&&verified?` The engine preferred ${bestSan} instead.`:'';
+  const alternative=bestSan&&bestSan!==played&&verified?` Pip's coaching tip: compare ${played} with ${bestSan}, Stockfish's verified best move. Look for what the alternative protects, attacks, or develops.`:'';
   const pv=String(data.bestLines?.[i]||'').trim();
   const sequence=pv&&pv!==bestSan&&verified?` One stronger continuation is ${pv}.`:'';
+  const training=verified&&(label==='Mistake'||label==='Blunder')&&bestSan?' Use Practice to replay this position and find the better move yourself.':'';
   const accuracy=Number.isFinite(loss)&&loss>=10?` That costs roughly ${loss.toFixed(1)} percentage points of winning chances.`:'';
-  return `${intro} ${severity}.${alternative}${accuracy||evalText}${sequence}`;
+  return `${intro} ${severity}.${alternative}${accuracy||evalText}${sequence}${training}`;
 }
 function prepareGuideFrames(data,positions,sans){
   // Prepare all move text and legal positions once while the summary is being displayed.
@@ -370,7 +371,7 @@ function renderGuide(ply,data){
   const i=ply-1,frame=preparedReview?.[i],label=data.labels?.[i]||'Good',played=frame?.played||`Move ${ply}`,best=frame?.best||data.bestMoves?.[i]||'',bestSan=frame?.bestSan||'',verified=!!data.moveVerified?.[i],before=data.evals?.[i],after=data.evals?.[i+1];
   card.dataset.coachMood=['Blunder','Mistake','Inaccuracy'].includes(label)?'concerned':['Best','Brilliant','Great','Excellent'].includes(label)?'happy':'thinking';
   card.hidden=false;$('reviewGuideIcon').textContent=SYMBOL[label]||'✓';$('reviewGuideMove').textContent=`${played} · ${label}`;$('reviewGuideEval').textContent=scoreLabel(after);showReviewPerspective(after,ply);$('reviewGuideComment').textContent=coachComment(data,i,frame);$('reviewGuideMeta').textContent=verified?'Engine-verified move classification':'Estimated classification from nearby reviewed positions';
-  const positions=preparedPositions;renderAutoBest(i,data,positions[i]?.fen);const show=$('reviewShowBest'),practice=$('reviewPractice');show.hidden=!best||!verified;practice.hidden=!(verified&&(label==='Mistake'||label==='Blunder')&&best);
+  const positions=preparedPositions;renderAutoBest(i,data,positions[i]?.fen);const show=$('reviewShowBest'),practice=$('reviewPractice');show.hidden=!best||!verified;practice.hidden=!(verified&&(label==='Mistake'||label==='Blunder')&&best);practice.textContent='Practise this mistake';
   if(show)show.onclick=()=>{drawBestArrow(data.bestMoves?.[ply]||'');$('reviewGuideComment').textContent=bestSan?`Best move: ${bestSan}. The green arrow shows the engine's preferred move.`:'The green arrow shows the engine preferred move.'};
   if(practice){const detail=frame?.detail;practice.onclick=e=>launchPractice(e,detail)}
   showBoardBadge(label,frame?.uci);
