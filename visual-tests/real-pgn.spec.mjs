@@ -95,3 +95,22 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
   }
 
 });
+
+
+test('Explorer header returns directly to Games on mobile',async({page},testInfo)=>{
+ await page.route('https://explorer.lichess.org/**',route=>route.abort());
+ await page.goto('/');
+ await page.locator('#explorerTab').click();
+ await expect(page.locator('#explorerView')).toBeVisible();
+ const back=page.locator('#explorerHome');
+ await expect(back).toBeVisible();
+ await expect(back).toContainText('Games');
+ const rect=await back.boundingBox();
+ expect(rect.y).toBeLessThan(160);
+ await page.screenshot({path:testInfo.outputPath('explorer-back-button.png'),fullPage:false});
+ await back.click();
+ await expect(page.locator('#libraryView')).toBeVisible();
+ await expect(page.locator('#explorerView')).toBeHidden();
+ await expect(page.locator('#gamesTab')).toHaveClass(/active/);
+ await page.screenshot({path:testInfo.outputPath('explorer-back-to-games.png'),fullPage:false});
+});
