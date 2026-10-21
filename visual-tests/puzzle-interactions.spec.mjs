@@ -1,4 +1,5 @@
 import {test,expect} from '@playwright/test';
+test.use({serviceWorkers:'block'});
 
 test('puzzle highlights legal targets and supports settings on mobile',async({page},testInfo)=>{
  await page.route('https://lichess.org/api/puzzle/batch/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({puzzles:[{game:{pgn:'1. e4 e5 2. Nf3 Nc6 3. Bb5 a6'},puzzle:{initialPly:2,solution:['g1f3'],rating:1100,plays:120,themes:['development']}}]})}));
