@@ -116,3 +116,16 @@ test('Explorer header returns directly to Games on mobile',async({page},testInfo
  await expect(page.locator('#gamesTab')).toHaveClass(/active/);
  await page.screenshot({path:testInfo.outputPath('explorer-back-to-games.png'),fullPage:false});
 });
+
+test('Android/browser Back remains inside app for every tab and review',async({page})=>{
+ await page.goto('/');
+ for(const [tab,view] of [['explorerTab','explorerView'],['puzzlesTab','puzzlesView'],['analyticsTab','analyticsView'],['topPlayersTab','topPlayersView'],['settingsNav','settingsView'],['boardLabTab','boardLabView']]){
+  await page.locator('#gamesTab').click();
+  await page.locator('#'+tab).click();
+  await expect(page.locator('#'+view)).toBeVisible();
+  await page.goBack();
+  await expect(page.locator('#libraryView')).toBeVisible();
+  await expect(page.locator('#'+view)).toBeHidden();
+  expect(new URL(page.url()).origin).toBe('http://127.0.0.1:8765');
+ }
+});
