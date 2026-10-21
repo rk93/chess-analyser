@@ -16,7 +16,7 @@ test('saved review keeps board and move controls usable on mobile', async ({ pag
     let guide=document.getElementById('reviewGuideCard');
     if(!guide){guide=document.createElement('section');guide.id='reviewGuideCard';guide.className='reviewGuideCard';layout.insertBefore(guide,shell);}
     guide.hidden=false;
-    guide.innerHTML=`<div class="reviewGuideTitle">✓ Ng5 · Good <span id="reviewGuideEval" class="reviewGuideEval" data-perspective="white" title="White perspective">-0.62</span></div>
+    guide.innerHTML=`<div class="reviewGuideTitle">✓ Ng5 · Good <span id="reviewGuideEval" class="reviewGuideEval" data-perspective="b" data-perspective-label="Black" title="White perspective">-0.62</span></div>
       <div class="reviewGuideComment">Ng5 moves the knight. The engine preferred O-O instead. This is a deliberately long explanation to test mobile overflow and reading while reviewing moves.</div>
       <div class="reviewGuideMeta">Engine verified · Position context · Best line O-O d6 Re1 Nf6</div>
       <div class="reviewGuideActions"><button id="reviewPrev" class="btn">Previous</button><button id="reviewAutoPlay" class="btn">Play</button><button id="reviewNext" class="btn">Next</button><button id="reviewShowBest" class="btn">Show best</button><button id="reviewVoiceToggle" class="btn">Voice</button><button id="reviewPractice" class="btn">Practice</button></div>`;
@@ -31,7 +31,7 @@ test('saved review keeps board and move controls usable on mobile', async ({ pag
   const next=page.locator('#reviewNext');
   await expect(board).toBeVisible();
   await expect(next).toBeVisible();
-  await expect(page.locator('#reviewGuideEval')).toHaveAttribute('data-perspective','white');
+  await expect(page.locator('#reviewGuideEval')).toHaveAttribute('data-perspective','b');
   const b=await board.boundingBox(), n=await next.boundingBox();
   expect(b.width).toBeGreaterThan(150);
   expect(b.height).toBeGreaterThan(150);
