@@ -268,3 +268,13 @@
  body.review-guided-active #analysisView #reviewShowBest{grid-column:4!important;display:block!important}
  body.review-guided-active #analysisView #reviewShowBest[hidden]{visibility:hidden!important}
 }
+
+@media(max-width:800px){
+ body.review-guided-active #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideActions:has(#reviewShowBest[hidden]){
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ }
+ body.review-guided-active #analysisView .reviewGuideActions:has(#reviewShowBest[hidden]) #reviewPrev{grid-column:1!important}
+ body.review-guided-active #analysisView .reviewGuideActions:has(#reviewShowBest[hidden]) #reviewAutoPlay{grid-column:2!important}
+ body.review-guided-active #analysisView .reviewGuideActions:has(#reviewShowBest[hidden]) #reviewNext{grid-column:3!important}
+ body.review-guided-active #analysisView .reviewGuideActions #reviewShowBest[hidden]{display:none!important}
+}
