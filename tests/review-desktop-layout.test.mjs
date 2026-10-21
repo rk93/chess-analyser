@@ -33,7 +33,7 @@ test('review evaluations use side to move rather than fixed White perspective',a
 test('Game Review progress never fetches position statistics',async()=>{
  const source=await readFile('js/game-review.js','utf8');
  const styles=await readFile('ux-shell.css','utf8');
- assert.doesNotMatch(source,/prefetchPositionStats|fetchPositionStats|explorer\\.lichess\\.org\\/masters/);
+ assert.equal(source.includes('prefetchPositionStats')||source.includes('fetchPositionStats')||source.includes('explorer.lichess.org/masters'),false);
  assert.match(source,/function showReviewProgress\\(ply\\)/);
  assert.match(source,/showReviewProgress\\(ply\\)/);
  assert.match(source,/aria-valuenow/);
