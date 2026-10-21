@@ -190,3 +190,10 @@
  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewVoiceToggle,
  #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewPractice{display:none!important}
 }
+
+@media(max-width:800px){
+ #analysisView #reviewGuideEval[data-perspective="white"]{display:inline-flex!important;align-items:center!important;gap:4px!important;font-size:clamp(13px,3.7vw,17px)!important}
+ #analysisView #reviewGuideEval[data-perspective="white"]::before{content:"White";font-size:10px;font-weight:800;letter-spacing:.02em;opacity:.72}
+ #analysisView #reviewGuideCard .reviewGuideTitle{display:flex!important;align-items:center!important;gap:6px!important}
+ #analysisView #reviewGuideCard .reviewGuideEval{margin-left:auto!important;flex-shrink:0!important}
+}
