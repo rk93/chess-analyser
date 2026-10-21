@@ -30,20 +30,12 @@ test('review evaluations use side to move rather than fixed White perspective',a
  assert.match(source,/showReviewPerspective\(after,ply\)/);
 });
 
-test('position statistics prefetch once using limited parallel workers',async()=>{
- const source=await readFile('js/game-review.js','utf8');
- assert.match(source,/function prefetchPositionStats\(\)/);
- assert.match(source,/Math\.min\(3,entries\.length\)/);
- assert.match(source,/activeReview=data;prefetchPositionStats\(\)/);
- const stats=source.slice(source.indexOf('function showPositionStats('),source.indexOf('function renderGuide('));
- assert.doesNotMatch(stats,/fetch\(/);
-});
-
-test('empty position statistics are hidden without changing reserved mobile layout',async()=>{
+test('Game Review progress never fetches position statistics',async()=>{
  const source=await readFile('js/game-review.js','utf8');
  const styles=await readFile('ux-shell.css','utf8');
- assert.match(source,/positionStatsEmpty/);
- assert.match(source,/positionStatsLoading/);
- assert.match(styles,/reviewPositionStats\.positionStatsEmpty\{visibility:hidden!important\}/);
- assert.match(styles,/min-height:62px!important;height:62px!important/);
+ assert.equal(source.includes('prefetchPositionStats')||source.includes('fetchPositionStats')||source.includes('explorer.lichess.org/masters'),false);
+ assert.ok(source.includes('function showReviewProgress(ply)'));
+ assert.ok(source.includes('showReviewProgress(ply);'));
+ assert.ok(source.includes('aria-valuenow'));
+ assert.ok(styles.includes('reviewMoveProgressTrack'));
 });
