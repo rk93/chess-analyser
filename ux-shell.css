@@ -223,3 +223,6 @@
  #libraryView .libraryIntro.withCoach .libraryIntroTitle{font-size:clamp(18px,4.8vw,23px)!important;line-height:1.15!important}
  #libraryView .libraryIntro.withCoach .libraryIntroSubtitle{font-size:clamp(12px,3.4vw,15px)!important;line-height:1.35!important}
 }
+
+/* Use the dedicated high-resolution 128px portrait for welcome. */
+#libraryView .libraryIntro .coachWelcome,.onboardingIntro .coachWelcome{background-image:url("assets/kiranova-welcome-hd.svg")!important;background-size:cover!important;background-position:center!important}
