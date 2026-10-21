@@ -142,6 +142,10 @@ test('Pip coaching practises a verified mistake before optionally revealing answ
  await page.locator('#labBoard [data-square="d2"]').click();
  await page.locator('#labBoard [data-square="d4"]').click();
  await expect(page.locator('#labLine')).toContainText('Tap Retry');
+ await expect(page.locator('#labPracticeCoachDock')).toBeVisible();
+ await expect(page.locator('#labPracticeCoachDock .labPracticeMessage')).toContainText('Tap Retry');
+ const dockBox=await page.locator('#labPracticeCoachDock').boundingBox();
+ expect(dockBox.y+dockBox.height).toBeLessThanOrEqual(page.viewportSize().height-60);
  await expect(page.locator('#labLine')).not.toContainText('Stockfish recommends e4');
  await page.screenshot({path:testInfo.outputPath('pip-practice-try-again.png'),fullPage:false});
  await page.locator('#labPracticeReveal').click();
