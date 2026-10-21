@@ -69,7 +69,7 @@ function installInAppBack(){
   $(target)?.click();
  }
  document.addEventListener('click',event=>{
-  const back=event.target.closest?.('#back,#explorerHome');
+  const back=event.target.closest?.('#back');
   if(!back||restoring)return;
   const screen=back.id==='back'?'analysis':'explorerTab';
   if(history.state?.chessNav&&history.state.screen===screen&&history.length>1){
