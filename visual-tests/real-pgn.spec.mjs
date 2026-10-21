@@ -182,3 +182,29 @@ test('all bottom tabs remain present after analysis, Home and repeated navigatio
  }
  await page.screenshot({path:testInfo.outputPath('nav-all-tabs-after-home.png'),fullPage:false});
 });
+
+test('Home restores all nav icons after opening a real game and pressing Back',async({page},testInfo)=>{
+ await page.route('https://api.chess.com/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:[]})}));
+ await page.goto('/');
+ await page.evaluate(async(pgn)=>{
+  localStorage.setItem('chess-username','qa_white');
+  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('rk93-chess-analyser',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)});
+  await new Promise((resolve,reject)=>{const tx=db.transaction('games','readwrite');tx.objectStore('games').put({_key:'nav-fixture',url:'nav-fixture',pgn,white:{username:'qa_white',rating:1434,result:'win'},black:{username:'qa_black',rating:1414,result:'resigned'},end_time:1792530000,time_class:'rapid',time_control:'600'});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});
+  db.close();
+ },pgn);
+ await page.reload();
+ await page.locator('#gamesTab').click();
+ await expect(page.locator('.gameWithAvatar').first()).toBeVisible();
+ await page.evaluate(()=>{const dismiss=()=>document.getElementById('reviewDepthCancel')?.click();new MutationObserver(dismiss).observe(document.body,{childList:true,subtree:true});dismiss()});
+ await page.locator('.gameWithAvatar').first().click();
+ await expect(page.locator('#analysisView')).toBeVisible();
+ await page.goBack();
+ await page.locator('#homeDashboardTab').click();
+ await expect(page.locator('#homeView')).toBeVisible();
+ await expect(page.locator('.modernNav')).toBeVisible();
+ for(const id of ['explorerTab','puzzlesTab','settingsNav']){
+  const button=page.locator('#'+id),b=await button.boundingBox();
+  expect(b).not.toBeNull();expect(b.x+b.width).toBeLessThanOrEqual(page.viewportSize().width+1);
+ }
+ await page.screenshot({path:testInfo.outputPath('home-after-review-all-icons.png'),fullPage:false});
+});
