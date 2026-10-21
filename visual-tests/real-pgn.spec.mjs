@@ -154,7 +154,7 @@ test('Pip coaching practises a verified mistake before optionally revealing answ
  await page.screenshot({path:testInfo.outputPath('pip-practice-revealed.png'),fullPage:false});
 });
 
-test('all bottom tabs remain present after analysis, Home and repeated navigation',async({page})=>{
+test('all bottom tabs remain present after analysis, Home and repeated navigation',async({page},testInfo)=>{
  await page.goto('/');
  const tabs=['homeDashboardTab','gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav'];
  const assertDock=async()=>{
@@ -180,5 +180,5 @@ test('all bottom tabs remain present after analysis, Home and repeated navigatio
   await page.locator('#'+tab).click();
   await assertDock();
  }
- await page.screenshot({path:'test-results/nav-all-tabs-after-home.png',fullPage:false});
+ await page.screenshot({path:testInfo.outputPath('nav-all-tabs-after-home.png'),fullPage:false});
 });
