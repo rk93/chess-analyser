@@ -51,8 +51,8 @@ function installPressFeedback(){
 
 /* Native Android Back and browser Back: keep in-app destinations on the stack. */
 function installInAppBack(){
- const routeIds=['gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav'];
- const viewIds={gamesTab:'libraryView',boardLabTab:'boardLabView',explorerTab:'explorerView',puzzlesTab:'puzzlesView',analyticsTab:'analyticsView',topPlayersTab:'topPlayersView',settingsNav:'settingsView'};
+ const routeIds=['homeDashboardTab','gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav'];
+ const viewIds={homeDashboardTab:'homeView',gamesTab:'libraryView',boardLabTab:'boardLabView',explorerTab:'explorerView',puzzlesTab:'puzzlesView',analyticsTab:'analyticsView',topPlayersTab:'topPlayersView',settingsNav:'settingsView'};
  let restoring=false;
  const activeView=()=>{
   if($('analysisView')?.style.display!=='none'&&$('analysisView')?.getBoundingClientRect().height>0&&!$('analysisView')?.hidden)return'analysis';
@@ -60,7 +60,7 @@ function installInAppBack(){
   return'gamesTab';
  };
  function ensureHomeState(){
-  if(!history.state?.chessNav)history.replaceState({...(history.state||{}),chessNav:true,screen:'gamesTab'},'');
+  if(!history.state?.chessNav)history.replaceState({...(history.state||{}),chessNav:true,screen:'homeDashboardTab'},'');
  }
  ensureHomeState();
  function navTo(target){
@@ -91,9 +91,9 @@ function installInAppBack(){
   if(history.state?.screen!=='analysis')history.pushState({chessNav:true,screen:'analysis'},'');
  },true);
  window.addEventListener('popstate',event=>{
-  const screen=event.state?.chessNav?event.state.screen:'gamesTab';
+  const screen=event.state?.chessNav?event.state.screen:'homeDashboardTab';
   restoring=true;
-  try{navTo(screen||'gamesTab')}finally{requestAnimationFrame(()=>{restoring=false})}
+  try{navTo(screen||'homeDashboardTab')}finally{requestAnimationFrame(()=>{restoring=false})}
  });
  // Ensure Back on a destination visited directly (without a previous entry)
  // returns home instead of navigating outside the installed app.
