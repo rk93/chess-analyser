@@ -22,7 +22,7 @@ function ensureGameToolbar(){const games=$('games');if(!games||$('gamesUxToolbar
 function ensureLibraryIntro(){
   const games=$('games');if(!games||$('libraryIntro'))return;
   const intro=document.createElement('p');intro.id='libraryIntro';intro.className='libraryIntro';
-  intro.textContent='Your chess journey, decoded. Sync your Chess.com games, discover mistakes and explore engine-best moves.';
+  intro.innerHTML='<strong class="libraryIntroTitle">Your chess journey, decoded.</strong><span class="libraryIntroSubtitle">Sync your Chess.com games, discover mistakes and explore engine-best moves.</span>';
   intro.classList.add('withCoach');intro.prepend(Object.assign(document.createElement('span'),{className:'coachAvatar coachWelcome',title:'Kiranova chess coach'}));games.parentNode.insertBefore(intro,$('gamesUxToolbar')||games);
 }
 function ensureOnboarding(){const card=document.querySelector('#libraryView > .syncCard');if(!card||card.querySelector('.onboardingIntro'))return;const intro=document.createElement('div');intro.className='onboardingIntro';intro.innerHTML='<span class="coachAvatar coachWelcome" role="img" aria-label="Friendly Kiranova chess coach"></span><h2>Bring in your Chess.com games</h2><p>Enter your Chess.com username once. Your games are saved on this device so you can review, filter and analyse them quickly.</p>';card.prepend(intro)}
