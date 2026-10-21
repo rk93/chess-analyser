@@ -22,8 +22,10 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
   await page.reload();
   await expect(page.locator('.gameWithAvatar').first()).toBeVisible({timeout:15000});
   await expect(page.locator('#libraryIntro .coachWelcome')).toBeVisible();
-  const mascotAsset=await page.request.get('/assets/kiranova-coach-atlas.svg');
-  expect(mascotAsset.ok()).toBeTruthy();
+  const pipResponse=await page.request.get('/assets/pip-coach-atlas.svg');
+  expect(pipResponse.ok()).toBeTruthy();
+  expect(await pipResponse.text()).toContain('data:image/webp;base64');
+
   // Review prompt can reappear asynchronously after cached evaluation checks.
   // This test checks game navigation, so always choose Not now when prompted.
   await page.evaluate(() => {
