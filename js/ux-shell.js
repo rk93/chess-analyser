@@ -48,5 +48,48 @@ function installPressFeedback(){
     if(event.target.classList?.contains('premiumTapped'))event.target.classList.remove('premiumTapped');
   });
 }
-function observe(){installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
+
+/* Native Android Back and browser Back: keep in-app destinations on the stack. */
+function installInAppBack(){
+ const routeIds=['gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav'];
+ const viewIds={gamesTab:'libraryView',boardLabTab:'boardLabView',explorerTab:'explorerView',puzzlesTab:'puzzlesView',analyticsTab:'analyticsView',topPlayersTab:'topPlayersView',settingsNav:'settingsView'};
+ let restoring=false;
+ const activeView=()=>{
+  if($('analysisView')?.style.display!=='none'&&$('analysisView')?.getBoundingClientRect().height>0&&!$('analysisView')?.hidden)return'analysis';
+  for(const [tab,view] of Object.entries(viewIds)){const el=$(view);if(el&&!el.hidden&&getComputedStyle(el).display!=='none')return tab}
+  return'gamesTab';
+ };
+ function ensureHomeState(){
+  if(!history.state?.chessNav)history.replaceState({...(history.state||{}),chessNav:true,screen:'gamesTab'},'');
+ }
+ ensureHomeState();
+ function navTo(target){
+  if(target==='analysis'){return}
+  if(target==='gamesTab'&&activeView()==='analysis'){$('back')?.click();return}
+  $(target)?.click();
+ }
+ // Every tab visit creates a native browser-history entry.
+ document.addEventListener('click',event=>{
+  const tab=event.target.closest?.('.homeTabs .homeTab');
+  if(!tab||!routeIds.includes(tab.id)||restoring)return;
+  const screen=tab.id;
+  if(history.state?.screen!==screen)history.pushState({chessNav:true,screen},'');
+ },true);
+ // Entering a saved game's analysis is a separate in-app destination.
+ document.addEventListener('click',event=>{
+  if(restoring)return;
+  const card=event.target.closest?.('#games .game');
+  if(!card)return;
+  if(history.state?.screen!=='analysis')history.pushState({chessNav:true,screen:'analysis'},'');
+ },true);
+ window.addEventListener('popstate',event=>{
+  const screen=event.state?.chessNav?event.state.screen:'gamesTab';
+  restoring=true;
+  try{navTo(screen||'gamesTab')}finally{requestAnimationFrame(()=>{restoring=false})}
+ });
+ // Ensure Back on a destination visited directly (without a previous entry)
+ // returns home instead of navigating outside the installed app.
+}
+
+function observe(){installInAppBack();installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
