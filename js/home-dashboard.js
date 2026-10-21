@@ -110,7 +110,7 @@ async function refresh(){
   await new Promise(resolve=>setTimeout(resolve,0));
   const stats=await readSummary();if(id!==refreshId)return;
   const percent=stats.total?Math.round(stats.wins*100/stats.total):0;
-  $('homeMetrics').innerHTML='<div><strong>'+stats.total.toLocaleString()+'</strong><small>Games</small></div><div><strong>'+(stats.total?percent+'%':'—')+'</strong><small>Wins</small></div><div><strong>'+recent.length+'</strong><small>Recent shown</small></div>';
+  $('homeMetrics').innerHTML='<div><strong>'+stats.total.toLocaleString()+'</strong><small>Games</small></div><div><strong>'+(stats.total?percent+'%':'—')+'</strong><small>Wins</small></div><div><strong>'+escapeHtml(recent.length?gameResult(recent[0],user).rating:'—')+'</strong><small>Latest rating</small></div>';
   $('homeOpeningName').textContent=stats.opening||'No opening names recorded yet';
   $('homeOpeningCount').textContent=stats.openingCount?stats.openingCount.toLocaleString()+' saved games with this opening':'Your next sync may include opening information';
   $('homeInsightText').textContent=stats.total>=5?'You have '+stats.total.toLocaleString()+' saved games. '+(stats.opening?'Your most frequent opening is '+stats.opening+'. ':'')+'Review a recent loss to find your next improvement.':'Play a few more games, then Pip can start finding useful patterns.';
