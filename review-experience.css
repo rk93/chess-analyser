@@ -626,3 +626,17 @@
   #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewPractice{display:none!important}
   #analysisView:has(#reviewGuideCard:not([hidden])) #mobileEngineDock{display:none!important}
 }
+
+
+/* A backdrop filter makes position:fixed descendants position against the
+   coach card instead of the phone viewport. Disable it for review transport. */
+@media(max-width:800px){
+ #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) > #reviewGuideCard,
+ #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])){
+   -webkit-backdrop-filter:none!important;
+   backdrop-filter:none!important;
+   transform:none!important;
+   filter:none!important;
+   contain:none!important;
+ }
+}
