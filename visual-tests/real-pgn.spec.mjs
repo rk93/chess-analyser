@@ -20,6 +20,7 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
     });db.close();
   }, {_key:'qa-mobile-fixture',url:'qa-mobile-fixture',pgn,white:{username:'qa_white',rating:1434,result:'win'},black:{username:'qa_black',rating:1414,result:'resigned'},time_control:'600',time_class:'rapid',end_time:1792530000,rated:true});
   await page.reload();
+  await page.locator('#gamesTab').click();
   await expect(page.locator('.gameWithAvatar').first()).toBeVisible({timeout:15000});
   await expect(page.locator('#libraryIntro .coachWelcome')).toBeVisible();
   const pipResponse=await page.request.get('/assets/pip-coach-atlas.svg');
