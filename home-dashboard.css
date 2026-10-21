@@ -41,3 +41,11 @@
 
 /* Eight destinations: preserve legible two-line labels with horizontal swipe. */
 @media(max-width:800px){.modernNav.homeTabs{display:flex!important;justify-content:flex-start!important;overflow-x:auto!important;overscroll-behavior-x:contain;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}.modernNav.homeTabs .homeTab{flex:0 0 64px!important;min-width:64px!important;max-width:64px!important;scroll-snap-align:start}.modernNav.homeTabs .homeTab .navLabel,.modernNav.homeTabs .homeTab .homeTabLabel{font-size:10px!important;line-height:1.1!important}}
+
+/* In-app Home is the definitive non-review screen: stale review classes or
+   inline styles must not hide global tabs after returning from analysis. */
+@media(max-width:800px){
+ body:has(#homeView:not([hidden])) .homeTabs.modernNav{
+  display:flex!important;visibility:visible!important;opacity:1!important;
+ }
+}
