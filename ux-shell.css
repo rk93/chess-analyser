@@ -36,3 +36,9 @@
 /* Explain the product in one sentence, without displacing saved games. */
 #libraryView .libraryIntro{margin:8px 4px 12px;color:#c3cabd;font-size:13px;line-height:1.45}
 #games>.game[hidden]{display:none!important}
+
+/* While a game is open, prioritise game transport over the global tab bar.
+   The Games back button remains available in the analysis header. */
+@media(max-width:800px){
+  body:has(#analysisView[style*="display: block"]) .modernNav{display:none!important}
+}
