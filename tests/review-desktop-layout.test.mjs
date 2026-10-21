@@ -29,3 +29,12 @@ test('review evaluations use side to move rather than fixed White perspective',a
  assert.match(source,/scoreLabel\(side==='w'\?cp:-\(Number\(cp\)\|\|0\)\)/);
  assert.match(source,/showReviewPerspective\(after,ply\)/);
 });
+
+test('position statistics prefetch once using limited parallel workers',async()=>{
+ const source=await readFile('js/game-review.js','utf8');
+ assert.match(source,/function prefetchPositionStats\(\)/);
+ assert.match(source,/Math\.min\(3,entries\.length\)/);
+ assert.match(source,/activeReview=data;prefetchPositionStats\(\)/);
+ const stats=source.slice(source.indexOf('function showPositionStats('),source.indexOf('function renderGuide('));
+ assert.doesNotMatch(stats,/fetch\(/);
+});
