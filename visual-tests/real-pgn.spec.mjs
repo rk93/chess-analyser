@@ -72,7 +72,7 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
   await expect(page.locator('#libraryView')).toBeVisible();
   await expect(page.locator('.modernNav')).toBeVisible();
   const navLabels=page.locator('.modernNav .homeTab');
-  await expect(navLabels).toHaveCount(7);
+  await expect(navLabels).toHaveCount(8);
   const navBoxes=await navLabels.evaluateAll(nodes=>nodes.map(el=>{const r=el.getBoundingClientRect();return{left:r.left,right:r.right,width:r.width}}));
   for(let i=1;i<navBoxes.length;i++)expect(navBoxes[i].left).toBeGreaterThanOrEqual(navBoxes[i-1].right-2);
   await page.screenshot({path:testInfo.outputPath('back-to-games-navigation.png'),fullPage:false});
