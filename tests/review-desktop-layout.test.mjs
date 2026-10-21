@@ -34,8 +34,8 @@ test('Game Review progress never fetches position statistics',async()=>{
  const source=await readFile('js/game-review.js','utf8');
  const styles=await readFile('ux-shell.css','utf8');
  assert.equal(source.includes('prefetchPositionStats')||source.includes('fetchPositionStats')||source.includes('explorer.lichess.org/masters'),false);
- assert.match(source,/function showReviewProgress\\(ply\\)/);
- assert.match(source,/showReviewProgress\\(ply\\)/);
- assert.match(source,/aria-valuenow/);
- assert.match(styles,/reviewMoveProgressTrack/);
+ assert.ok(source.includes('function showReviewProgress(ply)'));
+ assert.ok(source.includes('showReviewProgress(ply);'));
+ assert.ok(source.includes('aria-valuenow'));
+ assert.ok(styles.includes('reviewMoveProgressTrack'));
 });
