@@ -118,3 +118,47 @@
  }
  .modernNav .navIcon,.modernNav .navIcon svg{width:24px!important;height:24px!important;flex-shrink:0}
 }
+
+
+/* True horizontally scrolling SAN notation, anchored copy action. */
+@media(max-width:800px){
+ #analysisView .mobileReviewMoves{
+  display:flex!important;align-items:center!important;gap:4px!important;
+  width:calc(100% - 16px)!important;max-width:none!important;
+  padding:5px!important;margin:5px 8px 8px!important;
+  overflow:visible!important;min-width:0!important;
+ }
+ #analysisView .mobileReviewMoveList{
+  display:flex!important;align-items:center!important;gap:3px!important;
+  flex:1 1 0!important;min-width:0!important;
+  overflow-x:auto!important;overflow-y:hidden!important;
+  white-space:nowrap!important;scrollbar-width:none!important;
+ }
+ #analysisView .mobileReviewMoveList::-webkit-scrollbar{display:none}
+ #analysisView .mobileReviewMove{font-size:13px!important;flex-shrink:0!important}
+ #analysisView .copyGamePgn{
+  flex:0 0 auto!important;border:1px solid #658c3c!important;
+  background:#34462e!important;color:#e4f6d3!important;
+  border-radius:9px!important;font-size:12px!important;
+  font-weight:800!important;min-height:36px!important;
+  padding:5px 9px!important;cursor:pointer!important;
+ }
+ /* The six actions are in a 4-column single-row arrangement on narrow phones.
+    Don't let inherited flex wrapping push Show best to a second row. */
+ #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideActions{
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  grid-template-rows:50px!important;grid-auto-rows:0!important;
+  flex-wrap:nowrap!important;align-items:stretch!important;
+  min-height:60px!important;max-height:66px!important;overflow:hidden!important;
+  gap:5px!important;padding:5px!important;
+ }
+ #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideActions .btn{
+  grid-row:1!important;min-width:0!important;max-width:100%!important;
+  min-height:48px!important;height:48px!important;padding:5px 2px!important;
+  white-space:normal!important;font-size:clamp(10px,2.7vw,13px)!important;
+ }
+ #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewPrev{grid-column:1!important}
+ #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewAutoPlay{grid-column:2!important}
+ #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewNext{grid-column:3!important}
+ #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewShowBest{grid-column:4!important}
+}
