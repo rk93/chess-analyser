@@ -1,0 +1,30 @@
+name: Mobile visual QA
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install browser
+        run: npx playwright install --with-deps chromium
+      - name: Run mobile layout tests
+        run: npm run test:visual
+      - name: Upload screenshots and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-visual-qa-${{ github.run_id }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 14
