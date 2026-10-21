@@ -21,3 +21,11 @@ test('desktop layout limits coach height and retains room for chessboard',()=>{
   assert.match(css,/max-height:calc\(100dvh - 24px\)/);
   assert.match(css,/:has\(> #reviewGuideCard\[hidden\]\)/);
 });
+
+test('review evaluations use side to move rather than fixed White perspective',async()=>{
+ const source=await readFile('js/game-review.js','utf8');
+ assert.match(source,/function reviewSideToMove\(ply\)/);
+ assert.match(source,/fen\.split\(' '\)\[1\]/);
+ assert.match(source,/scoreLabel\(side==='w'\?cp:-\(Number\(cp\)\|\|0\)\)/);
+ assert.match(source,/showReviewPerspective\(after,ply\)/);
+});
