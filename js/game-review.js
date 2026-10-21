@@ -352,29 +352,55 @@ function prepareGuideFrames(data,positions,sans){
   }
   return frames;
 }
-const statsCache=new Map();let statsRequest=0;
-function showPositionStats(ply){
- const fen=preparedPositions?.[ply]?.fen;
- let el=document.getElementById('reviewPositionStats');
- if(!el){el=document.createElement('aside');el.id='reviewPositionStats';el.className='reviewPositionStats';el.setAttribute('aria-label','Position popularity');document.getElementById('mobileReviewMoves')?.after(el)||document.getElementById('bottomPlayer')?.after(el)}
- const id=++statsRequest;el.hidden=!fen;if(!fen)return;
- if(!el.isConnected)document.getElementById('mobileReviewMoves')?.after(el);
- const draw=data=>{
-  if(id!==statsRequest)return;
-  const w=Number(data?.white)||0,d=Number(data?.draws)||0,b=Number(data?.black)||0,n=w+d+b;
-  el.replaceChildren();
-  const icon=document.createElement('span');icon.className='positionStatsIcon';icon.textContent='♟';
-  const label=document.createElement('span');label.className='positionStatsMain';
-  const heading=document.createElement('b');heading.textContent=n?n.toLocaleString()+' master games':'Position database';
-  const sub=document.createElement('small');sub.textContent=n?'White '+Math.round(100*w/n)+'% · Draw '+Math.round(100*d/n)+'% · Black '+Math.round(100*b/n)+'%':'No master games in this position';
-  label.append(heading,sub);el.append(icon,label);
- };
- const key=fen.split(' ').slice(0,4).join(' ');
- if(statsCache.has(key)){draw(statsCache.get(key));return}
- el.textContent='♟ Checking position database…';
+const statsCache=new Map();
+let statsRequest=0,statsGeneration=0,statsPrefetchKey='';
+function positionStatsKey(fen){return String(fen||'').split(' ').slice(0,4).join(' ')}
+async function fetchPositionStats(fen,signal){
  const url=new URL('https://explorer.lichess.org/masters');
  url.searchParams.set('fen',fen);url.searchParams.set('moves','0');url.searchParams.set('topGames','0');
- fetch(url,{signal:AbortSignal.timeout(4500)}).then(r=>r.ok?r.json():null).then(v=>{statsCache.set(key,v);draw(v)}).catch(()=>{if(id===statsRequest)el.textContent='♟ Position statistics unavailable offline'});
+ const response=await fetch(url,{signal});
+ if(!response.ok)throw new Error('Masters explorer unavailable');
+ return response.json();
+}
+function prefetchPositionStats(){
+ const positions=preparedPositions||[];
+ const unique=new Map();
+ for(const p of positions){if(p?.fen){const key=positionStatsKey(p.fen);if(!unique.has(key))unique.set(key,p.fen)}}
+ const fingerprint=[...unique.keys()].join('|');
+ if(fingerprint===statsPrefetchKey)return;
+ statsPrefetchKey=fingerprint;
+ const generation=++statsGeneration;
+ // Queue up to three requests at once; do not stall engine review or move controls.
+ const entries=[...unique].filter(([key])=>!statsCache.has(key));
+ let cursor=0;
+ async function worker(){
+  while(generation===statsGeneration&&cursor<entries.length){
+   const [key,fen]=entries[cursor++];
+   try{
+    const controller=new AbortController();
+    const timeout=setTimeout(()=>controller.abort(),4500);
+    try{statsCache.set(key,await fetchPositionStats(fen,controller.signal))}
+    finally{clearTimeout(timeout)}
+   }catch{statsCache.set(key,null)}
+   if(generation===statsGeneration&&positionStatsKey(preparedPositions?.[currentPly()]?.fen)===key)showPositionStats(currentPly());
+  }
+ }
+ for(let i=0;i<Math.min(3,entries.length);i++)void worker();
+}
+function showPositionStats(ply){
+ const fen=preparedPositions?.[ply]?.fen,key=positionStatsKey(fen);
+ let el=document.getElementById('reviewPositionStats');
+ if(!el){el=document.createElement('aside');el.id='reviewPositionStats';el.className='reviewPositionStats';el.setAttribute('aria-label','Position popularity');document.getElementById('mobileReviewMoves')?.after(el)||document.getElementById('bottomPlayer')?.after(el)}
+ ++statsRequest;el.hidden=!fen;if(!fen)return;
+ if(!el.isConnected)document.getElementById('mobileReviewMoves')?.after(el);
+ if(!statsCache.has(key)){el.textContent='♟ Loading position database in background…';return}
+ const data=statsCache.get(key),w=Number(data?.white)||0,d=Number(data?.draws)||0,b=Number(data?.black)||0,n=w+d+b;
+ el.replaceChildren();
+ const icon=document.createElement('span');icon.className='positionStatsIcon';icon.textContent='♟';
+ const label=document.createElement('span');label.className='positionStatsMain';
+ const heading=document.createElement('b');heading.textContent=n?n.toLocaleString()+' master games':'Position database';
+ const sub=document.createElement('small');sub.textContent=n?'White '+Math.round(100*w/n)+'% · Draw '+Math.round(100*d/n)+'% · Black '+Math.round(100*b/n)+'%':'No master games found or statistics unavailable';
+ label.append(heading,sub);el.append(icon,label);
 }
 function renderGuide(ply,data){
   const card=ensureGuideCard();if(!card)return;
@@ -405,7 +431,7 @@ function startGuidedReview(){const el=$('reviewSummaryScreen');if(el)el.hidden=t
 
 function displayReview(data,{cached=false,showSummary=true,dispatchReady=true}={}){
   const positions=buildPositions(),sans=moveSans();if(positions.length!==data.evals.length||sans.length!==data.labels.length)return false;
-  spokenPly=-1;preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
+  spokenPly=-1;preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;prefetchPositionStats();document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
   const trainable=(data.bestMoves||[]).filter((m,i)=>m&&data.moveVerified?.[i]&&(data.labels[i]==='Mistake'||data.labels[i]==='Blunder')).length,verified=data.moveVerified?.filter(Boolean).length||0;
   const coverage=reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()})));
   $('reviewStatus').textContent=coverage.complete
