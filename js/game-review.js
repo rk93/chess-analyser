@@ -393,9 +393,9 @@ function showPositionStats(ply){
  if(!el){el=document.createElement('aside');el.id='reviewPositionStats';el.className='reviewPositionStats';el.setAttribute('aria-label','Position popularity');document.getElementById('mobileReviewMoves')?.after(el)||document.getElementById('bottomPlayer')?.after(el)}
  ++statsRequest;el.hidden=!fen;if(!fen)return;
  if(!el.isConnected)document.getElementById('mobileReviewMoves')?.after(el);
- if(!statsCache.has(key)){el.hidden=false;el.classList.add('positionStatsLoading');el.innerHTML='<span class="positionStatsProgress" role="progressbar" aria-label="Loading position statistics"></span>';return}
+ if(!statsCache.has(key)){el.hidden=false;el.classList.remove('positionStatsEmpty');el.classList.add('positionStatsLoading');el.innerHTML='<span class="positionStatsProgress" role="progressbar" aria-label="Loading position statistics"></span>';return}
  const data=statsCache.get(key),w=Number(data?.white)||0,d=Number(data?.draws)||0,b=Number(data?.black)||0,n=w+d+b;
- el.classList.remove('positionStatsLoading');el.hidden=!n;
+ el.classList.remove('positionStatsLoading');el.classList.toggle('positionStatsEmpty',!n);el.hidden=false;
  if(!n){el.replaceChildren();return}
  el.replaceChildren();
  const icon=document.createElement('span');icon.className='positionStatsIcon';icon.textContent='♟';
