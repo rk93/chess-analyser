@@ -226,3 +226,63 @@
 
 /* Use the dedicated high-resolution 128px portrait for welcome. */
 #libraryView .libraryIntro .coachWelcome,.onboardingIntro .coachWelcome{background-image:url("assets/kiranova-welcome-hd.svg")!important;background-size:cover!important;background-position:center!important}
+
+
+/* Position database makes unused review space useful, without moving the board. */
+.reviewPositionStats{display:none}
+@media(max-width:800px){
+ #analysisView:has(#reviewGuideCard:not([hidden])) .reviewPositionStats{
+  display:flex!important;align-items:center;gap:12px;
+  width:calc(100% - 24px);max-width:620px;margin:12px auto 80px;
+  padding:13px 15px;border-radius:14px;
+  background:#34322d;color:#eaece4;border:1px solid #4b4d42;
+  min-height:62px;box-sizing:border-box;
+ }
+ .reviewPositionStats[hidden]{display:none!important}
+ .reviewPositionStats .positionStatsIcon{font-size:27px;color:#91c661}
+ .reviewPositionStats .positionStatsMain{display:flex;flex-direction:column;gap:4px}
+ .reviewPositionStats b{font-size:clamp(14px,3.8vw,17px);font-weight:850}
+ .reviewPositionStats small{font-size:clamp(11px,3.0vw,13px);color:#c4cbb9}
+ /* Fixed bottom transport: all four columns stay centred and visible,
+    even when older CSS sets display:flex or auto margins. */
+ body.review-guided-active #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideActions{
+  position:fixed!important;left:50%!important;right:auto!important;
+  transform:translateX(-50%)!important;
+  width:min(620px,calc(100vw - 16px))!important;
+  bottom:calc(8px + env(safe-area-inset-bottom))!important;
+  display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;
+  grid-template-rows:48px!important;grid-auto-rows:0!important;
+  gap:5px!important;padding:6px!important;margin:0!important;
+  min-height:60px!important;max-height:60px!important;
+  overflow:hidden!important;box-sizing:border-box!important;z-index:2400!important;
+ }
+ body.review-guided-active #analysisView .reviewGuideActions .btn{
+  width:100%!important;min-width:0!important;max-width:none!important;
+  height:48px!important;min-height:48px!important;
+  grid-row:1!important;margin:0!important;justify-self:stretch!important;
+  white-space:normal!important;font-size:clamp(10px,2.8vw,13px)!important;
+ }
+ body.review-guided-active #analysisView #reviewPrev{grid-column:1!important}
+ body.review-guided-active #analysisView #reviewAutoPlay{grid-column:2!important}
+ body.review-guided-active #analysisView #reviewNext{grid-column:3!important}
+ body.review-guided-active #analysisView #reviewShowBest{grid-column:4!important;display:block!important}
+ body.review-guided-active #analysisView #reviewShowBest[hidden]{visibility:hidden!important}
+}
+
+@media(max-width:800px){
+ body.review-guided-active #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideActions:has(#reviewShowBest[hidden]){
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+ }
+ body.review-guided-active #analysisView .reviewGuideActions:has(#reviewShowBest[hidden]) #reviewPrev{grid-column:1!important}
+ body.review-guided-active #analysisView .reviewGuideActions:has(#reviewShowBest[hidden]) #reviewAutoPlay{grid-column:2!important}
+ body.review-guided-active #analysisView .reviewGuideActions:has(#reviewShowBest[hidden]) #reviewNext{grid-column:3!important}
+ body.review-guided-active #analysisView .reviewGuideActions #reviewShowBest[hidden]{display:none!important}
+}
+
+@media(max-width:800px){
+ body.review-guided-active #analysisView.reviewProMode #reviewGuideCard .reviewGuideActions #reviewShowBest:not([hidden]){
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  visibility:visible!important;opacity:1!important;grid-column:4!important;grid-row:1!important;
+  position:static!important;
+ }
+}
