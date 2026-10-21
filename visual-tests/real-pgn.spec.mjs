@@ -3,6 +3,7 @@ import { test, expect } from '@playwright/test';
 const pgn = '[Event "Mobile QA"]\n[Site "Chess.com"]\n[Date "2026.10.20"]\n[White "qa_white"]\n[Black "qa_black"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 O-O 8. c3 d6 1-0';
 
 test('real PGN renders pieces, advances moves and flips on mobile', async ({ page }, testInfo) => {
+  await page.route('https://api.chess.com/**', route => route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:[]})}));
   await page.goto('/');
   await page.evaluate(async (game) => {
     localStorage.setItem('chess-username','qa_white');
