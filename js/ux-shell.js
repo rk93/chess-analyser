@@ -68,6 +68,14 @@ function installInAppBack(){
   if(target==='gamesTab'&&activeView()==='analysis'){$('back')?.click();return}
   $(target)?.click();
  }
+ document.addEventListener('click',event=>{
+  const back=event.target.closest?.('#back,#explorerHome');
+  if(!back||restoring)return;
+  const screen=back.id==='back'?'analysis':'explorerTab';
+  if(history.state?.chessNav&&history.state.screen===screen&&history.length>1){
+   event.preventDefault();event.stopImmediatePropagation();history.back();
+  }
+ },true);
  // Every tab visit creates a native browser-history entry.
  document.addEventListener('click',event=>{
   const tab=event.target.closest?.('.homeTabs .homeTab');
