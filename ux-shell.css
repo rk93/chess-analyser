@@ -197,3 +197,8 @@
  #analysisView #reviewGuideCard .reviewGuideTitle{display:flex!important;align-items:center!important;gap:6px!important}
  #analysisView #reviewGuideCard .reviewGuideEval{margin-left:auto!important;flex-shrink:0!important}
 }
+
+
+#libraryView .libraryIntro{display:flex;flex-direction:column;gap:6px;margin:10px 12px 16px!important;max-width:760px;color:#eef3e6}
+#libraryView .libraryIntroTitle{display:block;font-size:clamp(23px,5.5vw,32px);font-weight:850;letter-spacing:-.025em;line-height:1.15;color:#f5f7ef}
+#libraryView .libraryIntroSubtitle{display:block;font-size:clamp(14px,3.6vw,17px);line-height:1.5;color:#c5cfbd;max-width:650px}
