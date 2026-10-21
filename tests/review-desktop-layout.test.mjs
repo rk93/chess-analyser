@@ -9,11 +9,10 @@ test('wide review docks card before the analysis shell',()=>{
   assert.match(fn,/layout\.prepend\(card\)/);
   assert.match(fn,/layout\.append\(shell\)/);
 });
-test('smaller viewports restore coach-first flow and remove wrapper',()=>{
+test('review wrapper persists across breakpoints',()=>{
   const fn=source.split('function positionReviewCard(){')[1].split('function ensureGuideCard(){')[0];
-  assert.match(fn,/layout\.before\(shell\)/);
-  assert.match(fn,/shell\.before\(card\)/);
-  assert.match(fn,/layout\.remove\(\)/);
+  assert.match(fn,/layout\.prepend\(card\)/);
+  assert.match(fn,/layout\.append\(shell\)/);
   assert.match(source,/addEventListener\('resize',positionReviewCard/);
 });
 test('desktop layout limits coach height and retains room for chessboard',()=>{

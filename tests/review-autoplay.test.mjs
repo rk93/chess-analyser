@@ -63,9 +63,8 @@ test('service worker revalidates CSS and JS instead of indefinitely serving stal
 
 test('mobile review puts translucent commentary above board while wide desktop uses a side panel',()=>{
  assert.match(source,/function positionReviewCard\(\)/);
- assert.match(source,/shell\.before\(card\)/);
  assert.match(source,/layout\.prepend\(card\)/);
- assert.match(source,/layout\.before\(shell\)/);
+ assert.match(source,/layout\.append\(shell\)/);
  assert.match(source,/addEventListener\('resize',positionReviewCard/);
 });
 
