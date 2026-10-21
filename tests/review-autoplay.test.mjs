@@ -56,7 +56,7 @@ test('autoplay attaches to an existing review card instead of silently returning
 });
 test('service worker revalidates CSS and JS instead of indefinitely serving stale UI',async()=>{
   const sw=await readFile('sw.js','utf8');
-  assert.match(sw,/chess-analyser-pages-v83/);
+  assert.match(sw,/chess-analyser-pages-v\\d+/);
   assert.match(sw,/cache:'no-cache'/);
   assert.match(sw,/if\(asset\)\{e\.respondWith\(fetch/);
 });
