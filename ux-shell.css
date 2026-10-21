@@ -286,3 +286,15 @@
   position:static!important;
  }
 }
+
+@media(max-width:800px){
+ #analysisView .reviewPositionStats[hidden]{display:none!important}
+ #analysisView .reviewPositionStats.positionStatsLoading{
+   width:calc(100% - 24px)!important;max-width:620px!important;
+   margin:6px auto 80px!important;padding:0!important;
+   min-height:4px!important;height:4px!important;
+   overflow:hidden!important;border:0!important;border-radius:99px!important;background:#4b5344!important;
+ }
+ .positionStatsProgress{display:block;width:35%;height:100%;background:#8fbd59;border-radius:99px;animation:positionStatsSweep 1.3s ease-in-out infinite alternate}
+}
+@keyframes positionStatsSweep{from{transform:translateX(0)}to{transform:translateX(185%)}}
