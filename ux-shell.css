@@ -301,3 +301,17 @@
  }
 }
 @keyframes positionStatsSweep{from{transform:translateX(0)}to{transform:translateX(185%)}}
+
+/* The review progress indicator is local-only: no network, no layout shifts. */
+@media(max-width:800px){
+ #analysisView .reviewPositionStats.reviewMoveProgress{
+  display:flex!important;align-items:center!important;gap:10px!important;
+  width:calc(100% - 24px)!important;max-width:620px!important;
+  height:23px!important;min-height:23px!important;padding:0 2px!important;
+  margin:8px auto 80px!important;background:transparent!important;
+  border:0!important;border-radius:0!important;box-shadow:none!important;
+ }
+ #analysisView .reviewMoveProgressTrack{display:block;position:relative;flex:1;height:5px;overflow:hidden;border-radius:10px;background:#4b5145}
+ #analysisView .reviewMoveProgressFill{display:block;height:100%;border-radius:10px;background:#88bd4d;transition:width .13s ease}
+ #analysisView .reviewMoveProgressLabel{font-size:12px;font-weight:750;color:#b7c0ae;white-space:nowrap;font-variant-numeric:tabular-nums}
+}
