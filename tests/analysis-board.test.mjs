@@ -31,10 +31,14 @@ test('local Stockfish startup has timeout and resets failed ready promise',async
   assert.match(src,/this\.worker\?\.terminate/);
 });
 
-test('Analysis Board Auto preserves local engine failure reason',async()=>{
+test('Analysis Board uses only local Stockfish and reports a failed analysis',async()=>{
   const src=await readFile('js/lab.js','utf8');
-  assert.match(src,/Local Stockfish failed:/);
-  assert.match(src,/Cloud fallback was also unavailable/);
+  assert.match(src,/const data=await stockfish\(fen\)/);
+  assert.match(src,/Could not analyse:/);
+  assert.doesNotMatch(src,/if\(mode==='cloud'\)/);
+  const html=await readFile('index.html','utf8');
+  assert.doesNotMatch(html,/id="labEngine"/);
+  assert.doesNotMatch(html,/id="engineMode"/);
 });
 
 test('Analysis Board ignores stale analysis completions',async()=>{
