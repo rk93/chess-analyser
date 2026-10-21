@@ -115,7 +115,21 @@ function renderSummary(labels){const counts=Object.fromEntries(LABELS.map(k=>[k,
 function graphSvg(evals,losses){const w=620,h=180,pad=12,clamp=v=>Math.max(-600,Math.min(600,v)),xs=i=>pad+(w-pad*2)*(i/Math.max(1,evals.length-1)),ys=v=>h/2-(clamp(v)/600)*(h/2-pad);let path='';evals.forEach((v,i)=>{path+=(i?' L':'M')+xs(i).toFixed(1)+' '+ys(v).toFixed(1)});let maxIdx=1,maxLoss=-1;losses.forEach((l,i)=>{if(l>maxLoss){maxLoss=l;maxIdx=i+1}});const mx=xs(maxIdx),my=ys(evals[maxIdx]||0);return`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Evaluation graph"><line x1="${pad}" y1="${h/2}" x2="${w-pad}" y2="${h/2}" class="reviewZero"/><path d="${path}" class="reviewLine"/><circle cx="${mx}" cy="${my}" r="6" class="reviewSwing"/></svg>`}
 function renderGraph(evals,losses){const root=$('reviewGraph');root.innerHTML=graphSvg(evals,losses);root.hidden=false}
 function scoreLabel(cp){const n=(Number(cp)||0)/100;return (n>=0?'+':'')+n.toFixed(2)}
-function showReviewPerspective(cp){const el=$('reviewGuideEval');if(!el)return;el.dataset.perspective='white';el.title='White perspective: positive favours White, negative favours Black';el.setAttribute('aria-label',`Evaluation ${scoreLabel(cp)} from White’s perspective`)}
+function reviewSideToMove(ply){
+ const fen=preparedPositions?.[ply]?.fen;
+ const side=typeof fen==='string'?fen.split(' ')[1]:null;
+ return side==='w'||side==='b'?side:(ply%2===0?'w':'b');
+}
+function showReviewPerspective(cp,ply){
+ const el=$('reviewGuideEval');if(!el)return;
+ const side=reviewSideToMove(ply),name=side==='w'?'White':'Black';
+ const score=scoreLabel(side==='w'?cp:-(Number(cp)||0));
+ el.textContent=score;
+ el.dataset.perspective=side;
+ el.dataset.perspectiveLabel=name;
+ el.title=name+' to move · positive favours '+name+', negative favours '+(side==='w'?'Black':'White');
+ el.setAttribute('aria-label',name+' to move; evaluation '+score+' from '+name+' perspective');
+}
 function setEvalBar(cp){const n=(Number(cp)||0)/100;$('evalFill').style.height=`${Math.max(3,Math.min(97,50+45*(2/Math.PI)*Math.atan(n/3)))}%`}
 function drawBestArrow(uci){const svg=$('analysisArrows');if(!svg)return;svg.innerHTML='';if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(uci||''))return;const point=sq=>{const board=$('board'),el=board?.querySelector(`[data-square="${sq}"]`);if(!board||!el)return null;const br=board.getBoundingClientRect(),r=el.getBoundingClientRect();return{x:((r.left+r.width/2-br.left)/br.width)*800,y:((r.top+r.height/2-br.top)/br.height)*800}};const a=point(uci.slice(0,2)),b=point(uci.slice(2,4));if(!a||!b)return;svg.innerHTML=`<defs><marker id="reviewArrow" markerWidth="5" markerHeight="5" refX="4.1" refY="2.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L5,2.5 L0,5 Z" fill="#8bc34a"/></marker></defs><line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#8bc34a" stroke-width="16" stroke-linecap="round" opacity=".88" marker-end="url(#reviewArrow)"/>`}
 
@@ -340,9 +354,9 @@ function prepareGuideFrames(data,positions,sans){
 }
 function renderGuide(ply,data){
   const card=ensureGuideCard();if(!card)return;
-  if(ply===0){card.hidden=false;$('reviewGuideIcon').textContent='✓';$('reviewGuideMove').textContent='Review ready';$('reviewGuideEval').textContent=scoreLabel(data.evals?.[0]);showReviewPerspective(data.evals?.[0]);$('reviewGuideComment').textContent='Use Next, Previous, or tap any move to step through the review.';$('reviewGuideMeta').textContent='Move feedback is loaded from the saved review — navigation does not need a new engine request.';$('reviewShowBest').hidden=true;$('reviewPractice').hidden=true;const auto=ensureAutoBestLine();if(auto)auto.textContent='Best line will appear as you review each move.';drawBestArrow(data.bestMoves?.[0]||'');return}
+  if(ply===0){card.hidden=false;$('reviewGuideIcon').textContent='✓';$('reviewGuideMove').textContent='Review ready';$('reviewGuideEval').textContent=scoreLabel(data.evals?.[0]);showReviewPerspective(data.evals?.[0],0);$('reviewGuideComment').textContent='Use Next, Previous, or tap any move to step through the review.';$('reviewGuideMeta').textContent='Move feedback is loaded from the saved review — navigation does not need a new engine request.';$('reviewShowBest').hidden=true;$('reviewPractice').hidden=true;const auto=ensureAutoBestLine();if(auto)auto.textContent='Best line will appear as you review each move.';drawBestArrow(data.bestMoves?.[0]||'');return}
   const i=ply-1,frame=preparedReview?.[i],label=data.labels?.[i]||'Good',played=frame?.played||`Move ${ply}`,best=frame?.best||data.bestMoves?.[i]||'',bestSan=frame?.bestSan||'',verified=!!data.moveVerified?.[i],before=data.evals?.[i],after=data.evals?.[i+1];
-  card.hidden=false;$('reviewGuideIcon').textContent=SYMBOL[label]||'✓';$('reviewGuideMove').textContent=`${played} · ${label}`;$('reviewGuideEval').textContent=scoreLabel(after);showReviewPerspective(after);$('reviewGuideComment').textContent=coachComment(data,i,frame);$('reviewGuideMeta').textContent=verified?'Engine-verified move classification':'Estimated classification from nearby reviewed positions';
+  card.hidden=false;$('reviewGuideIcon').textContent=SYMBOL[label]||'✓';$('reviewGuideMove').textContent=`${played} · ${label}`;$('reviewGuideEval').textContent=scoreLabel(after);showReviewPerspective(after,ply);$('reviewGuideComment').textContent=coachComment(data,i,frame);$('reviewGuideMeta').textContent=verified?'Engine-verified move classification':'Estimated classification from nearby reviewed positions';
   const positions=preparedPositions;renderAutoBest(i,data,positions[i]?.fen);const show=$('reviewShowBest'),practice=$('reviewPractice');show.hidden=!best||!verified;practice.hidden=!(verified&&(label==='Mistake'||label==='Blunder')&&best);
   if(show)show.onclick=()=>{drawBestArrow(data.bestMoves?.[ply]||'');$('reviewGuideComment').textContent=bestSan?`Best move: ${bestSan}. The green arrow shows the engine's preferred move.`:'The green arrow shows the engine preferred move.'};
   if(practice){const detail=frame?.detail;practice.onclick=e=>launchPractice(e,detail)}
