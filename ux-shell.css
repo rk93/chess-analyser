@@ -286,3 +286,18 @@
   position:static!important;
  }
 }
+
+@media(max-width:800px){
+ #analysisView .reviewPositionStats.positionStatsEmpty{visibility:hidden!important}
+ #analysisView .reviewPositionStats.positionStatsLoading{
+  padding:0 15px!important;min-height:62px!important;height:62px!important;
+  margin:12px auto 80px!important;border:1px solid transparent!important;
+  background:transparent!important;box-sizing:border-box!important;
+ }
+ #analysisView .reviewPositionStats .positionStatsProgress{
+  display:block;width:35%;height:4px;align-self:center;
+  background:#8fbd59;border-radius:99px;
+  animation:positionStatsSweep 1.3s ease-in-out infinite alternate;
+ }
+}
+@keyframes positionStatsSweep{from{transform:translateX(0)}to{transform:translateX(185%)}}
