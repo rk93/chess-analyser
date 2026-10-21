@@ -201,7 +201,7 @@
 
 /* Kiranova's original illustrated chess coach. Four frames: friendly,
    thinking, celebrating, concerned. Embedded artwork is hosted locally. */
-.coachAvatar{display:inline-block;flex:none;width:48px;height:48px;background-image:url("assets/pip-coach-sharp.svg");background-repeat:no-repeat;background-size:400% 100%;background-position:0 0;border-radius:50%;vertical-align:middle}
+.coachAvatar{display:inline-block;flex:none;width:48px;height:48px;background-image:url("assets/pip-coach-hd.svg");background-repeat:no-repeat;background-size:400% 100%;background-position:0 0;border-radius:50%;vertical-align:middle}
 .coachWelcome{background-position:0% 0%}
 .coachThinking,[data-coach-mood="thinking"]{background-position:33.333% 0%}
 .coachHappy,[data-coach-mood="happy"]{background-position:66.667% 0%}
@@ -210,7 +210,7 @@
 #libraryView .libraryIntro.withCoach{display:flex;align-items:center;gap:12px}
 #libraryView .libraryIntro .coachWelcome{width:62px;height:62px}
 #puzzlesView .puzzleHeading .coachAvatar{width:43px;height:43px}
-#analysisView .reviewGuideTitle::before{content:"";display:inline-block;flex:none;width:33px;height:33px;background-image:url("assets/pip-coach-sharp.svg");background-size:400% 100%;background-position:33.333% 0%;background-repeat:no-repeat;border-radius:50%}
+#analysisView .reviewGuideTitle::before{content:"";display:inline-block;flex:none;width:33px;height:33px;background-image:url("assets/pip-coach-hd.svg");background-size:400% 100%;background-position:33.333% 0%;background-repeat:no-repeat;border-radius:50%}
 #analysisView #reviewGuideCard[data-coach-mood="friendly"] .reviewGuideTitle::before{background-position:0% 0%}
 #analysisView #reviewGuideCard[data-coach-mood="happy"] .reviewGuideTitle::before{background-position:66.667% 0%}
 #analysisView #reviewGuideCard[data-coach-mood="concerned"] .reviewGuideTitle::before{background-position:100% 0%}
@@ -225,7 +225,7 @@
 }
 
 /* Use the dedicated high-resolution 128px portrait for welcome. */
-#libraryView .libraryIntro .coachWelcome,.onboardingIntro .coachWelcome{background-image:url("assets/pip-coach-sharp.svg")!important;background-size:400% 100%!important;background-position:0% 0%!important}
+#libraryView .libraryIntro .coachWelcome,.onboardingIntro .coachWelcome{background-image:url("assets/pip-coach-hd.svg")!important;background-size:400% 100%!important;background-position:0% 0%!important}
 
 
 /* Position database makes unused review space useful, without moving the board. */
