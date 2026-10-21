@@ -126,6 +126,6 @@ test('Android/browser Back remains inside app for every tab and review',async({p
   await page.goBack();
   await expect(page.locator('#libraryView')).toBeVisible();
   await expect(page.locator('#'+view)).toBeHidden();
-  expect(new URL(page.url()).origin).toBe('http://127.0.0.1:4173');
+  expect(new URL(page.url()).origin).toBe('http://127.0.0.1:8765');
  }
 });
