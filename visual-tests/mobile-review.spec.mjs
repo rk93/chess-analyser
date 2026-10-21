@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('saved review keeps board and move controls usable on mobile', async ({ page }, testInfo) => {
   await page.goto('/');
+  await page.locator('#gamesTab').click();
   await page.evaluate(() => {
     for (const id of ['libraryView','boardLabView','analyticsView','topPlayersView']) document.getElementById(id)?.setAttribute('hidden','');
     const view=document.getElementById('analysisView');

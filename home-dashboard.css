@@ -1,0 +1,43 @@
+/* Personal home dashboard — independent from the full Games library. */
+#homeView[hidden]{display:none!important}
+#homeView{max-width:800px;width:100%;box-sizing:border-box;margin:0 auto;padding:14px 14px 110px;color:#f1f1e9}
+.homeHero{display:flex;align-items:center;gap:15px;margin:4px 0 15px}
+.homeHero .homePip{width:67px;height:67px;border:2px solid #7fa857;background-color:#20432c;box-shadow:0 4px 13px #0005}
+.homeHero h1{margin:0;font-size:clamp(21px,5.5vw,28px);line-height:1.15;letter-spacing:-.025em}
+.homeHero p{margin:5px 0 0;color:#bbc5b4;font-size:14px}
+.homeMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 15px}
+.homeMetrics>div{background:#302f2a;border:1px solid #414439;border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;gap:4px}
+.homeMetrics strong{font-size:clamp(18px,4.8vw,25px);line-height:1.15;font-variant-numeric:tabular-nums}
+.homeMetrics small{font-size:11px;color:#bdc8b2}
+.homeDailyCard,.homeOpeningCard,.homeInsightCard{background:#30332b;border:1px solid #51673f;border-radius:16px;padding:14px;margin-bottom:17px}
+.homeSectionTop{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:13px}
+.homeSectionTop h2,.homeInsightCard h2{font-size:17px;line-height:1.25;margin:0;font-weight:800;color:#f4f6ed}
+.homeSectionTop>span{color:#a4cd7f;font-size:11px;text-align:right}
+.homeDailyBody{display:flex;align-items:center;gap:15px;margin-bottom:13px}
+.homeDailyIcon{display:grid;place-items:center;width:72px;height:72px;flex:none;background:linear-gradient(140deg,#7b995b,#253e2a);border-radius:13px;font-size:40px;color:#fff}
+.homeDailyBody strong{font-size:16px}
+.homeDailyBody p,.homeOpeningCard p,.homeInsightCard p{margin:6px 0 0;color:#c1c8b8;font-size:13px;line-height:1.4}
+.homePrimary{display:block;width:100%;padding:13px 10px;border-radius:11px;border:0;background:#81b64c;color:#1b2813;font-weight:850;font-size:16px;cursor:pointer}
+.homeRecentSection{margin-bottom:16px}
+.homeRecentSection .homeSectionTop{margin-bottom:10px}
+.homeSectionTop button{background:transparent;border:0;color:#b0db87;font-size:13px;font-weight:800;cursor:pointer}
+.homeRecentScroller{display:flex;gap:11px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding-inline:2px;padding:2px 2px 12px;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:#789a59 transparent}
+.homeRecentCard{width:clamp(156px,45vw,200px);min-width:clamp(156px,45vw,200px);max-width:200px;flex:none;scroll-snap-align:start;display:flex;flex-direction:column;align-items:stretch;padding:9px;gap:7px;background:#302f2c;color:#f3f3eb;border:1px solid #4c4d42;border-radius:14px;text-align:left;cursor:pointer}
+.homeRecentCard:focus-visible{outline:3px solid #9cc86b;outline-offset:1px}
+.homeMiniBoard{width:100%;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));aspect-ratio:1/1;border-radius:6px;overflow:hidden}
+.homeMiniSquare{position:relative;min-width:0;display:flex;align-items:center;justify-content:center;aspect-ratio:1/1;font-family:'DejaVu Sans','Segoe UI Symbol','Noto Sans Symbols 2',sans-serif}
+.homeMiniSquare.light{background:#e8edcc}.homeMiniSquare.dark{background:#799657}
+.homeMiniPiece{font-size:clamp(13px,4vw,20px);line-height:1;color:#fff;-webkit-text-stroke:.5px #222;filter:drop-shadow(0 1px 0 #171717)}
+.homeMiniPiece.black{color:#232424;-webkit-text-stroke:.2px #222;filter:drop-shadow(0 1px 0 #fff8)}
+.homeRecentTitle{font-weight:850;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.homeRecentDetails{font-size:11px;color:#c1c1b5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.homeResult.win{color:#a5d478}.homeResult.loss{color:#e19d95}.homeResult.draw{color:#e4d19b}
+.homeEmpty{min-width:100%;background:#30302a;border-radius:11px;padding:16px;color:#b9c4b3;font-size:13px}
+.homeOpeningCard{background:#302f2a;border-color:#46483e}
+.homeOpeningCard>strong{font-size:16px}
+.homeInsightCard{border-color:#4e6446}
+#homeDashboardTab .homeNavSymbol{font-size:26px;line-height:1.1;display:block}
+@media(max-width:800px){.homeTabs{overflow-x:auto!important;justify-content:flex-start!important;scrollbar-width:none}.homeTabs::-webkit-scrollbar{display:none}.homeTabs .homeTab{flex:0 0 65px!important;min-width:65px!important}#homeView{padding:10px 12px 104px}.homeRecentCard{min-width:156px;width:44vw}.homeMetrics>div{padding:9px 10px}.homeDailyIcon{width:64px;height:64px}}
+
+/* Eight destinations: preserve legible two-line labels with horizontal swipe. */
+@media(max-width:800px){.modernNav.homeTabs{display:flex!important;justify-content:flex-start!important;overflow-x:auto!important;overscroll-behavior-x:contain;scroll-snap-type:x proximity;-webkit-overflow-scrolling:touch}.modernNav.homeTabs .homeTab{flex:0 0 64px!important;min-width:64px!important;max-width:64px!important;scroll-snap-align:start}.modernNav.homeTabs .homeTab .navLabel,.modernNav.homeTabs .homeTab .homeTabLabel{font-size:10px!important;line-height:1.1!important}}

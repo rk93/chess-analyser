@@ -20,6 +20,7 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
     });db.close();
   }, {_key:'qa-mobile-fixture',url:'qa-mobile-fixture',pgn,white:{username:'qa_white',rating:1434,result:'win'},black:{username:'qa_black',rating:1414,result:'resigned'},time_control:'600',time_class:'rapid',end_time:1792530000,rated:true});
   await page.reload();
+  await page.locator('#gamesTab').click();
   await expect(page.locator('.gameWithAvatar').first()).toBeVisible({timeout:15000});
   await expect(page.locator('#libraryIntro .coachWelcome')).toBeVisible();
   const pipResponse=await page.request.get('/assets/pip-coach-atlas.svg');
@@ -71,7 +72,7 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
   await expect(page.locator('#libraryView')).toBeVisible();
   await expect(page.locator('.modernNav')).toBeVisible();
   const navLabels=page.locator('.modernNav .homeTab');
-  await expect(navLabels).toHaveCount(7);
+  await expect(navLabels).toHaveCount(8);
   const navBoxes=await navLabels.evaluateAll(nodes=>nodes.map(el=>{const r=el.getBoundingClientRect();return{left:r.left,right:r.right,width:r.width}}));
   for(let i=1;i<navBoxes.length;i++)expect(navBoxes[i].left).toBeGreaterThanOrEqual(navBoxes[i-1].right-2);
   await page.screenshot({path:testInfo.outputPath('back-to-games-navigation.png'),fullPage:false});
