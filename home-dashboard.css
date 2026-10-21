@@ -49,3 +49,19 @@
   display:flex!important;visibility:visible!important;opacity:1!important;
  }
 }
+
+/* Eight navigation destinations must all fit, including Explorer and Puzzles.
+   Previous 65px minimums pushed the last icons off the right edge. */
+@media(max-width:800px){
+ .homeTabs.modernNav{display:flex;overflow-x:visible!important;justify-content:space-between!important;gap:1px!important}
+ .homeTabs.modernNav .homeTab{
+  min-width:0!important;width:auto!important;flex:1 1 0!important;
+  padding:6px 1px!important;font-size:clamp(8px,2.25vw,11px)!important;
+ }
+ .homeTabs.modernNav .navIcon,.homeTabs.modernNav .navIcon svg{width:21px!important;height:21px!important}
+ .homeTabs.modernNav .homeTabLabel,.homeTabs.modernNav .navLabel{
+  font-size:inherit!important;line-height:1.1!important;
+  max-width:100%!important;overflow-wrap:anywhere!important;
+ }
+ #homeDashboardTab .homeNavSymbol{font-size:21px!important}
+}
