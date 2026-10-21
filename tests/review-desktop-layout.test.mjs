@@ -38,3 +38,12 @@ test('position statistics prefetch once using limited parallel workers',async()=
  const stats=source.slice(source.indexOf('function showPositionStats('),source.indexOf('function renderGuide('));
  assert.doesNotMatch(stats,/fetch\(/);
 });
+
+test('empty position statistics are hidden without changing reserved mobile layout',async()=>{
+ const source=await readFile('js/game-review.js','utf8');
+ const styles=await readFile('ux-shell.css','utf8');
+ assert.match(source,/positionStatsEmpty/);
+ assert.match(source,/positionStatsLoading/);
+ assert.match(styles,/reviewPositionStats\.positionStatsEmpty\{visibility:hidden!important\}/);
+ assert.match(styles,/min-height:62px!important;height:62px!important/);
+});
