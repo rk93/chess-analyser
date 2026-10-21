@@ -352,8 +352,33 @@ function prepareGuideFrames(data,positions,sans){
   }
   return frames;
 }
+const statsCache=new Map();let statsRequest=0;
+function showPositionStats(ply){
+ const fen=preparedPositions?.[ply]?.fen;
+ let el=document.getElementById('reviewPositionStats');
+ if(!el){el=document.createElement('aside');el.id='reviewPositionStats';el.className='reviewPositionStats';el.setAttribute('aria-label','Position popularity');document.getElementById('mobileReviewMoves')?.after(el)||document.getElementById('bottomPlayer')?.after(el)}
+ const id=++statsRequest;el.hidden=!fen;if(!fen)return;
+ if(!el.isConnected)document.getElementById('mobileReviewMoves')?.after(el);
+ const draw=data=>{
+  if(id!==statsRequest)return;
+  const w=Number(data?.white)||0,d=Number(data?.draws)||0,b=Number(data?.black)||0,n=w+d+b;
+  el.replaceChildren();
+  const icon=document.createElement('span');icon.className='positionStatsIcon';icon.textContent='♟';
+  const label=document.createElement('span');label.className='positionStatsMain';
+  const heading=document.createElement('b');heading.textContent=n?n.toLocaleString()+' master games':'Position database';
+  const sub=document.createElement('small');sub.textContent=n?'White '+Math.round(100*w/n)+'% · Draw '+Math.round(100*d/n)+'% · Black '+Math.round(100*b/n)+'%':'No master games in this position';
+  label.append(heading,sub);el.append(icon,label);
+ };
+ const key=fen.split(' ').slice(0,4).join(' ');
+ if(statsCache.has(key)){draw(statsCache.get(key));return}
+ el.textContent='♟ Checking position database…';
+ const url=new URL('https://explorer.lichess.org/masters');
+ url.searchParams.set('fen',fen);url.searchParams.set('moves','0');url.searchParams.set('topGames','0');
+ fetch(url,{signal:AbortSignal.timeout(4500)}).then(r=>r.ok?r.json():null).then(v=>{statsCache.set(key,v);draw(v)}).catch(()=>{if(id===statsRequest)el.textContent='♟ Position statistics unavailable offline'});
+}
 function renderGuide(ply,data){
   const card=ensureGuideCard();if(!card)return;
+  showPositionStats(ply);
   if(ply===0){card.dataset.coachMood='friendly';card.hidden=false;$('reviewGuideIcon').textContent='✓';$('reviewGuideMove').textContent='Review ready';$('reviewGuideEval').textContent=scoreLabel(data.evals?.[0]);showReviewPerspective(data.evals?.[0],0);$('reviewGuideComment').textContent='Use Next, Previous, or tap any move to step through the review.';$('reviewGuideMeta').textContent='Move feedback is loaded from the saved review — navigation does not need a new engine request.';$('reviewShowBest').hidden=true;$('reviewPractice').hidden=true;const auto=ensureAutoBestLine();if(auto)auto.textContent='Best line will appear as you review each move.';drawBestArrow(data.bestMoves?.[0]||'');return}
   const i=ply-1,frame=preparedReview?.[i],label=data.labels?.[i]||'Good',played=frame?.played||`Move ${ply}`,best=frame?.best||data.bestMoves?.[i]||'',bestSan=frame?.bestSan||'',verified=!!data.moveVerified?.[i],before=data.evals?.[i],after=data.evals?.[i+1];
   card.dataset.coachMood=['Blunder','Mistake','Inaccuracy'].includes(label)?'concerned':['Best','Brilliant','Great','Excellent'].includes(label)?'happy':'thinking';
