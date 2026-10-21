@@ -76,4 +76,19 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
   await page.locator('#boardLabTab').click();
   await expect(page.locator('#boardLabView')).toBeVisible();
   await expect(page.locator('.modernNav')).toBeVisible();
+  // Cross-tab regression: every destination remains reachable after exiting a game.
+  for(const [tab,view] of [
+    ['explorerTab','explorerView'],
+    ['puzzlesTab','puzzlesView'],
+    ['topPlayersTab','topPlayersView'],
+    ['settingsNav','settingsView'],
+    ['gamesTab','libraryView']
+  ]){
+    await page.locator('#'+tab).click();
+    await expect(page.locator('#'+view)).toBeVisible();
+    await expect(page.locator('.modernNav')).toBeVisible();
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBeTruthy();
+    await page.screenshot({path:testInfo.outputPath('tab-'+tab+'.png'),fullPage:false});
+  }
+
 });
