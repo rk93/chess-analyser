@@ -1,3 +1,4 @@
+import { getLocalStockfish } from './local-stockfish.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 const $=id=>document.getElementById(id);
 const DB_NAME='rk93-chess-analyser', DB_VERSION=1, STORE='games';
@@ -92,10 +93,26 @@ function drawEngineArrows(pvs){const svg=$('analysisArrows');svg.innerHTML='<def
 async function lichessCloud(fen){const r=await fetch(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=3&variant=standard`,{headers:{Accept:'application/json'}});if(r.status===404)return null;if(!r.ok)throw new Error(`Cloud ${r.status}`);const j=await r.json(),pvs=(j.pvs||[]).slice(0,3);return pvs.length?{depth:j.depth,pv:pvs[0],pvs,source:'Lichess cloud'}:null}
 async function liveStockfish(fen){const r=await fetch('https://chess-api.com/v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fen,depth:14,variants:1,maxThinkingTime:180})});if(!r.ok)throw new Error(`Live engine ${r.status}`);const j=await r.json(),whiteScore=j.eval!=null?Number(j.eval):Number(j.centipawns)/100,bestMove=j.move||j.lan||'',continuation=Array.isArray(j.continuationArr)?j.continuationArr.filter(Boolean):[],line=[bestMove,...continuation.filter((m,i)=>!(i===0&&m===bestMove))].filter(Boolean).join(' '),pv={cp:Number.isFinite(whiteScore)?Math.round(whiteScore*100):0,mate:j.mate,moves:line};return{depth:j.depth||14,pv,pvs:[pv],source:'Stockfish live'}}
 function setAnalysing(on){for(const id of ['analyse','analyseMobile']){const b=$(id);b.disabled=on;b.classList.toggle('loading',on);b.textContent=on?'Analysing':'Analyse'}}
-async function analysePosition(){const fen=currentChess.fen(),mode=preference('engine','auto'),cacheKey=mode+'|'+fen;if(evalCache.has(cacheKey)){showEval(evalCache.get(cacheKey));return}try{setAnalysing(true);let data=null;if(mode==='cloud'){data=await lichessCloud(fen);if(!data)throw new Error('No cloud evaluation for this position')}else if(mode==='stockfish'){data=await liveStockfish(fen)}else{try{data=await lichessCloud(fen)}catch{}if(!data)data=await liveStockfish(fen)}evalCache.set(cacheKey,data);showEval(data)}catch(e){$('bestLine').textContent=`Could not analyse this position: ${e.message}`;$('mobileLine').textContent='Analysis failed — tap to retry.'}finally{setAnalysing(false)}}
+async function analysePosition(){
+ const fen=currentChess.fen(),cacheKey='local|'+fen;
+ if(evalCache.has(cacheKey)){showEval(evalCache.get(cacheKey));return}
+ try{
+  setAnalysing(true);
+  const engine=getLocalStockfish();
+  await engine.ready();
+  const result=await engine.analyse(fen,{depth:16,multipv:3,clearHash:true});
+  const lines=(result.lines?.length?result.lines:[{cp:result.cp,mate:result.mate,pv:result.pv,best:result.best}]).slice(0,3);
+  const pvs=lines.map(x=>({cp:x.cp,mate:x.mate,moves:x.pv||x.best||''})).filter(x=>x.moves||Number.isFinite(x.cp)||x.mate!=null);
+  if(!pvs.length)throw new Error('Local Stockfish returned no analysis');
+  const data={source:'Stockfish local',depth:result.depth||16,pvs};
+  evalCache.set(cacheKey,data);
+  showEval(data);
+ }catch(e){$('bestLine').textContent='Local Stockfish unavailable: '+e.message;$('mobileLine').textContent='Local analysis unavailable — tap to retry.'}
+ finally{setAnalysing(false)}
+}
 function showEval(data){const pvs=(data.pvs?.length?data.pvs:[data.pv]).filter(Boolean).slice(0,3),top=scoreInfo(pvs[0]);$('engineScore').textContent=$('mobileScore').textContent=top.label;$('engineSource').textContent=`${data.source} · depth ${data.depth??'—'}`;$('mobileSource').textContent=data.source;$('bestLine').textContent='Best: '+(pvs[0].moves||'');$('mobileLine').textContent='Best: '+(pvs[0].moves||'');const pct=50+45*(2/Math.PI)*Math.atan(top.whiteScore/3);$('evalFill').style.height=`${Math.max(3,Math.min(97,pct))}%`;drawEngineArrows(pvs)}
 function rerenderAppearance(){if(selectedGame)renderAll();const e=$('enginePieceIcon');if(e)e.innerHTML=pieceSvg('b','n')}
 window.addEventListener('chessPreference',e=>{if(e.detail?.key==='pieces')rerenderAppearance();if(e.detail?.key==='engine')clearEval()});
-$('sync').onclick=()=>sync({automatic:false});$('back').onclick=()=>{$('analysisView').style.display='none';$('libraryView').style.display='block'};$('flip').onclick=()=>{orientation=orientation==='white'?'black':'white';renderAll();const mode=preference('engine','auto'),cached=evalCache.get(mode+'|'+currentChess.fen());if(cached)showEval(cached)};$('analyse').onclick=$('analyseMobile').onclick=analysePosition;$('start').onclick=()=>gotoPly(0);$('prev').onclick=()=>gotoPly(Math.max(0,currentPly-1));$('next').onclick=()=>gotoPly(Math.min(mainMoves.length,currentPly+1));$('end').onclick=()=>gotoPly(mainMoves.length);$('resetVariation').onclick=()=>gotoPly(currentPly);
+$('sync').onclick=()=>sync({automatic:false});$('back').onclick=()=>{$('analysisView').style.display='none';$('libraryView').style.display='block'};$('flip').onclick=()=>{orientation=orientation==='white'?'black':'white';renderAll();const cached=evalCache.get('local|'+currentChess.fen());if(cached)showEval(cached)};$('analyse').onclick=$('analyseMobile').onclick=analysePosition;$('start').onclick=()=>gotoPly(0);$('prev').onclick=()=>gotoPly(Math.max(0,currentPly-1));$('next').onclick=()=>gotoPly(Math.min(mainMoves.length,currentPly+1));$('end').onclick=()=>gotoPly(mainMoves.length);$('resetVariation').onclick=()=>gotoPly(currentPly);
 (async()=>{try{const savedUser=localStorage.getItem('chess-username');if(savedUser)$('user').value=savedUser;const u=$('user').value.trim(),saved=await allGames();renderGames(saved,u);$('status').textContent=saved.length?`Loaded ${saved.length} saved games · checking for new games…`:'No saved games yet · checking Chess.com…';await sync({automatic:true})}catch(e){$('status').textContent='Storage initialisation failed: '+e.message}})();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');

@@ -72,35 +72,12 @@ async function stockfish(fen){
 }
 async function analyse(){
   const btn=$('labAnalyse');if(!btn||btn.disabled)return;
-  const run=++analysisRun,fen=chess.fen(),mode=$('labEngine')?.value||'auto';
+  const run=++analysisRun,fen=chess.fen();
   btn.disabled=true;btn.textContent='Analysing…';
   const started=performance.now();
   try{
-    let data=null;
-    if(mode==='cloud'){
-      $('labSource').textContent='Checking Lichess cloud…';
-      try{data=await cloud(fen)}catch(e){
-        if(e?.name==='AbortError')throw new Error('Lichess cloud timed out');
-        throw e;
-      }
-      if(!data)throw new Error('No cloud evaluation available for this position.');
-    }else if(mode==='stockfish'){
-      $('labSource').textContent='Starting local Stockfish…';
-      data=await stockfish(fen);
-    }else{
-      $('labSource').textContent='Starting local Stockfish…';
-      let localError=null;
-      try{data=await stockfish(fen)}catch(e){localError=e}
-      if(run!==analysisRun)return;
-      if(!data){
-        $('labSource').textContent='Local engine unavailable · trying cloud…';
-        try{data=await cloud(fen)}catch{}
-      }
-      if(!data){
-        const reason=localError?.message||'unknown local-engine error';
-        throw new Error(`Local Stockfish failed: ${reason}. Cloud fallback was also unavailable.`);
-      }
-    }
+    $('labSource').textContent='Starting local Stockfish…';
+    const data=await stockfish(fen);
     if(run!==analysisRun)return;
     if(!data?.pvs?.length)throw new Error('No engine analysis returned');
     const s=score(data.pvs[0]);
@@ -121,5 +98,5 @@ function showTab(which){const lab=which==='lab',analytics=which==='analytics',to
 function loadPractice(detail){if(!detail?.fen||!detail.bestMove)return;try{practice={...detail,attempted:false};chess=new Chess(detail.fen);orientation=chess.turn()==='b'?'black':'white';selected=null;lastMove=null;resetHistory();showTab('lab');panel()?.classList.add('practiceActive');clearAnalysis();render();$('labSource').textContent='Training · from your game';$('labLine').textContent=practicePrompt()}catch(e){practice=null;$('labLine').textContent='Could not load training position: '+e.message}}
 function leavePractice(){practice=null;panel()?.classList.remove('practiceActive')}
 function resetLab(){if(practice){chess=new Chess(practice.fen);practice.attempted=false;orientation=chess.turn()==='b'?'black':'white';selected=null;lastMove=null;resetHistory();clearAnalysis();render();$('labSource').textContent='Training · retry';$('labLine').textContent=practicePrompt();return}chess=new Chess();selected=null;lastMove=null;resetHistory();clearAnalysis();render()}
-function init(){if(!$('labBoard'))return;applyUiPolish();ensureHistoryButtons();$('gamesTab').addEventListener('click',()=>{leavePractice();showTab('games')});$('boardLabTab').addEventListener('click',()=>{leavePractice();showTab('lab')});$('analyticsTab')?.addEventListener('click',()=>{leavePractice();showTab('analytics')});$('topPlayersTab')?.addEventListener('click',()=>{leavePractice();showTab('topPlayers')});$('labAnalyse').addEventListener('click',analyse);$('labReset').addEventListener('click',resetLab);$('labFlip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';render()});$('labEngine').value=pref('engine','auto');const settings=$('settingsToggleLab');if(settings)settings.addEventListener('click',()=>document.getElementById('settingsToggleLibrary')?.click());window.addEventListener('chessPreference',e=>{if(e.detail?.key==='pieces'||e.detail?.key==='board')render();if(e.detail?.key==='engine')$('labEngine').value=e.detail.value});window.addEventListener('practiceMistake',e=>loadPractice(e.detail));window.addEventListener('loadLabFen',e=>{try{leavePractice();chess=new Chess(e.detail.fen);selected=null;lastMove=null;resetHistory();clearAnalysis();render();$('labLine').textContent='Custom position loaded. Tap Analyse position.'}catch(err){$('labLine').textContent='Could not load custom position: '+err.message}});window.addEventListener('refreshLabBoard',()=>render());render()}
+function init(){if(!$('labBoard'))return;applyUiPolish();ensureHistoryButtons();$('gamesTab').addEventListener('click',()=>{leavePractice();showTab('games')});$('boardLabTab').addEventListener('click',()=>{leavePractice();showTab('lab')});$('analyticsTab')?.addEventListener('click',()=>{leavePractice();showTab('analytics')});$('topPlayersTab')?.addEventListener('click',()=>{leavePractice();showTab('topPlayers')});$('labAnalyse').addEventListener('click',analyse);$('labReset').addEventListener('click',resetLab);$('labFlip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';render()});const settings=$('settingsToggleLab');if(settings)settings.addEventListener('click',()=>document.getElementById('settingsToggleLibrary')?.click());window.addEventListener('chessPreference',e=>{if(e.detail?.key==='pieces'||e.detail?.key==='board')render();});window.addEventListener('practiceMistake',e=>loadPractice(e.detail));window.addEventListener('loadLabFen',e=>{try{leavePractice();chess=new Chess(e.detail.fen);selected=null;lastMove=null;resetHistory();clearAnalysis();render();$('labLine').textContent='Custom position loaded. Tap Analyse position.'}catch(err){$('labLine').textContent='Could not load custom position: '+err.message}});window.addEventListener('refreshLabBoard',()=>render());render()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
