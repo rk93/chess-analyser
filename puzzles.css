@@ -65,3 +65,13 @@
  #puzzlesView .puzzleSettingsPanel .puzzleToolbar{grid-template-columns:1fr 1fr}
 }
 @media(max-width:390px){#puzzlesView .puzzleMeta,#puzzlesView .puzzleThemeTags{display:none!important}}
+
+
+/* Reward animation is overlaid on the existing puzzle board. */
+.puzzleConfetti{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:28}
+.puzzleConfetti span{position:absolute;top:-16px;left:var(--x);width:9px;height:16px;border-radius:2px;background:var(--color);opacity:0;animation:puzzleParty var(--dur) var(--delay) ease-in forwards}
+@keyframes puzzleParty{0%{transform:translate3d(0,-10px,0) rotate(0);opacity:1}85%{opacity:1}100%{transform:translate3d(18px,80vw,0) rotate(650deg);opacity:0}}
+.puzzleSolvedOverlay.puzzleMilestone{background:rgba(34,62,26,.97);border-color:#f2ce6e;box-shadow:0 10px 32px #0008,0 0 0 4px #efc95735}
+.puzzleSolvedOverlay.puzzleMilestone strong{font-size:clamp(22px,6.2vw,34px);color:#ffe09a}
+.puzzleSolvedOverlay.puzzleMilestone small{color:#e3f3c8}
+@media(prefers-reduced-motion:reduce){.puzzleConfetti span{animation:none!important;display:none!important}}
