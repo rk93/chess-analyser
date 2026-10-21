@@ -39,3 +39,15 @@ test('Game Review progress never fetches position statistics',async()=>{
  assert.ok(source.includes('aria-valuenow'));
  assert.ok(styles.includes('reviewMoveProgressTrack'));
 });
+
+test('Pip Coach V2 only offers mistake practice with verified Stockfish evidence',async()=>{
+ const review=await readFile('js/game-review.js','utf8');
+ const lab=await readFile('js/lab.js','utf8');
+ assert.ok(review.includes("verified&&(label==='Mistake'||label==='Blunder')"));
+ assert.ok(review.includes("practice.textContent='Practise this mistake'"));
+ assert.ok(review.includes("Stockfish's verified best move"));
+ assert.ok(lab.includes('function ensurePracticeCoachActions()'));
+ assert.ok(lab.includes("reveal.textContent='Reveal best move'"));
+ assert.ok(lab.includes("That isn't Stockfish's top choice"));
+ assert.ok(lab.includes("resetLab"));
+});
