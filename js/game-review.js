@@ -224,23 +224,16 @@ function positionReviewCard(){
   if(!card||!shell||!shell.parentNode)return;
   const desktop=window.matchMedia('(min-width: 1100px)').matches;
   let layout=$('reviewDesktopLayout');
-  if(desktop){
-    if(!layout){
-      layout=document.createElement('div');
-      layout.id='reviewDesktopLayout';
-      layout.className='reviewDesktopLayout';
-      shell.before(layout);
-    }
-    if(card.parentElement!==layout||layout.firstElementChild!==card)layout.prepend(card);
-    if(shell.parentElement!==layout)layout.append(shell);
-  }else{
-    // Keep the compact coach card above the board on mobile and tablets.
-    if(layout){
-      layout.before(shell);
-      shell.before(card);
-      layout.remove();
-    }else if(shell.previousElementSibling!==card)shell.before(card);
+  // Use the same review container at all widths. CSS controls visual order,
+  // rather than destroying the wrapper on mobile (which broke saved reviews).
+  if(!layout){
+    layout=document.createElement('div');
+    layout.id='reviewDesktopLayout';
+    layout.className='reviewDesktopLayout';
+    shell.before(layout);
   }
+  if(card.parentElement!==layout||layout.firstElementChild!==card)layout.prepend(card);
+  if(shell.parentElement!==layout)layout.append(shell);
 }
 function ensureGuideCard(){
   let card=$('reviewGuideCard');
