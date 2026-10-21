@@ -129,3 +129,22 @@ test('Android/browser Back remains inside app for every tab and review',async({p
   expect(new URL(page.url()).origin).toBe('http://127.0.0.1:8765');
  }
 });
+test('Pip coaching practises a verified mistake before optionally revealing answer',async({page},testInfo)=>{
+ await page.goto('/');
+ await page.evaluate(()=>window.dispatchEvent(new CustomEvent('practiceMistake',{detail:{
+  fen:'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+  label:'Mistake',side:'White',moveNumber:1,badMove:'a3',
+  bestMove:'e2e4',bestSan:'e4'
+ }})));
+ await expect(page.locator('#boardLabView')).toBeVisible();
+ await expect(page.locator('#labPracticeReveal')).toBeVisible();
+ await expect(page.locator('#labLine')).toContainText('Find a better move');
+ await page.locator('#labBoard [data-square="d2"]').click();
+ await page.locator('#labBoard [data-square="d4"]').click();
+ await expect(page.locator('#labLine')).toContainText('Tap Retry');
+ await expect(page.locator('#labLine')).not.toContainText('Stockfish recommends e4');
+ await page.screenshot({path:testInfo.outputPath('pip-practice-try-again.png'),fullPage:false});
+ await page.locator('#labPracticeReveal').click();
+ await expect(page.locator('#labLine')).toContainText('Stockfish recommends e4');
+ await page.screenshot({path:testInfo.outputPath('pip-practice-revealed.png'),fullPage:false});
+});
