@@ -26,7 +26,7 @@ test('saved review keeps board and move controls usable on mobile', async ({ pag
     const strip=document.createElement('div');strip.id='reviewProMoveStrip';strip.textContent='1. e4 e5 2. Nf3 Nc6 3. d4 exd4';view.querySelector('.sidePanel').prepend(strip);
     document.getElementById('topPlayer').textContent='Black 1414';
     document.getElementById('bottomPlayer').textContent='White 1434';
-    const stats=document.createElement('aside');stats.id='reviewPositionStats';stats.className='reviewPositionStats';stats.innerHTML='<span class="positionStatsIcon">♟</span><span class="positionStatsMain"><b>12,546 master games</b><small>White 42% · Draw 36% · Black 22%</small></span>';document.getElementById('bottomPlayer').after(stats);
+    const stats=document.createElement('div');stats.id='reviewPositionStats';stats.className='reviewPositionStats reviewMoveProgress';stats.innerHTML='<span class="reviewMoveProgressTrack" role="progressbar" aria-label="Moves reviewed" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40"><span class="reviewMoveProgressFill" style="width:40%"></span></span><span class="reviewMoveProgressLabel">8 / 20</span>';document.getElementById('bottomPlayer').after(stats);
   });
   const board=page.locator('#analysisView .boardStage');
   const next=page.locator('#reviewNext');
@@ -43,6 +43,7 @@ test('saved review keeps board and move controls usable on mobile', async ({ pag
   expect(n.y).toBeGreaterThanOrEqual(b.y + b.height - 2);
   await expect(page.locator('.modernNav')).toBeHidden();
   await expect(page.locator('#reviewPositionStats')).toBeVisible();
+  await expect(page.locator('#reviewPositionStats [role="progressbar"]')).toHaveAttribute('aria-valuenow','40');
   const buttons=await Promise.all(['reviewPrev','reviewAutoPlay','reviewNext','reviewShowBest'].map(id=>page.locator('#'+id).boundingBox()));
   for(let i=1;i<buttons.length;i++)expect(buttons[i].x).toBeGreaterThanOrEqual(buttons[i-1].x+buttons[i-1].width-2);
   for(const btn of buttons){expect(btn.y).toBeGreaterThanOrEqual(b.y+b.height-2);expect(btn.x+btn.width).toBeLessThanOrEqual(page.viewportSize().width+2)}
