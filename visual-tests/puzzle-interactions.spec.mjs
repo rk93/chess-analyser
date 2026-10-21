@@ -6,8 +6,12 @@ test('puzzle highlights legal targets and supports settings on mobile',async({pa
  await page.locator('#puzzlesTab').click();
  await expect(page.locator('#puzzleTurn')).toHaveText(/White to move/);
  await expect(page.locator('#puzzleBoard .piece')).toHaveCount(32);
- await page.locator('#puzzleBoard [data-square="g1"]').click();
- await expect(page.locator('#puzzleBoard [data-square="g1"]')).toHaveClass(/selected/);
+ await expect(page.locator('#puzzleStatus')).toContainText('Your move');
+ const turn=(await page.locator('#puzzleTurn').innerText()).includes('Black')?'b':'w';
+ const selectable=page.locator('#puzzleBoard .sq').filter({has:page.locator('img.piece[src*="/'+turn+'"]')});
+ await expect(selectable.first()).toBeVisible();
+ await selectable.first().click();
+ await expect(selectable.first()).toHaveClass(/selected/);
  await expect(page.locator('#puzzleBoard .puzzleLegalTarget').first()).toBeVisible();
  await page.screenshot({path:testInfo.outputPath('puzzle-selected.png'),fullPage:false});
  await page.locator('#puzzleSettingsToggle').click();
