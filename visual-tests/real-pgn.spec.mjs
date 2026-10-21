@@ -23,6 +23,7 @@ test('real PGN renders pieces, advances moves and flips on mobile', async ({ pag
   await expect(page.locator('.gameWithAvatar').first()).toBeVisible({timeout:15000});
   await page.locator('.gameWithAvatar').first().click();
   await expect(page.locator('#analysisView')).toBeVisible();
+  if (await page.locator('#reviewDepthCancel').isVisible()) await page.locator('#reviewDepthCancel').click();
   await expect(page.locator('#board img.piece')).toHaveCount(32);
   const before=await page.locator('#board').innerHTML();
   await page.locator('#next').click();
