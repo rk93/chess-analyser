@@ -35,6 +35,11 @@ test('saved review keeps board and move controls usable on mobile', async ({ pag
   expect(b.width).toBeGreaterThan(150);
   expect(b.height).toBeGreaterThan(150);
   expect(b.y).toBeLessThan(250);
+  const coach=await page.locator('#reviewGuideCard').boundingBox();
+  expect(coach.y + coach.height).toBeLessThanOrEqual(b.y + 2);
+  // Catch controls obscuring the board, not just whether each is visible.
+  expect(n.y).toBeGreaterThanOrEqual(b.y + b.height - 2);
+  await expect(page.locator('.modernNav')).toBeHidden();
   expect(n.y+n.height).toBeLessThan(800);
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2)).toBeTruthy();
   await page.screenshot({path:testInfo.outputPath('mobile-review.png'),fullPage:true});
