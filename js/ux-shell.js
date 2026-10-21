@@ -99,5 +99,22 @@ function installInAppBack(){
  // returns home instead of navigating outside the installed app.
 }
 
-function observe(){installInAppBack();installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
+
+// Lightweight network status. Never blocks the board or navigation.
+function installConnectivityIndicator(){
+ if($('appConnectivity'))return;
+ const banner=document.createElement('div');
+ banner.id='appConnectivity';banner.className='appConnectivity';
+ banner.setAttribute('role','status');banner.setAttribute('aria-live','polite');
+ banner.hidden=true;
+ banner.innerHTML='<span>Offline — saved data may still work; syncing needs internet.</span> <button type="button" id="appConnectivityRetry">Retry</button>';
+ document.body.appendChild(banner);
+ const refresh=()=>{banner.hidden=navigator.onLine!==false};
+ window.addEventListener('online',refresh);
+ window.addEventListener('offline',refresh);
+ $('appConnectivityRetry').addEventListener('click',()=>location.reload());
+ refresh();
+}
+
+function observe(){installConnectivityIndicator();installInAppBack();installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
