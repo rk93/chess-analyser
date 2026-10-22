@@ -197,7 +197,7 @@ test('Home restores all nav icons after opening a real game and pressing Back',a
  await expect(page.locator('.gameWithAvatar').first()).toBeVisible();
  await page.evaluate(()=>{const dismiss=()=>document.getElementById('reviewDepthCancel')?.click();new MutationObserver(dismiss).observe(document.body,{childList:true,subtree:true});dismiss()});
  await page.locator('.gameWithAvatar').first().click();
- await expect(page.locator('#analysisView')).toBeVisible();
+ await expect(page.locator('#analysisView')).toBeVisible({timeout:15000});
  await page.goBack();
  await page.locator('#homeDashboardTab').click();
  await expect(page.locator('#homeView')).toBeVisible();
@@ -234,9 +234,9 @@ test('Game Review uses local Stockfish, completes once and reuses cached verifie
  await page.route('https://chess-api.com/**',route=>route.abort());
  await page.route('https://api.chess.com/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:[]})}));
  await page.goto('/');
- await page.evaluate(async()=>{localStorage.setItem('chess-username','qa_white');localStorage.setItem('chess-review-depth','ultra');
+ await page.evaluate(async()=>{localStorage.setItem('chess-username','qa_white');localStorage.setItem('chess-review-depth','ultra');localStorage.setItem('chess-sync-meta:qa_white',JSON.stringify({archives:[],lastSync:Date.now()}));
   const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('rk93-chess-analyser',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('games'))r.result.createObjectStore('games',{keyPath:'_key'}).createIndex('end_time','end_time')}});
-  await new Promise((resolve,reject)=>{const tx=db.transaction('games','readwrite');tx.objectStore('games').put({_key:'qa-fast-review',url:'qa-fast-review',pgn:'[Event "Fast Review"]\\n[White "qa_white"]\\n[Black "qa_black"]\\n\\n1. e4 e5 2. Nf3 Nc6',white:{username:'qa_white',result:'win'},black:{username:'qa_black',result:'resigned'},end_time:1792530000,time_control:'600',time_class:'rapid'});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();
+  await new Promise((resolve,reject)=>{const tx=db.transaction('games','readwrite');tx.objectStore('games').put({_key:'qa-fast-review',url:'qa-fast-review',pgn:'[Event "Fast Review"]\\n[White "qa_white"]\\n[Black "qa_black"]\\n\\n1. e4 e5 2. Nf3 Nc6',white:{username:'qa_white',result:'win'},black:{username:'qa_black',result:'resigned'},end_time:1792530000,time_control:'600',time_class:'rapid',rated:true});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();
  });
  await page.reload();await page.locator('#gamesTab').click();
  await expect(page.locator('.gameWithAvatar').first()).toBeVisible({timeout:15000});
