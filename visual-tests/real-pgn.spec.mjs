@@ -239,7 +239,16 @@ test('Game Review uses local Stockfish, completes once and reuses cached verifie
   await new Promise((resolve,reject)=>{const tx=db.transaction('games','readwrite');tx.objectStore('games').put({_key:'qa-fast-review',url:'qa-fast-review',pgn:'[Event "Fast Review"]\\n[White "qa_white"]\\n[Black "qa_black"]\\n\\n1. e4 e5 2. Nf3 Nc6',white:{username:'qa_white',result:'win'},black:{username:'qa_black',result:'resigned'},end_time:1792530000,time_control:'600',time_class:'rapid'});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();
  });
  await page.reload();await page.locator('#gamesTab').click();
+ await expect(page.locator('.gameWithAvatar').first()).toBeVisible({timeout:15000});
+ // Auto-review depth prompt must not discard the selected game while opening it.
+ await page.evaluate(()=>{
+  const dismiss=()=>document.getElementById('reviewDepthCancel')?.click();
+  new MutationObserver(dismiss).observe(document.body,{childList:true,subtree:true});
+  dismiss();
+ });
  await page.locator('.gameWithAvatar').first().click();
+ await expect(page.locator('#analysisView')).toBeVisible();
+ await expect(page.locator('#moves .move')).toHaveCount(4);
  if(await page.locator('#reviewDepthCancel').isVisible())await page.locator('#reviewDepthCancel').click();
  const start=Date.now();
  await page.evaluate(()=>document.getElementById('runReview').click());
