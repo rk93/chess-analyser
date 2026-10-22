@@ -51,3 +51,16 @@ test('Pip Coach V2 only offers mistake practice with verified Stockfish evidence
  assert.ok(lab.includes("That isn't Stockfish's top choice"));
  assert.ok(lab.includes("resetLab"));
 });
+
+test('Repeated verification cannot restart a review already playing',async()=>{
+ const source=await readFile('js/game-review.js','utf8');
+ assert.ok(source.includes("reviewPlaybackStartedKey===key"));
+ assert.ok(source.includes("reviewPlaybackStartedKey=key"));
+ assert.ok(source.includes("reviewPlaybackStartedKey=''"));
+});
+test('Mobile bottom tabs reappear after review closes',async()=>{
+ const css=await readFile('ux-shell.css','utf8');
+ const app=await readFile('js/app.js','utf8');
+ assert.ok(css.includes('body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav'));
+ assert.ok(app.includes("document.querySelector('.homeTabs')?.style.removeProperty('display')"));
+});

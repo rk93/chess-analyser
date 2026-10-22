@@ -469,18 +469,19 @@ function showDepthPrompt(key){
 function handleAutoReviewCache(e){
   const {key,complete}=e.detail||{};
   if(!mobileReview()||!key||key!==reviewKey())return;
-  autoFlowKey=key;
+  if(autoFlowKey!==key+'|playing')autoFlowKey=key;
   if(complete)return;
   if(localStorage.getItem(AUTO_REVIEW_OPT_IN)==='true'){if(autoFlowStartedKey!==key){autoFlowStartedKey=key;$('runReview')?.click()}}
   else showDepthPrompt(key);
 }
+let reviewPlaybackStartedKey='';
 function handleVerifiedAutoReview(e){
   const key=e.detail?.key;
   if(!mobileReview()||!key||key!==reviewKey()||document.hidden)return;
   closeDepthPrompt();autoFlowStartedKey=key;
   // The same game may generate repeated verification notifications.
-  if(autoFlowKey===key+'|playing')return;
-  autoFlowKey=key+'|playing';
+  if(autoFlowKey===key+'|playing'||activeReview&&reviewPlaybackStartedKey===key)return;
+  autoFlowKey=key+'|playing';reviewPlaybackStartedKey=key;
   startGuidedReview();
   setTimeout(()=>{
     if(key!==reviewKey()||!activeReview||document.hidden)return;
@@ -488,6 +489,6 @@ function handleVerifiedAutoReview(e){
     if(btn&&!autoPlaying)btn.click();
   },90);
 }
-function resetAutoReviewFlow(){autoFlowKey='';autoFlowStartedKey='';closeDepthPrompt()}
+function resetAutoReviewFlow(){autoFlowKey='';autoFlowStartedKey='';reviewPlaybackStartedKey='';closeDepthPrompt()}
 function init(){ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('reviewAutoPlaySpeedChanged',()=>{updateAutoPlayControls();if(autoPlaying&&!spokenPending)queueAutoPlay();});window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
