@@ -484,7 +484,7 @@ async function runReview(){
       reviewMethod:'Stockfish 19 local · bounded single-pass analysis · Lichess Win% loss',
       localDepths,localPvs,localMultiLines,secondBestCps,moveDepths,moveAccuracies,lossPct,
       evals,losses,labels,bestMoves,positionExact,moveVerified,tacticalPlan:tactical.plan.map(x=>({index:x.index,reason:x.reason})),
-      whiteAccuracy:gameAccuracy(evals,'white'),blackAccuracy:gameAccuracy(evals,'black'),updated:Date.now()};
+      whiteAccuracy:gameAccuracy(evals,'white'),blackAccuracy:gameAccuracy(evals,'black'),reviewDurationMs:Math.round(performance.now()-started),updated:Date.now()};
     await cacheSet('review',key,data);displayReview(data,{showSummary:true});
   }catch(e){$('reviewStatus').textContent='Game Review failed: '+(e?.name==='AbortError'?'engine request timed out':e.message)}finally{running=false;signalRunning(false);btn.disabled=false;if(!activeReview)btn.textContent='Review game'}
 }
