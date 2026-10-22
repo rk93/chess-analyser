@@ -328,3 +328,10 @@
 .labPracticeButtons{display:flex;gap:8px;justify-content:center}
 .labPracticeButtons .btn{min-height:40px;flex:1;max-width:240px;border-radius:9px;padding:6px 9px;font-size:13px;font-weight:800}
 @media(min-width:801px){.labPracticeCoachDock{left:auto;right:16px;transform:none;bottom:20px;width:min(360px,calc(100vw - 32px))}}
+
+/* Bottom tabs follow the actual review visibility, not stale body state. */
+@media(max-width:800px){
+ body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+ body:has(#homeView:not([hidden])) .homeTabs.modernNav,
+ body:has(#libraryView:not([hidden])) .homeTabs.modernNav{display:flex!important;visibility:visible!important;opacity:1!important}
+}
