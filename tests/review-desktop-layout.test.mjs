@@ -78,3 +78,8 @@ test('Review uses bounded local Stockfish and saves a reusable verified result',
  assert.ok(!run.includes('await deepLiveEval('));
  assert.ok(!run.includes('await liveEval('));
 });
+
+test('local Stockfish keeps its transposition table between review moves',async()=>{
+ const engine=await readFile('js/local-stockfish.js','utf8');
+ assert.ok(engine.includes("if(clearHash){this.worker.postMessage('ucinewgame')"));
+});
