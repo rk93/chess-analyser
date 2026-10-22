@@ -208,3 +208,21 @@ test('Home restores all nav icons after opening a real game and pressing Back',a
  }
  await page.screenshot({path:testInfo.outputPath('home-after-review-all-icons.png'),fullPage:false});
 });
+
+test('Game Review back restores all mobile tabs and stable home navigation',async({page},testInfo)=>{
+ await page.goto('/');
+ await page.locator('#gamesTab').click();
+ await page.evaluate(()=>{
+  const view=document.getElementById('analysisView');
+  view.style.display='block';document.getElementById('libraryView').style.display='none';
+  document.body.classList.add('review-guided-active');
+ });
+ await page.locator('#back').click();
+ await expect(page.locator('#analysisView')).toBeHidden();
+ await expect(page.locator('.homeTabs.modernNav')).toBeVisible();
+ for(const id of ['explorerTab','puzzlesTab','analyticsTab','topPlayersTab'])await expect(page.locator('#'+id)).toBeVisible();
+ await page.locator('#homeDashboardTab').click();
+ await expect(page.locator('#homeView')).toBeVisible();
+ await expect(page.locator('.homeTabs.modernNav')).toBeVisible();
+ await page.screenshot({path:testInfo.outputPath('tabs-after-review-back.png'),fullPage:false});
+});
