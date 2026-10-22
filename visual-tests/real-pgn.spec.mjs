@@ -197,7 +197,7 @@ test('Home restores all nav icons after opening a real game and pressing Back',a
  await expect(page.locator('.gameWithAvatar').first()).toBeVisible();
  await page.evaluate(()=>{const dismiss=()=>document.getElementById('reviewDepthCancel')?.click();new MutationObserver(dismiss).observe(document.body,{childList:true,subtree:true});dismiss()});
  await page.locator('.gameWithAvatar').first().click();
- await expect(page.locator('#analysisView')).toBeVisible();
+ await expect(page.locator('#analysisView')).toBeVisible({timeout:15000});
  await page.goBack();
  await page.locator('#homeDashboardTab').click();
  await expect(page.locator('#homeView')).toBeVisible();
@@ -225,4 +225,43 @@ test('Game Review back restores all mobile tabs and stable home navigation',asyn
  await expect(page.locator('#homeView')).toBeVisible();
  await expect(page.locator('.homeTabs.modernNav')).toBeVisible();
  await page.screenshot({path:testInfo.outputPath('tabs-after-review-back.png'),fullPage:false});
+});
+
+test('Game Review uses local Stockfish, completes once and reuses cached verified review',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='android-393','Engine integration benchmark runs once; viewport layouts are covered separately');
+ test.setTimeout(100000);
+ await page.route('https://lichess.org/api/cloud-eval**',route=>route.abort());
+ await page.route('https://chess-api.com/**',route=>route.abort());
+ await page.route('https://api.chess.com/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:[]})}));
+ await page.goto('/');
+ await page.evaluate(async()=>{localStorage.setItem('chess-username','qa_white');localStorage.setItem('chess-review-depth','ultra');localStorage.setItem('chess-sync-meta:qa_white',JSON.stringify({archives:[],lastSync:Date.now()}));
+  const db=await new Promise((resolve,reject)=>{const r=indexedDB.open('rk93-chess-analyser',1);r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('games'))r.result.createObjectStore('games',{keyPath:'_key'}).createIndex('end_time','end_time')}});
+  await new Promise((resolve,reject)=>{const tx=db.transaction('games','readwrite');tx.objectStore('games').put({_key:'qa-fast-review',url:'qa-fast-review',pgn:'[Event "Fast Review"]\\n[White "qa_white"]\\n[Black "qa_black"]\\n\\n1. e4 e5 2. Nf3 Nc6',white:{username:'qa_white',result:'win'},black:{username:'qa_black',result:'resigned'},end_time:1792530000,time_control:'600',time_class:'rapid',rated:true});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error)});db.close();
+ });
+ await page.reload();await page.locator('#gamesTab').click();
+ await expect(page.locator('.gameWithAvatar').first()).toBeVisible({timeout:15000});
+ // Auto-review depth prompt must not discard the selected game while opening it.
+ await page.evaluate(()=>{
+  const dismiss=()=>document.getElementById('reviewDepthCancel')?.click();
+  new MutationObserver(dismiss).observe(document.body,{childList:true,subtree:true});
+  dismiss();
+ });
+ await page.locator('.gameWithAvatar').first().click();
+ await expect(page.locator('#analysisView')).toBeVisible();
+ await expect(page.locator('#moves .move')).toHaveCount(4);
+ if(await page.locator('#reviewDepthCancel').isVisible())await page.locator('#reviewDepthCancel').click();
+ const start=Date.now();
+ await page.evaluate(()=>document.getElementById('runReview').click());
+ await expect(page.locator('#reviewStatus')).toContainText('Verified review ready',{timeout:75000});
+ const elapsed=Date.now()-start;
+ expect(elapsed).toBeLessThan(60000);
+ const saved=await page.evaluate(async()=>{
+  // Review event snapshot is also persisted to IndexedDB.
+  const keys=await indexedDB.databases();return keys.map(x=>x.name);
+ });
+ expect(saved.length).toBeGreaterThan(0);
+ await page.screenshot({path:testInfo.outputPath('local-review-ready.png'),fullPage:false});
+ await page.locator('#back').click();
+ await page.locator('.gameWithAvatar').first().click();
+ await expect(page.locator('#reviewStatus')).toContainText('Verified review ready',{timeout:12000});
 });

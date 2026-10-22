@@ -1,4 +1,8 @@
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
+import {getLocalStockfish} from './local-stockfish.js';
+import {classifyStockfishMove,moverWinLossPct} from './review-v2-core.js';
+import {gameAccuracy} from './lichess-review.js';
+import {VERIFIED_REVIEW_VERSION} from './review-coverage.js';
 import { cacheGet,cacheSet,getPositionEval,setPositionEval,simpleHash } from './analysis-store.js';
 import { buildTacticalVerificationPlan } from './review-tactics.js';
 import { displayLineFor } from './review-display.js';
@@ -437,13 +441,51 @@ async function runReview(){
   const key=reviewKey(),requestedToken=reviewToken,saved=await cacheGet('review',key);if(requestedToken!==reviewToken||key!==reviewKey())return;if(saved?.version===REVIEW_VERSION&&reviewDepthIsCurrent(saved,getReviewDepthPreset())&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:false}))return;
   running=true;activeReview=null;signalRunning(true);const token=++reviewToken,btn=$('runReview');btn.disabled=true;btn.textContent='Reviewing…';clearTags();$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;const evals=new Array(positions.length).fill(null),bestMoves=new Array(positions.length).fill(''),positionExact=new Array(positions.length).fill(false);
   try{
-    await runCloudPass(positions,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
-    const fallback=missingFallbackIndexes(evals);for(let n=0;n<fallback.length;n++){if(token!==reviewToken)return;const i=fallback[n];$('reviewStatus').textContent=`Finishing quick review ${n+1}/${fallback.length}…`;try{const e=await liveEval(positions[i].fen);if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}}catch{}if(n<fallback.length-1)await sleep(35)}
-    const tactical=await runTacticalVerification(positions,sans,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
-    const exactCount=positionExact.filter(Boolean).length;if(exactCount<2)throw new Error('not enough engine positions were available; try again shortly');
-    interpolate(evals);const ucis=playedUcis(),losses=[],labels=[],whiteLoss=[],blackLoss=[],moveVerified=[];
-    for(let ply=1;ply<evals.length;ply++){const loss=moveLoss(evals[ply-1],evals[ply],ply),verified=!!positionExact[ply-1]&&!!positionExact[ply];losses.push(loss);moveVerified.push(verified);labels.push(classifyMove({loss,ply,before:evals[ply-1],after:evals[ply],played:ucis[ply-1],best:bestMoves[ply-1],verified}));(ply%2?whiteLoss:blackLoss).push(loss)}
-    const data={version:REVIEW_VERSION,evals,losses,labels,bestMoves,positionExact,moveVerified,tacticalPlan:tactical.plan.map(x=>({index:x.index,reason:x.reason})),whiteAccuracy:accuracy(whiteLoss),blackAccuracy:accuracy(blackLoss),updated:Date.now()};await cacheSet('review',key,data);displayReview(data,{showSummary:true});
+    const preset=getReviewDepthPreset(),localDepths=new Array(positions.length).fill(0),localPvs=new Array(positions.length).fill(''),localMultiLines=new Array(positions.length).fill(null),secondBestCps=new Array(positions.length).fill(null);
+    const engine=getLocalStockfish();
+    const started=performance.now();
+    let completed=0;
+    const maxMs=preset.key==='ultra'?38:preset.key==='fast'?65:preset.key==='balanced'?125:230;
+    // Analyse one position at a time on the Stockfish Web Worker. No external
+    // Lichess/Chess API network waterfalls or extra verification passes.
+    // Retain hash between positions and give UI a rendering opportunity.
+    for(let i=0;i<positions.length;i++){
+      if(token!==reviewToken)return;
+      const fen=positions[i].fen,terminal=new Chess(fen).isGameOver();
+      if(terminal){
+        const terminalChess=new Chess(fen);
+        evals[i]=terminalChess.isCheckmate()?(terminalChess.turn()==='w'?-10000:10000):0;
+        bestMoves[i]='';localDepths[i]=99;positionExact[i]=true;localPvs[i]='';localMultiLines[i]=[];
+      }else{
+        const result=await engine.analyse(fen,{movetime:maxMs,depth:preset.base,multipv:i<positions.length-1?2:1,clearHash:false});
+        if(token!==reviewToken)return;
+        if(!Number.isFinite(result.cp)||!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(result.best||''))throw new Error('Stockfish did not verify position '+(i+1));
+        evals[i]=result.cp;bestMoves[i]=result.best;
+        positionExact[i]=true;localDepths[i]=Math.max(1,result.depth||1);
+        localPvs[i]=result.pv||'';localMultiLines[i]=(result.lines||[]).slice(0,2).map(x=>({pv:x.pv||'',cp:x.cp,depth:x.depth||result.depth||1}));
+        if(Number.isFinite(result.lines?.[1]?.cp))secondBestCps[i]=result.lines[1].cp;
+      }
+      completed++;
+      if(i%3===0||completed===positions.length){
+        $('reviewStatus').textContent=`Stockfish review ${completed}/${positions.length} · ${Math.round((performance.now()-started)/1000)}s`;
+        await sleep(0);
+      }
+    }
+    const tactical={plan:[]};
+    const ucis=playedUcis(),losses=[],lossPct=[],labels=[],moveVerified=[],moveAccuracies=[],moveDepths=[];
+    for(let ply=1;ply<evals.length;ply++){
+      const i=ply-1;
+      const verified=!!positionExact[i]&&!!positionExact[ply];
+      const row=classifyStockfishMove({beforeCp:evals[i],afterCp:evals[ply],ply,played:ucis[i],best:bestMoves[i],secondBestCp:secondBestCps[i],legalMoveCount:new Chess(positions[i].fen).moves().length});
+      losses.push(row.lossPct/100);lossPct.push(row.lossPct);labels.push(row.label);
+      moveVerified.push(verified);moveAccuracies.push(row.accuracy);moveDepths.push(Math.min(localDepths[i],localDepths[ply]));
+    }
+    const data={version:REVIEW_VERSION,localStockfishVersion:21,verifiedReviewVersion:VERIFIED_REVIEW_VERSION,reviewDepthKey:preset.key,reviewBaseDepth:preset.base,reviewCriticalDepth:preset.critical,
+      reviewMethod:'Stockfish 19 local · bounded single-pass analysis · Lichess Win% loss',
+      localDepths,localPvs,localMultiLines,secondBestCps,moveDepths,moveAccuracies,lossPct,
+      evals,losses,labels,bestMoves,positionExact,moveVerified,tacticalPlan:tactical.plan.map(x=>({index:x.index,reason:x.reason})),
+      whiteAccuracy:gameAccuracy(evals,'white'),blackAccuracy:gameAccuracy(evals,'black'),reviewDurationMs:Math.round(performance.now()-started),updated:Date.now()};
+    await cacheSet('review',key,data);displayReview(data,{showSummary:true});
   }catch(e){$('reviewStatus').textContent='Game Review failed: '+(e?.name==='AbortError'?'engine request timed out':e.message)}finally{running=false;signalRunning(false);btn.disabled=false;if(!activeReview)btn.textContent='Review game'}
 }
 function resetReviewUI(){resetAutoReviewFlow();stopAutoPlay();reviewToken++;if(running)signalRunning(false);running=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}

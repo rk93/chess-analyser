@@ -64,3 +64,32 @@ test('Mobile bottom tabs reappear after review closes',async()=>{
  assert.ok(css.includes('body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav'));
  assert.ok(app.includes("document.querySelector('.homeTabs')?.style.removeProperty('display')"));
 });
+
+test('Review uses bounded local Stockfish and saves a reusable verified result',async()=>{
+ const source=await readFile('js/game-review.js','utf8');
+ const run=source.slice(source.indexOf('async function runReview(){'),source.indexOf('function resetReviewUI(){'));
+ assert.ok(run.includes('getLocalStockfish()'));
+ assert.ok(run.includes('movetime:maxMs'));
+ assert.ok(run.includes('clearHash:false'));
+ assert.ok(run.includes('reviewDepthKey:preset.key'));
+ assert.ok(run.includes('verifiedReviewVersion:VERIFIED_REVIEW_VERSION'));
+ assert.ok(run.includes('localDepths,localPvs,localMultiLines'));
+ assert.ok(!run.includes('await runCloudPass('));
+ assert.ok(!run.includes('await deepLiveEval('));
+ assert.ok(!run.includes('await liveEval('));
+});
+
+test('local Stockfish keeps its transposition table between review moves',async()=>{
+ const engine=await readFile('js/local-stockfish.js','utf8');
+ assert.ok(engine.includes("if(clearHash){this.worker.postMessage('ucinewgame')"));
+});
+
+test('Verified local review bypasses secondary pro and deep-correction engine passes',async()=>{
+ const main=await readFile('js/game-review.js','utf8');
+ const pro=await readFile('js/review-pro.js','utf8');
+ const corrections=await readFile('js/review-corrections.js','utf8');
+ assert.ok(main.includes('localStockfishVersion:21'));
+ assert.ok(pro.includes("if(Number(data.localStockfishVersion)>=20)return"));
+ assert.ok(corrections.includes("prior.localStockfishVersion===LOCAL_REVIEW_VERSION&&reviewCoverage(prior,positions).complete"));
+ assert.ok(corrections.includes("const LOCAL_REVIEW_VERSION=21"));
+});
