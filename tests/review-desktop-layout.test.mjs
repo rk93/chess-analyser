@@ -73,7 +73,7 @@ test('Review uses bounded local Stockfish and saves a reusable verified result',
  assert.ok(run.includes('clearHash:false'));
  assert.ok(run.includes('reviewDepthKey:preset.key'));
  assert.ok(run.includes('verifiedReviewVersion:VERIFIED_REVIEW_VERSION'));
- assert.ok(run.includes('localDepths,evals'));
+ assert.ok(run.includes('localDepths,localPvs,localMultiLines'));
  assert.ok(!run.includes('await runCloudPass('));
  assert.ok(!run.includes('await deepLiveEval('));
  assert.ok(!run.includes('await liveEval('));
