@@ -82,8 +82,9 @@ class LocalStockfish{
         }
       };
       this.worker.addEventListener('message',onMessage);
-      this.worker.postMessage('ucinewgame');
-      if(clearHash)this.worker.postMessage('setoption name Clear Hash');
+      // Reusing transposition knowledge across adjacent review positions is
+      // significantly cheaper than resetting Stockfish every half-move.
+      if(clearHash){this.worker.postMessage('ucinewgame');this.worker.postMessage('setoption name Clear Hash');}
       this.worker.postMessage('setoption name MultiPV value '+Math.max(1,Math.min(4,Number(multipv)||1)));
       this.worker.postMessage(`position fen ${fen}`);
       this.worker.postMessage(movetime>0?`go movetime ${movetime}`:`go depth ${depth}`);
