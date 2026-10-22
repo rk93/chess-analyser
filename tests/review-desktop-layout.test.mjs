@@ -83,3 +83,13 @@ test('local Stockfish keeps its transposition table between review moves',async(
  const engine=await readFile('js/local-stockfish.js','utf8');
  assert.ok(engine.includes("if(clearHash){this.worker.postMessage('ucinewgame')"));
 });
+
+test('Verified local review bypasses secondary pro and deep-correction engine passes',async()=>{
+ const main=await readFile('js/game-review.js','utf8');
+ const pro=await readFile('js/review-pro.js','utf8');
+ const corrections=await readFile('js/review-corrections.js','utf8');
+ assert.ok(main.includes('localStockfishVersion:21'));
+ assert.ok(pro.includes("if(Number(data.localStockfishVersion)>=20)return"));
+ assert.ok(corrections.includes("prior.localStockfishVersion===LOCAL_REVIEW_VERSION&&reviewCoverage(prior,positions).complete"));
+ assert.ok(corrections.includes("const LOCAL_REVIEW_VERSION=21"));
+});
