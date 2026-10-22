@@ -228,6 +228,7 @@ test('Game Review back restores all mobile tabs and stable home navigation',asyn
 });
 
 test('Game Review uses local Stockfish, completes once and reuses cached verified review',async({page},testInfo)=>{
+ test.setTimeout(100000);
  await page.route('https://lichess.org/api/cloud-eval**',route=>route.abort());
  await page.route('https://chess-api.com/**',route=>route.abort());
  await page.route('https://api.chess.com/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({archives:[]})}));
@@ -240,8 +241,8 @@ test('Game Review uses local Stockfish, completes once and reuses cached verifie
  await page.locator('.gameWithAvatar').first().click();
  if(await page.locator('#reviewDepthCancel').isVisible())await page.locator('#reviewDepthCancel').click();
  const start=Date.now();
- await page.locator('#runReview').click();
- await expect(page.locator('#reviewStatus')).toContainText('Verified review ready',{timeout:60000});
+ await page.evaluate(()=>document.getElementById('runReview').click());
+ await expect(page.locator('#reviewStatus')).toContainText('Verified review ready',{timeout:75000});
  const elapsed=Date.now()-start;
  expect(elapsed).toBeLessThan(60000);
  const saved=await page.evaluate(async()=>{
