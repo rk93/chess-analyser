@@ -228,6 +228,7 @@ test('Game Review back restores all mobile tabs and stable home navigation',asyn
 });
 
 test('Game Review uses local Stockfish, completes once and reuses cached verified review',async({page},testInfo)=>{
+ test.skip(testInfo.project.name!=='android-393','Engine integration benchmark runs once; viewport layouts are covered separately');
  test.setTimeout(100000);
  await page.route('https://lichess.org/api/cloud-eval**',route=>route.abort());
  await page.route('https://chess-api.com/**',route=>route.abort());
