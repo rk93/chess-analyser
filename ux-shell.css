@@ -335,3 +335,9 @@
  body:has(#homeView:not([hidden])) .homeTabs.modernNav,
  body:has(#libraryView:not([hidden])) .homeTabs.modernNav{display:flex!important;visibility:visible!important;opacity:1!important}
 }
+
+@media(max-width:800px){
+ body:has(#analysisView[style*="display: block"]) .homeTabs.modernNav{
+  display:none!important;visibility:hidden!important;pointer-events:none!important;
+ }
+}
