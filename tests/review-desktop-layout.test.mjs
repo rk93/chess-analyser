@@ -64,3 +64,17 @@ test('Mobile bottom tabs reappear after review closes',async()=>{
  assert.ok(css.includes('body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav'));
  assert.ok(app.includes("document.querySelector('.homeTabs')?.style.removeProperty('display')"));
 });
+
+test('Review uses bounded local Stockfish and saves a reusable verified result',async()=>{
+ const source=await readFile('js/game-review.js','utf8');
+ const run=source.slice(source.indexOf('async function runReview(){'),source.indexOf('function resetReviewUI(){'));
+ assert.ok(run.includes('getLocalStockfish()'));
+ assert.ok(run.includes('movetime:maxMs'));
+ assert.ok(run.includes('clearHash:false'));
+ assert.ok(run.includes('reviewDepthKey:preset.key'));
+ assert.ok(run.includes('verifiedReviewVersion:VERIFIED_REVIEW_VERSION'));
+ assert.ok(run.includes('localDepths,evals'));
+ assert.ok(!run.includes('await runCloudPass('));
+ assert.ok(!run.includes('await deepLiveEval('));
+ assert.ok(!run.includes('await liveEval('));
+});
