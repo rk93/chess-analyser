@@ -24,7 +24,54 @@ function gameKey(g){return g.url||`${g.end_time}-${g.white?.username}-${g.black?
 function syncMetaKey(u){return `chess-sync-meta:${u.toLowerCase()}`}
 function readSyncMeta(u){try{return JSON.parse(localStorage.getItem(syncMetaKey(u))||'null')||{archives:[],lastSync:0}}catch{return {archives:[],lastSync:0}}}
 function writeSyncMeta(u,meta){localStorage.setItem(syncMetaKey(u),JSON.stringify(meta))}
-async function sync({automatic=false}={}){const button=$('sync');try{button.disabled=true;const u=$('user').value.trim();if(!u)throw new Error('Enter a Chess.com username');localStorage.setItem('chess-username',u);$('status').textContent=automatic?'Checking Chess.com for new games…':'Finding Chess.com archives…';const a=await getJSON(`https://api.chess.com/pub/player/${encodeURIComponent(u)}/games/archives`);const archives=a.archives||[];const before=await allGames();const existing=new Set(before.map(gameKey));let meta=readSyncMeta(u);if(before.length&&(!meta.archives||!meta.archives.length))meta.archives=[...archives];const known=new Set(meta.archives||[]),neverSynced=archives.filter(x=>!known.has(x)),recent=archives.slice(-2);let targets=[...new Set([...neverSynced,...recent])];if(!before.length)targets=[...archives];let newCount=0;for(let i=0;i<targets.length;i++){$('status').textContent=`${automatic?'Auto-sync':'Sync'} ${i+1}/${targets.length} · ${newCount} new game${newCount===1?'':'s'}`;const d=await getJSON(targets[i]),batch=d.games||[];for(const g of batch){if(!existing.has(gameKey(g))){existing.add(gameKey(g));newCount++}}await putGames(batch)}const games=await allGames();renderGames(games,u);meta={archives:[...archives],lastSync:Date.now()};writeSyncMeta(u,meta);const time=new Date(meta.lastSync).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});$('status').textContent=newCount?`${newCount} new game${newCount===1?'':'s'} synced · ${games.length} saved · ${time}`:`Up to date · ${games.length} games saved · checked ${time}`}catch(e){$('status').textContent=(automatic?'Auto-sync failed: ':'Sync failed: ')+e.message}finally{button.disabled=false}}
+const SYNC_INTERVAL_MS=24*60*60*1000;
+let syncInFlight=null;
+function userGames(games,u){const name=u.toLowerCase();return games.filter(g=>String(g.white?.username||'').toLowerCase()===name||String(g.black?.username||'').toLowerCase()===name)}
+async function sync({automatic=false}={}){
+ if(syncInFlight)return syncInFlight;
+ syncInFlight=(async()=>{
+ const button=$('sync'),status=$('status');button.disabled=true;
+ try{
+  const u=$('user').value.trim();if(!u){if(!automatic)throw new Error('Enter a Chess.com username');status.textContent='Enter a Chess.com username to import games.';return}
+  const previous=localStorage.getItem('chess-username')||'';
+  localStorage.setItem('chess-username',u);
+  const before=userGames(await allGames(),u),meta=readSyncMeta(u);
+  const last=Number(meta.lastSync)||0;
+  // All entry points respect the same strict greater-than-one-day freshness guard.
+  if(last>0&&Date.now()-last<=SYNC_INTERVAL_MS){
+   renderGames(before,u);
+   status.textContent=`Using ${before.length} saved games · next check after 24 hours`;
+   if(previous.toLowerCase()!==u.toLowerCase())window.dispatchEvent(new Event('chessImportFinished'));
+   return;
+  }
+  status.textContent=before.length?'Checking for new Chess.com games…':'Importing Chess.com history…';
+  const response=await getJSON(`https://api.chess.com/pub/player/${encodeURIComponent(u)}/games/archives`);
+  const archives=response.archives||[],known=new Set(meta.archives||[]);
+  // Previously imported months are immutable except the current month and recent boundary.
+  // On the first import, download all archives; later, only newly discovered months
+  // and the latest archive (where today's games are still arriving).
+  const targets=before.length
+   ? [...new Set([...archives.filter(x=>!known.has(x)),...archives.slice(-1)])]
+   : archives;
+  const existing=new Set(before.map(gameKey));
+  let newCount=0;
+  for(let i=0;i<targets.length;i++){
+   status.textContent=`Downloading ${i+1}/${targets.length} monthly archives…`;
+   const d=await getJSON(targets[i]),batch=(d.games||[]).filter(g=>String(g.white?.username||'').toLowerCase()===u.toLowerCase()||String(g.black?.username||'').toLowerCase()===u.toLowerCase());
+   const added=batch.filter(g=>!existing.has(gameKey(g)));
+   for(const g of added)existing.add(gameKey(g));
+   if(added.length){await putGames(added);newCount+=added.length}
+  }
+  const games=userGames(await allGames(),u);renderGames(games,u);
+  writeSyncMeta(u,{archives:[...archives],lastSync:Date.now()});
+  // Refresh dependent views only when the local game collection actually changes.
+  if(newCount||previous.toLowerCase()!==u.toLowerCase())window.dispatchEvent(new CustomEvent('chessImportFinished',{detail:{username:u,newCount}}));
+  status.textContent=newCount?`${newCount} new games synced · ${games.length} saved`:`Up to date · ${games.length} saved games · next check in 24 hours`;
+ }catch(e){status.textContent=(automatic?'Auto-sync failed: ':'Sync failed: ')+e.message}
+ finally{button.disabled=false}
+ })();
+ try{return await syncInFlight}finally{syncInFlight=null}
+}
 const playerAvatarCache=new Map();
 function playerAvatar(username){
   const key=String(username||'').toLowerCase();
@@ -153,5 +200,5 @@ function showEval(data){const pvs=(data.pvs?.length?data.pvs:[data.pv]).filter(B
 function rerenderAppearance(){if(selectedGame)renderAll();const e=$('enginePieceIcon');if(e)e.innerHTML=pieceSvg('b','n')}
 window.addEventListener('chessPreference',e=>{if(e.detail?.key==='pieces')rerenderAppearance();if(e.detail?.key==='engine')clearEval()});
 $('sync').onclick=()=>sync({automatic:false});$('back').onclick=()=>{$('analysisView').style.display='none';$('libraryView').style.display='block';document.body.classList.remove('review-guided-active');document.querySelector('.homeTabs')?.classList.remove('reviewHidden');document.querySelector('.homeTabs')?.style.removeProperty('display');const guide=$('reviewGuideCard');if(guide)guide.hidden=true;};$('flip').onclick=()=>{orientation=orientation==='white'?'black':'white';renderAll();const cached=evalCache.get('local|'+currentChess.fen());if(cached)showEval(cached)};$('analyse').onclick=$('analyseMobile').onclick=analysePosition;$('start').onclick=()=>gotoPly(0);$('prev').onclick=()=>gotoPly(Math.max(0,currentPly-1));$('next').onclick=()=>gotoPly(Math.min(mainMoves.length,currentPly+1));$('end').onclick=()=>gotoPly(mainMoves.length);$('resetVariation').onclick=()=>gotoPly(currentPly);
-(async()=>{try{const savedUser=localStorage.getItem('chess-username');if(savedUser)$('user').value=savedUser;const u=$('user').value.trim(),saved=await allGames();renderGames(saved,u);$('status').textContent=saved.length?`Loaded ${saved.length} saved games · checking for new games…`:'No saved games yet · checking Chess.com…';await sync({automatic:true})}catch(e){$('status').textContent='Storage initialisation failed: '+e.message}})();
+(async()=>{try{const savedUser=localStorage.getItem('chess-username');if(savedUser)$('user').value=savedUser;const u=$('user').value.trim(),saved=await allGames();renderGames(userGames(saved,u),u);$('status').textContent=saved.length?`Loaded saved games from this device`:'No saved games yet';if(u)await sync({automatic:true})}catch(e){$('status').textContent='Storage initialisation failed: '+e.message}})();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');
