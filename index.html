@@ -65,12 +65,16 @@
 
   <section id="analyticsView" hidden>
     <div class="topbar"><h1>Analytics</h1><span class="badge">History</span></div>
+    <div class="analyticsModeTabs" role="tablist" aria-label="Analytics mode"><button id="myAnalyticsTab" class="analyticsModeTab active" type="button" role="tab" aria-selected="true" aria-controls="myAnalyticsPanel">My Analytics</button><button id="friendsAnalyticsTab" class="analyticsModeTab" type="button" role="tab" aria-selected="false" aria-controls="friendsAnalyticsPanel">Friends &amp; Players</button></div>
+    <div id="myAnalyticsPanel" role="tabpanel" aria-labelledby="myAnalyticsTab">
     <div class="analyticsToolbar card">
       <label>Period<select id="analyticsRange" class="input"><option value="30d">Last 30 days</option><option value="3m">Last 3 months</option><option value="1y" selected>Last year</option><option value="all">All history</option></select></label>
       <label>Time control<select id="analyticsTime" class="input"><option value="all">All</option><option value="rapid">Rapid</option><option value="blitz">Blitz</option><option value="bullet">Bullet</option><option value="daily">Daily</option></select></label>
       <label>Colour<select id="analyticsColor" class="input"><option value="all">Both colours</option><option value="white">White</option><option value="black">Black</option></select></label>
     </div>
     <div id="analyticsContent"><div class="card analyticsEmpty">Open Analytics to load your history.</div></div>
+    </div>
+    <div id="friendsAnalyticsPanel" role="tabpanel" aria-labelledby="friendsAnalyticsTab" hidden><div class="card analyticsEmpty"><h2>Friends &amp; Players</h2><p>Explore other Chess.com players here in an upcoming update.</p><p>Your own analytics remain available under My Analytics.</p></div></div>
   </section>
 
   <section id="topPlayersView" hidden>

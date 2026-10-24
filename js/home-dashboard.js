@@ -58,13 +58,14 @@ function create(){
  nav?.insertBefore(button,games);
  const view=document.createElement('section');view.id='homeView';view.hidden=true;
  view.innerHTML=`<header class="homeHero"><span class="coachAvatar coachWelcome homePip" aria-hidden="true"></span><div><h1>Your chess journey</h1><p>A little better, every game.</p></div></header>
- <div id="homeMetrics" class="homeMetrics" aria-live="polite"><div><strong>—</strong><small>Games</small></div><div><strong>—</strong><small>Win rate</small></div><div><strong>—</strong><small>Latest rating</small></div></div>
+ <button id="homeAnalyticsLink" class="homeAnalyticsLink" type="button" aria-label="View your full chess analytics"><span class="homeAnalyticsHeading">Your performance <span aria-hidden="true">↗</span></span><div id="homeMetrics" class="homeMetrics" aria-live="polite"><div><strong>—</strong><small>Games</small></div><div><strong>—</strong><small>Win rate</small></div><div><strong>—</strong><small>Latest rating</small></div></div><span class="homeAnalyticsFooter">View full analytics →</span></button>
  <section class="homeDailyCard"><div class="homeSectionTop"><h2>Daily puzzle</h2><span>♟ A new challenge each day</span></div><div class="homeDailyBody"><span class="homeDailyIcon" aria-hidden="true">♞</span><div><strong>Find today's best move</strong><p>Practise your calculation with Pip.</p></div></div><button type="button" class="homePrimary" id="homeSolvePuzzle">Solve puzzle →</button></section>
  <section class="homeRecentSection"><div class="homeSectionTop"><h2>Recent games</h2><button id="homeViewAllGames" type="button">All games →</button></div><div class="homeRecentScroller" id="homeRecentScroller" role="region" aria-label="Five most recent games, swipe horizontally" tabindex="0"><p class="homeEmpty">Your recent games will appear here after syncing.</p></div></section>
  <section class="homeOpeningCard"><div class="homeSectionTop"><h2>Most played opening</h2><span>♟</span></div><strong id="homeOpeningName">Sync games to discover your openings</strong><p id="homeOpeningCount">Based on your saved games</p></section>
  <section class="homeInsightCard"><h2>Pip's insight</h2><p id="homeInsightText">Every great move starts with one good idea. Review a game or solve a puzzle today.</p></section>`;
  const library=$('libraryView');library?.parentNode?.insertBefore(view,library);
  button.addEventListener('click',show);
+ $('homeAnalyticsLink').addEventListener('click',()=>{const tab=$('analyticsTab');if(tab)tab.click();});
  $('homeViewAllGames').addEventListener('click',()=>$('gamesTab')?.click());
  $('homeSolvePuzzle').addEventListener('click',()=>$('puzzlesTab')?.click());
  document.addEventListener('click',e=>{
