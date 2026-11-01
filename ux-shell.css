@@ -341,3 +341,11 @@
   display:none!important;visibility:hidden!important;pointer-events:none!important;
  }
 }
+
+/* Explicit review state wins over stale legacy style-attribute selectors. */
+@media(max-width:800px){
+ body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav,
+ body:has(#analysisView[style*="display: none"]) .homeTabs.modernNav{
+  display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;
+ }
+}
