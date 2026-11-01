@@ -226,3 +226,48 @@ test('Game Review back restores all mobile tabs and stable home navigation',asyn
  await expect(page.locator('.homeTabs.modernNav')).toBeVisible();
  await page.screenshot({path:testInfo.outputPath('tabs-after-review-back.png'),fullPage:false});
 });
+
+test('review exit restores every bottom icon after stale inline hiding on Home and other tabs',async({page},testInfo)=>{
+ await page.goto('/');
+ await page.locator('#gamesTab').click();
+ await page.evaluate(()=>{
+  document.getElementById('analysisView').style.display='block';
+  document.getElementById('libraryView').style.display='none';
+  const nav=document.querySelector('.homeTabs');
+  nav.classList.add('reviewHidden');
+  nav.style.display='none';
+  document.body.classList.add('review-guided-active');
+ });
+ await page.locator('#back').click();
+ await page.locator('#homeDashboardTab').click();
+ const nav=page.locator('.homeTabs.modernNav');
+ await expect(nav).toBeVisible();
+ for(const id of ['homeDashboardTab','gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav']){
+  await expect(page.locator('#'+id)).toBeVisible();
+ }
+ await expect(nav).not.toHaveClass(/reviewHidden/);
+ await expect(page.locator('body')).not.toHaveClass(/review-guided-active/);
+ await page.screenshot({path:testInfo.outputPath('review-to-home-all-tabs-visible.png'),fullPage:false});
+ for(const tab of ['explorerTab','puzzlesTab','analyticsTab','topPlayersTab','boardLabTab','gamesTab','homeDashboardTab']){
+  await page.locator('#'+tab).click();
+  await expect(nav).toBeVisible();
+  await expect(page.locator('#explorerTab')).toBeVisible();
+  await expect(page.locator('#puzzlesTab')).toBeVisible();
+ }
+});
+
+test('Android Back from review reconciles hidden navigation without reloading',async({page})=>{
+ await page.goto('/');
+ await page.locator('#gamesTab').click();
+ await page.evaluate(()=>{
+  document.getElementById('analysisView').style.display='block';
+  document.getElementById('libraryView').style.display='none';
+  document.querySelector('.homeTabs').style.display='none';
+  document.body.classList.add('review-guided-active');
+  history.pushState({chessNav:true,screen:'analysis'},'');
+ });
+ await page.goBack();
+ await expect(page.locator('#analysisView')).toBeHidden();
+ await expect(page.locator('.homeTabs.modernNav')).toBeVisible();
+ await expect(page.locator('#puzzlesTab')).toBeVisible();
+});
