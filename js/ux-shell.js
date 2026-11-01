@@ -116,5 +116,47 @@ function installConnectivityIndicator(){
  refresh();
 }
 
-function observe(){installConnectivityIndicator();installInAppBack();installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
+
+// Review and tab modules own different parts of the screen. Reconcile their
+// visibility whenever either route changes, including hardware/browser Back.
+function installNavVisibilityGuard(){
+ const nav=document.querySelector('.homeTabs');
+ const analysis=$('analysisView');
+ if(!nav||!analysis)return;
+ let pending=false;
+ const sync=()=>{
+  pending=false;
+  const inReview=analysis.style.display==='block'&&!analysis.hidden;
+  if(inReview)return;
+  // Only clear transient Review hiding; never disturb the selected tab.
+  if(document.body.classList.contains('review-guided-active'))document.body.classList.remove('review-guided-active');
+  if(nav.classList.contains('reviewHidden'))nav.classList.remove('reviewHidden');
+  if(nav.style.display==='none')nav.style.removeProperty('display');
+  if(nav.hidden)nav.hidden=false;
+  if(nav.style.visibility==='hidden')nav.style.removeProperty('visibility');
+  if(nav.style.opacity==='0')nav.style.removeProperty('opacity');
+  // The tab buttons must remain available after DOM redecoration.
+  for(const id of ['homeDashboardTab','gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav']){
+   const button=$(id);
+   if(button?.hidden)button.hidden=false;
+   if(button?.style.display==='none')button.style.removeProperty('display');
+  }
+ };
+ const schedule=()=>{if(pending)return;pending=true;requestAnimationFrame(sync)};
+ const observer=new MutationObserver(schedule);
+ observer.observe(analysis,{attributes:true,attributeFilter:['style','hidden','class']});
+ observer.observe(nav,{attributes:true,attributeFilter:['style','hidden','class'],childList:true,subtree:false});
+ observer.observe(document.body,{attributes:true,attributeFilter:['class']});
+ for(const id of ['homeView','libraryView','boardLabView','explorerView','puzzlesView','analyticsView','topPlayersView','settingsView']){
+  const view=$(id);
+  if(view)observer.observe(view,{attributes:true,attributeFilter:['style','hidden']});
+ }
+ window.addEventListener('popstate',schedule);
+ document.addEventListener('click',e=>{
+  if(e.target.closest?.('.homeTabs .homeTab,#back,#explorerHome'))schedule();
+ },true);
+ schedule();
+}
+
+function observe(){installNavVisibilityGuard();installConnectivityIndicator();installInAppBack();installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();
