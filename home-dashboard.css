@@ -66,21 +66,6 @@
 .homePracticeCard{padding:12px;border:1px solid #5b7049;border-radius:10px;background:#262c22;color:#d8eac8;font-size:13px;line-height:1.5;text-align:left;cursor:pointer;min-height:44px}
 .homePracticeCard:focus-visible{outline:3px solid #a4cd7f;outline-offset:2px}
 .homePracticeCard:disabled{opacity:.6;cursor:wait}
-.playerComparison{max-width:100%;box-sizing:border-box;padding:18px}
-.playerCompareFields{display:grid;grid-template-columns:1fr 1fr 130px;gap:12px;margin:16px 0}
-.playerCompareFields label{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:13px}
-.playerCompareFields input,.playerCompareFields select{box-sizing:border-box;width:100%;min-width:0;min-height:44px;background:#262821;border:1px solid #63724f;border-radius:8px;color:#f1f1e9;padding:9px;font:inherit}
-.playerCompareFetch{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.5;margin:15px 0}
-.playerCompareFetch input{flex:none;min-width:18px;min-height:18px}
-#playerCompareStatus{font-size:13px;line-height:1.5}
-#playerCompareResults{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
-.playerCompareCard{border:1px solid #4c5b3e;border-radius:14px;padding:15px;min-width:0;overflow-wrap:anywhere}
-.playerCompareCard h3{margin:0 0 10px;color:#cae6ad}
-.playerCompareCard p{font-size:13px;line-height:1.5;color:#bac9ab}
-.playerCompareCard dl{margin:12px 0}
-.playerCompareCard dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 0;border-bottom:1px solid #424a39;font-size:13px}
-.playerCompareCard dd{font-weight:800;margin:0;text-align:right}
-@media(max-width:650px){.playerCompareFields,#playerCompareResults{grid-template-columns:1fr}.playerCompareFields input{font-size:16px}}
 @media(max-width:430px){.homeRatingRow{grid-template-columns:1fr}.homeRatingRow svg{max-height:65px}#homeOpeningInsights{grid-template-columns:1fr}}
 #homeDashboardTab .homeNavSymbol{font-size:26px;line-height:1.1;display:block}
 @media(max-width:800px){.homeTabs{overflow-x:auto!important;justify-content:flex-start!important;scrollbar-width:none}.homeTabs::-webkit-scrollbar{display:none}.homeTabs .homeTab{flex:0 0 65px!important;min-width:65px!important}#homeView{padding:10px 12px 104px}.homeRecentCard{min-width:156px;width:44vw}.homeMetrics>div{padding:9px 10px}.homeDailyIcon{width:64px;height:64px}}

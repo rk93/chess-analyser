@@ -4,12 +4,37 @@ Home should answer: **How am I doing? Where am I struggling? What should I do ne
 
 Prefer complete, tested increments. Public game results describe outcomes; tactical advice requires verified engine evidence. Never infer a playing style or a causal weakness from win rate alone. All personal features must filter the selected account, preserve stored games and separate rating pools.
 
+## Friends & Players increment
+
+Starting point: latest `main`, commit `07c62ab` (merged PR #61). Branch: `codex/friends-player-discovery`.
+
+| Priority | Improvement | Acceptance criteria | Status / validation |
+| --- | --- | --- | --- |
+| P0 | Preserve navigation and stored data | Existing mobile/desktop routes, personal reviews, training and offline shell pass; no IndexedDB schema change or library contamination | Complete: 128 regression tests and 104 browser checks passed |
+| P1 | Intelligent player selection | Autofill the configured user; searchable opponents/favourites/recent searches; keyboard and touch selection; account-scoped persistence and clear loading/empty/error states | Implemented; documented public friends access was not established, so no private or undocumented integration is attempted |
+| P1 | Multi-format profile comparison | Separate Bullet/Blitz/Rapid/Daily, recorded public ratings and avatars, per-format drilldown, common date window, source separation, cache-first bounded fetch, cancellation | Complete: fixture coverage, all three mobile widths and desktop passed |
+| P2 | Opening and head-to-head study | Opening sample thresholds, colour/format groups, rating bands, representative opening/game replay through existing Analysis Board; deduplicate head-to-head encounters | Implemented; no engine claims inferred from outcomes |
+
+Validation and original before/after screenshots: [FRIENDS-PLAYERS-VALIDATION.md](docs/FRIENDS-PLAYERS-VALIDATION.md).
+
+Research and limitations: [FRIENDS-DISCOVERY-RESEARCH.md](docs/FRIENDS-DISCOVERY-RESEARCH.md). No friends endpoint or authorization flow was verified, and the UI labels alternative discovery sources explicitly. Official docs and live API access remain blocked by the environment proxy; the accessible secondary documentation is not presented as authoritative proof of current friends capabilities.
+
+## Remaining priorities from the product transformation brief
+
+1. **P0 reliability:** maintain navigation and mobile review controls; investigate concrete regressions before adding features.
+2. **P1 discovery refinements:** additional profile learning links and improved offline sample management; reconsider real friend import only with verified official documentation and authorization support.
+3. **P2 intelligence:** Opponent Scout with three evidenced preparation actions; recurring legal opening sequences, repertoire changes and early deviations; reliable game-duration extraction; an expanded weakness framework separating result observations from verified tactical/phase evidence. Never claim tactics, endgames, pawn structure or king-safety weaknesses from results alone.
+4. **P3 personal command centre:** Chess Pulse, daily insight, evidenced growth areas, resume review/training and meaningful milestones; keep initial loading bounded and preserve real board previews.
+5. **P4 coherent screen improvements:** Games filtering/previews, guided review moments, Analysis Board sharing, Explorer attribution, educational puzzles, interactive analytics and public Top Player study links. Extend existing components rather than adding parallel implementations.
+
+These are later independently shippable stages, not completed capabilities of this increment. Each requires full regression checks, 360/393/430px and relevant desktop coverage, screenshot inspection, evidence/source disclosures and a review-ready PR. Do not merge while required checks are incomplete.
+
 ## Current increment: personal insights and training
 
 | Feature | Player benefit | Data dependencies | Priority | Status | Validation / PR |
 | --- | --- | --- | --- | --- | --- |
 | Personal Home / Chess DNA | Results, current streak, colour scores, rating trends and personal rating bests | Local standard-chess games, rated observations grouped by time control | P0 | Implemented | 114 regression tests and 81 browser tests passed; branch `codex/personal-chess-insights` |
-| Opening intelligence | Strongest/weakest observed results and a source-game review action | PGN Opening/ECOUrl, colour, time control, at least five completed games per group | P0 | Implemented | Sample-size, missing-data and account-isolation checks; PR pending GitHub API access |
+| Opening intelligence | Strongest/weakest observed results and a source-game review action | PGN Opening/ECOUrl, colour, time control, at least five completed games per group | P0 | Implemented | Sample-size, missing-data and account-isolation checks; merged in PR #61 |
 | Rolling weekly performance report | Wins/draws/losses, activity comparison and rating changes with a pre-week baseline | Game end timestamps, saved archives, separate rated pools | P0 | Implemented | Disjoint date-window and rating-baseline unit checks |
 | Learn from your games | Exercises from the player's own verified mistakes, with local progress | PGN positions, verified Stockfish reviews, fresh depth-12 solution check | P0 | Implemented | Real-engine browser check covers retry, solve, reload and account switching |
 | Evidence-based improvement coach | Prioritize repeat missed captures/checkmates found across at least three distinct reviewed games | Verified practice candidates; no guessed fork/pin labels | P1 | Implemented, limited to reliable motifs | Unknown, incomplete, low-depth and stale solutions rejected |
@@ -32,7 +57,7 @@ Prefer complete, tested increments. Public game results describe outcomes; tacti
 
 ## Validation and release policy
 
-- Validation completed: `npm test` (114 passed) and the full Playwright matrix at 360px, 393px and 430px (81 passed), including existing game-review, offline and navigation regressions. Real Stockfish training and mobile/desktop screenshots were verified. Live public API availability remains unverified.
+- Previous increment (#61) validation: `npm test` (114 passed) and the full Playwright matrix at 360px, 393px and 430px (81 passed), including existing game-review, offline and navigation regressions. Real Stockfish training and mobile/desktop screenshots were verified. Live public API availability remains unverified.
 - Capture and inspect mobile and desktop screenshots for changed flows.
 - Test account switching, old/missing/corrupt data, unknown outcomes and empty samples.
 - Home summaries do no engine or network work. Personal-training discovery is explicit and bounded to the most recent 60 saved standard-chess games; fresh computation begins only when an exercise is selected.
