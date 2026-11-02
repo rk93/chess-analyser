@@ -84,6 +84,9 @@ function installInAppBack(){
   if(history.state?.screen!==screen)history.pushState({chessNav:true,screen},'');
  },true);
  // Entering a saved game's analysis is a separate in-app destination.
+ window.addEventListener('savedGameOpened',()=>{
+  if(!restoring&&history.state?.screen!=='analysis')history.pushState({chessNav:true,screen:'analysis'},'');
+ });
  document.addEventListener('click',event=>{
   if(restoring)return;
   const card=event.target.closest?.('#games .game');
