@@ -6,7 +6,7 @@ Prefer complete, tested increments. Public game results describe outcomes; tacti
 
 ## Friends & Players increment
 
-Starting point: latest `main`, commit `07c62ab` (merged PR #61). Branch: `codex/friends-player-discovery`.
+Merged in [PR #62](https://github.com/rk93/chess-analyser/pull/62) as `32bd26f`. Its updated unit and browser CI jobs passed after pinning the visual runner to Ubuntu 24.04, which the installed Playwright version supports.
 
 | Priority | Improvement | Acceptance criteria | Status / validation |
 | --- | --- | --- | --- |
@@ -19,11 +19,25 @@ Validation and original before/after screenshots: [FRIENDS-PLAYERS-VALIDATION.md
 
 Research and limitations: [FRIENDS-DISCOVERY-RESEARCH.md](docs/FRIENDS-DISCOVERY-RESEARCH.md). No friends endpoint or authorization flow was verified, and the UI labels alternative discovery sources explicitly. Official docs and live API access remain blocked by the environment proxy; the accessible secondary documentation is not presented as authoritative proof of current friends capabilities.
 
+## Opponent Scout increment
+
+Starting point: `main` commit `32bd26f`. Branch: `codex/opponent-scout`. Extends Friends & Players and its existing data client and Analysis Board.
+
+| Priority | Improvement | Acceptance criteria | Status |
+| --- | --- | --- | --- |
+| P1 | Offline cached public study | Initial load reuses cached metadata/archives; explicitly labelled refresh revalidates; personal Games remain separate | Implemented; offline and explicit-refresh browser coverage |
+| P2 | Three preparation actions | White openings, Black defences, difficult result samples or repeated lines; supporting counts, dates, colour, format and evidence limits | Implemented; insufficient samples remain explicit |
+| P2 | Repeated opening lines | Legal first six plies from at least three distinct games, split by colour; actual board replay; reject invalid PGNs and nonstandard starting positions | Implemented; no Stockfish or active-game endpoints |
+| P2 | Duration and recent changes | Explicit UTC timestamps, five-duration minimum; disjoint 30-day windows with ten outcomes each; per-colour repertoire share thresholds | Implemented; duration means wall-clock elapsed time |
+| P0 | Bounded, cancellable study | Lazy parsing of at most 200 newest selected-format games; progress every ten; cancel/retry; invalidate on account/source/cohort changes | Implemented; full validation recorded in the linked report |
+
+Validation, acceptance evidence and screenshots: [OPPONENT-SCOUT-VALIDATION.md](docs/OPPONENT-SCOUT-VALIDATION.md).
+
 ## Remaining priorities from the product transformation brief
 
 1. **P0 reliability:** maintain navigation and mobile review controls; investigate concrete regressions before adding features.
-2. **P1 discovery refinements:** additional profile learning links and improved offline sample management; reconsider real friend import only with verified official documentation and authorization support.
-3. **P2 intelligence:** Opponent Scout with three evidenced preparation actions; recurring legal opening sequences, repertoire changes and early deviations; reliable game-duration extraction; an expanded weakness framework separating result observations from verified tactical/phase evidence. Never claim tactics, endgames, pawn structure or king-safety weaknesses from results alone.
+2. **P1 discovery refinements:** additional profile learning links and cached-sample management (cache-first offline loading is covered in the Scout increment); reconsider real friend import only with verified official documentation and authorization support.
+3. **P2 intelligence:** after Scout, implement repertoire deviations and an expanded weakness framework separating result observations from verified tactical/phase evidence, with representative game/position links and review coverage. Never claim tactics, endgames, pawn structure or king-safety weaknesses from results alone.
 4. **P3 personal command centre:** Chess Pulse, daily insight, evidenced growth areas, resume review/training and meaningful milestones; keep initial loading bounded and preserve real board previews.
 5. **P4 coherent screen improvements:** Games filtering/previews, guided review moments, Analysis Board sharing, Explorer attribution, educational puzzles, interactive analytics and public Top Player study links. Extend existing components rather than adding parallel implementations.
 
@@ -50,7 +64,7 @@ These are later independently shippable stages, not completed capabilities of th
 | Training improvement over time | Show whether practice carries over into real games | Versioned attempt history, per-game review coverage and comparable periods | P1 | Planned: count assisted answers separately and account for differing game/review sample sizes |
 | Spaced personal puzzle training | Revisit difficult positions at useful intervals | Verified exercises and persistent per-player progress | P2 | Planned: accessible session queue, due dates, reveal/assist state and multi-move solution verification |
 | Performance by time of day | Find descriptive patterns without small-sample exaggeration | Explicit timezone and reliable timestamps; minimum samples | P2 | Planned: distinguish UTC time from local playing time and avoid causal claims |
-| Game-duration and clock insights | Understand time-management issues | Reliable start/end or clock annotations with increment semantics | P2 | Research: do not substitute time control, end timestamp or move count for actual elapsed duration |
+| Game-duration and clock insights | Understand elapsed duration and time-management observations | Explicit UTC start and actual end timestamps; reliable clock annotations with increment semantics for future move-time work | P2 | Partial: Scout elapsed-duration median and explicit timeout results implemented; per-move clock research remains |
 | Most instructive recent game | Find the best review target, beyond the latest loss | Verified evaluation swings, player identity and review availability | P2 | Planned: rank only analyzed games and make missing coverage visible |
 | Personal milestones | Recognize rating bests and meaningful achievements | Separate rated pools and reliable historical baselines | P2 | Partial: saved-rating bests implemented; additional achievements need explicit definitions and persistence |
 | Recent versus historical performance | Compare like-for-like results and opponent strength | Pool, colour, opponent ratings, sufficiently large comparable periods | P2 | Planned: display sample sizes and uncertainty; never label a small fluctuation statistically significant |
@@ -65,5 +79,5 @@ These are later independently shippable stages, not completed capabilities of th
 - Public comparisons use sequential requests, at most three monthly archives per player, keep at most 6,000 games per public sample and cache samples separately for 24 hours. They never import another player's samples into the Games library.
 - Commit only reviewed source, tests and documentation. Keep dependencies, generated reports and local cloud helpers out of commits.
 - The user authorized committing passing changes and merging a PR after successful review. Do not bypass branch protection, required reviews or failing checks.
-- GitHub API access (`api.github.com`) is currently blocked by the environment network policy. A domain addition is saved in the environment configuration draft. Branch push permission was verified with a dry run. PR creation, issue/discussion research, server-side checks and merging require API access to be restored.
+- GitHub API access (`api.github.com`) is currently blocked by the environment network policy. A domain addition is saved in the environment configuration draft. Native Git and public GitHub PR/Actions pages are reachable; PR #62's merge and successful updated jobs were verified through those sources. Authenticated PR creation and merging still require a working supported authenticated interface.
 - No unattended recurring runner is installed or scheduled. A future scheduled execution should inspect this roadmap and current repository state before selecting its next complete increment.

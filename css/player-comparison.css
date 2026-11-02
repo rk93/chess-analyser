@@ -125,7 +125,32 @@
 .pcOpening details[open] summary:after{content:'−'}.pcOpening details p{margin:0 0 9px;line-height:1.5}
 .pcHeadToHead>p{font-size:13px;line-height:1.6}.pcEncounterList{display:grid;gap:8px}
 .pcEncounter{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--pc-deep);color:var(--pc-ink);border:1px solid var(--pc-line);border-radius:10px;padding:11px 12px;min-height:44px;font-size:12px;text-align:left;line-height:1.5}
+.pcStudyModes{display:flex;gap:20px;border-bottom:1px solid var(--pc-line);margin:0 0 18px}
+.pcStudyModes button{min-height:48px;border:0;border-bottom:2px solid transparent;background:none;color:var(--pc-muted);font-size:14px;font-weight:700;padding:8px 0}
+.pcStudyModes button[aria-pressed=true]{color:var(--pc-accent);border-bottom-color:var(--pc-accent)}
+.pcScoutHero{border-left:3px solid var(--pc-accent);padding:6px 0 6px 18px}
+.pcScoutHero h3{font-size:clamp(26px,5vw,38px);letter-spacing:-.04em;margin:8px 0;overflow-wrap:anywhere}
+.pcScoutHero p,.pcScoutAction p{font-size:13px;line-height:1.65;color:var(--pc-muted)}
+.pcScoutHero p{max-width:620px}
+.pcScoutStats{display:flex;gap:24px;flex-wrap:wrap;margin:20px 0 8px;font-size:11px;color:var(--pc-muted)}
+.pcScoutStats strong{display:block;font-size:23px;letter-spacing:-.025em;color:var(--pc-ink);margin-bottom:5px}
+.pcScoutPlan{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px}
+.pcScoutAction{display:flex;flex-direction:column;align-items:flex-start;background:var(--pc-deep);border:1px solid var(--pc-line);border-radius:14px;padding:18px;min-width:0}
+.pcScoutStep{display:flex;align-items:center;gap:10px;color:var(--pc-accent);font-size:19px}
+.pcScoutStep small{font-size:10px;line-height:1.5;color:var(--pc-muted)}
+.pcScoutAction h4{font-size:17px;line-height:1.4;margin:15px 0 0;letter-spacing:-.015em}
+.pcScoutAction>small{display:block;font-size:10px;margin:auto 0 14px;padding-top:8px}
+.pcScoutAction .pcButton{font-size:11px;width:100%;margin-top:auto}
+.pcScoutLines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.pcScoutLine{padding:16px;background:var(--pc-deep);border-radius:12px;min-width:0}
+.pcScoutMoves{line-height:1.9;font-size:15px;font-weight:650;overflow-wrap:anywhere}
+.pcScoutMoves>span{color:var(--pc-muted);font-size:11px;font-weight:400}
+.pcScoutLine .pcMuted{display:block;margin-bottom:12px;font-size:10px}
+.pcScoutLoading{padding:28px 12px;text-align:center;color:var(--pc-muted);font-size:13px}
+.pcScoutLoading h3{color:var(--pc-ink)}
+#opponentScoutPanel .pcDetail>strong{font-size:15px;line-height:1.5;display:block}
 @media(max-width:600px){
+ .pcScoutPlan,.pcScoutLines{grid-template-columns:1fr}.pcScoutAction{padding:16px}.pcScoutAction>small{margin-top:0}.pcScoutStats{gap:16px}.pcScoutStats strong{font-size:21px}.pcScoutHero{padding-left:14px}
  .playerComparison{padding:0 0 24px}.pcHero{padding:16px 4px 18px}.pcProfileCards{gap:8px}.pcProfile{padding:11px}.pcIdentity{flex-direction:row;align-items:center;gap:8px;margin:4px 0 10px}.pcIdentity>div{width:auto}
  .pcHasComparison .pcDiscoveryChips,.pcHasComparison .pcHero p{display:none}
  .pcAvatar{width:48px;height:48px;border-radius:13px;font-size:17px}.pcAvatarSmall{width:34px;height:34px;font-size:11px}.pcRatings{grid-template-columns:1fr 1fr;gap:10px}.pcRatings strong{font-size:19px}.pcProfile>small{font-size:9px;line-height:1.5}
