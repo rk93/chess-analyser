@@ -51,7 +51,13 @@ Personal insights use only the selected player's saved standard-chess games. Rat
 
 The weekly report covers a rolling seven-day window. Its rating changes require a saved observation from before that window; incomplete archives can produce incomplete reports. Personal practice checks up to 60 recent saved games for verified reviews, then rechecks each selected solution locally before teaching it. A changed recommendation requires the game to be reviewed again.
 
-Public player comparisons are available in **Analytics → Friends & Players**. Fetching is explicit, sequential and limited to three monthly archives per player. Samples are cached for 24 hours, retain up to 6,000 games and stay separate from the Games library. Comparisons disclose their date ranges and sample sizes; they do not establish which player is stronger.
+Public player comparisons are available in **Analytics → Friends & Players**. Your configured username is filled in automatically. Pick a recent opponent, search locally known usernames, or enter an exact new username. Favourites and recent searches are stored separately for each configured account. These suggestions are not imported Chess.com friends; no supported public friends-list integration has been verified.
+
+The **Overview** compares Bullet, Blitz, Rapid and Daily without combining ratings across formats. Select a format for rating sparklines, recent form and colour scores. **Saved games**, **Public sample** and **Lifetime stats** remain distinct sources. Public profiles show recorded ratings and available avatars; lifetime statistics do not supply historical opening or rating trends.
+
+Opening fingerprints show the most recorded White and Black groups, sample sizes, colour/format-specific outcomes and opponent-strength details. **Replay** opens the existing Analysis Board and its Forward/Back controls, with no automatic engine work. Head-to-head encounters are deduplicated within the available selection; finding none does not imply that the players have never met.
+
+Fetching is explicit, cancellable, sequential and limited to three monthly archives per player. Cache freshness respects API response headers, with a 24-hour default. Samples retain up to 6,000 displayed games and stay separate from the Games library. Both players use the same selected date window, with actual sample coverage disclosed. Offline caches are labelled when stale. See [API research and evidence limits](docs/FRIENDS-DISCOVERY-RESEARCH.md).
 
 See [PRODUCT-ROADMAP.md](PRODUCT-ROADMAP.md) for implemented increments, evidence requirements and planned features.
 
