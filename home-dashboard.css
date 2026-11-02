@@ -1,10 +1,11 @@
 /* Personal home dashboard — independent from the full Games library. */
 #homeView[hidden]{display:none!important}
-#homeView{max-width:800px;width:100%;box-sizing:border-box;margin:0 auto;padding:14px 14px 110px;color:#f1f1e9}
+#homeView{--home-ink:#f1f3e9;--home-muted:#b8c1ad;--home-accent:#b0d380;--home-deep:#23271f;--home-line:#46513a;max-width:1040px;width:100%;box-sizing:border-box;margin:0 auto;padding:24px 18px 110px;color:var(--home-ink)}
 .homeHero{display:flex;align-items:center;gap:15px;margin:4px 0 15px}
 .homeHero .homePip{width:67px;height:67px;border:2px solid #7fa857;background-color:#20432c;box-shadow:0 4px 13px #0005}
 .homeHero h1{margin:0;font-size:clamp(21px,5.5vw,28px);line-height:1.15;letter-spacing:-.025em}
 .homeHero p{margin:5px 0 0;color:#bbc5b4;font-size:14px}
+.homeHero>div{min-width:0}.homeHero h1{overflow-wrap:anywhere}
 .homeMetrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin:0 0 15px}
 .homeMetrics>div{background:#302f2a;border:1px solid #414439;border-radius:13px;padding:11px 12px;display:flex;flex-direction:column;gap:4px}
 .homeMetrics strong{font-size:clamp(18px,4.8vw,25px);line-height:1.15;font-variant-numeric:tabular-nums}
@@ -44,7 +45,7 @@
 .homeTextButton{margin-top:12px;background:none;border:0;padding:10px 0;color:#b0db87;font-size:14px;font-weight:750;cursor:pointer;text-align:left}
 .homeTextButton:focus-visible,#homeTimeClass:focus-visible{outline:3px solid #a4cd7f;outline-offset:3px}
 .homePoolLabel{font-size:11px;color:#c1c8b8;display:flex;gap:4px;flex-direction:column}
-#homeTimeClass{background:#262821;color:#f1f1e9;border:1px solid #647a50;border-radius:8px;min-height:40px;padding:5px 8px;max-width:135px;font:inherit;font-size:13px}
+#homeTimeClass{background:#262821;color:#f1f1e9;border:1px solid #647a50;border-radius:8px;min-height:44px;padding:5px 8px;max-width:135px;font:inherit;font-size:13px}
 .homeColorResults{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
 .homeColorResults>div{padding:11px;border-radius:10px;background:#262821;display:flex;flex-direction:column;gap:7px;font-size:13px;min-width:0}
 .homeColorResults span{color:#b4c1aa;font-size:11px}
@@ -66,6 +67,50 @@
 .homePracticeCard{padding:12px;border:1px solid #5b7049;border-radius:10px;background:#262c22;color:#d8eac8;font-size:13px;line-height:1.5;text-align:left;cursor:pointer;min-height:44px}
 .homePracticeCard:focus-visible{outline:3px solid #a4cd7f;outline-offset:2px}
 .homePracticeCard:disabled{opacity:.6;cursor:wait}
+/* Command centre: shared tokens, distinct emphasis for pulse, coach and study. */
+#homeView [hidden]{display:none!important}
+#homeView svg{flex:none}
+#homeView .homeTextButton{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin-top:0}
+#homeView .homeTextButton svg,#homeView .homeEvidenceGame svg,#homeView .homeContinueAction>svg{width:20px;height:20px}
+.homeEyebrow{display:block;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--home-accent);font-weight:750;margin-bottom:8px}
+.homePulse{padding:22px;border:1px solid var(--home-line);border-radius:22px;background:linear-gradient(140deg,#35452b,#292e24 70%);margin-bottom:18px;min-width:0}
+.homePulse .homeSectionTop{align-items:flex-start}.homePulse .homeSectionTop h2{font-size:25px;letter-spacing:-.035em}
+.homePulse .homeMetrics>div{background:#20271c77;border-color:#5b6e464d}.homePulse .homeMetrics{margin:18px 0}
+.homePulsePools{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.homePulsePools button{min-height:84px;padding:12px 10px;text-align:left;border:1px solid transparent;border-radius:12px;background:#20261e;color:var(--home-muted);cursor:pointer;min-width:0}
+.homePulsePools button[aria-pressed=true]{border-color:var(--home-accent);background:#465b34;color:var(--home-ink)}
+.homePulsePools span,.homePulsePools strong,.homePulsePools small{display:block}.homePulsePools span{font-size:11px}.homePulsePools strong{font-size:24px;letter-spacing:-.03em;margin:5px 0}.homePulsePools small{font-size:9px}
+.homePulseChartTop{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:17px 0 8px}
+.homePulseChartTop>strong{font-size:12px;color:var(--home-muted);font-weight:500}
+.homeChartPeriods{display:flex;gap:4px}.homeChartPeriods button{border:0;border-radius:8px;min-height:44px;min-width:44px;background:transparent;color:var(--home-muted);font:inherit;font-size:12px;cursor:pointer}
+.homeChartPeriods button[aria-pressed=true]{background:#516a3e;color:var(--home-ink)}
+#homePulseChart svg{width:100%;max-height:155px;display:block}.homePulseLine{stroke:var(--home-accent);stroke-width:2;fill:none;stroke-linejoin:round}.homePulseArea{fill:#a5cf7120}#homeChartMarker{stroke:#d4e9b6;stroke-dasharray:3 3;stroke-width:1}
+.homePulseCursor{display:block;width:100%;min-height:44px;accent-color:var(--home-accent);cursor:pointer;margin:0}
+.homeChartEmpty{font-size:12px;color:var(--home-muted);line-height:1.6;border-top:1px solid var(--home-line);padding-top:16px}
+#homeView .homeDailyInsight{background:linear-gradient(120deg,#35432d,#2c3127);border-color:#6f87524d;padding:22px;border-radius:18px}
+.homeGrowth{margin:28px 0 24px;min-width:0}.homeGrowth .homeSectionTop h2{font-size:23px;letter-spacing:-.025em}
+.homeGrowthList{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:18px 0}
+.homeGrowthCard{background:#2c3027;border:1px solid var(--home-line);border-radius:16px;padding:18px;min-width:0;overflow-wrap:anywhere}
+.homeGrowthMeta{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;font-size:9px;line-height:1.5;color:var(--home-accent)}
+.homeGrowthMeta b{font-size:10px;font-weight:500;text-transform:capitalize;border:1px solid #64784a66;border-radius:20px;padding:2px 6px}
+.homeGrowthCard h3{font-size:18px;line-height:1.3;letter-spacing:-.025em;margin:16px 0 9px}
+.homeGrowthCard p{font-size:12px;line-height:1.65;color:var(--home-muted)}
+.homeEvidenceBar{height:5px;border-radius:99px;background:#1d2318;margin:16px 0 10px;overflow:hidden}.homeEvidenceBar span{height:100%;display:block;background:var(--home-accent);border-radius:inherit}
+.homeGrowthCard>small{font-size:10px;color:var(--home-muted);display:block;line-height:1.6;margin-top:5px}.homeGrowthCard .homeGrowthTrend{font-size:10px}
+.homeGrowthCard details{border-top:1px solid var(--home-line);font-size:11px;color:var(--home-accent);margin-top:15px}
+.homeGrowthCard summary{display:flex;align-items:center;min-height:44px;cursor:pointer}.homeGrowthCard summary:after{content:'+';margin-left:auto}.homeGrowthCard details[open] summary:after{content:'−'}
+.homeEvidenceGame{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;min-height:44px;border:0;background:none;color:var(--home-ink);padding:8px 0;font:inherit;font-size:11px;line-height:1.6;cursor:pointer}
+.homeEvidenceActions{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}.homeGrowthEmpty{grid-column:1/-1;background:var(--home-deep);padding:20px;border:1px dashed var(--home-line);border-radius:14px;line-height:1.6;font-size:14px}.homeGrowthEmpty p{font-size:12px;color:var(--home-muted);margin-bottom:0}
+.homeEvidencePolicy{font-size:11px;color:var(--home-muted);margin-top:8px}.homeEvidencePolicy summary{min-height:44px;display:flex;align-items:center;cursor:pointer}.homeEvidencePolicy summary:after{content:'+';margin-left:10px}.homeEvidencePolicy[open] summary:after{content:'−'}
+.homeContinue{margin:26px 0}.homeContinueGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.homeContinueAction{position:relative;border:1px solid var(--home-line);border-radius:14px;padding:18px 45px 18px 16px;background:var(--home-deep);text-align:left;color:var(--home-ink);cursor:pointer;min-height:110px}
+.homeContinueAction strong{display:block;font-size:16px;line-height:1.4;margin:8px 0}.homeContinueAction small{display:block;color:var(--home-muted);font-size:11px;line-height:1.5}.homeContinueAction>svg{position:absolute;right:16px;bottom:22px;color:var(--home-accent)}
+.homeRecentOpening{font-size:10px;color:var(--home-muted);text-overflow:ellipsis;white-space:nowrap;overflow:hidden}.homeVerifiedBadge{font-size:10px;color:var(--home-accent)}
+.homeMilestones{margin:24px 0}.homeMilestones #homeMilestoneList{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+#homeMilestoneList article{border-left:2px solid #789b52;padding:8px 12px;min-width:0}#homeMilestoneList strong{display:block;font-size:27px;letter-spacing:-.04em}#homeMilestoneList small{display:block;font-size:10px;line-height:1.5;color:var(--home-muted);margin-top:6px}
+#homeView :is(button,input,summary,select):focus-visible{outline:2px solid var(--home-accent);outline-offset:3px}
+@media(max-width:700px){.homeGrowthList{grid-template-columns:1fr}.homePulse{padding:16px;border-radius:18px}.homePulsePools{gap:5px}.homePulsePools button{padding:10px 8px}.homePulsePools strong{font-size:22px}.homePulse .homeSectionTop h2{font-size:22px}.homeGrowth .homeSectionTop h2{font-size:21px}.homeMilestones #homeMilestoneList{grid-template-columns:1fr 1fr}.homeContinueGrid{grid-template-columns:1fr}.homeGrowthCard{padding:17px}.homeGrowthCard p{font-size:13px}}
+@media(prefers-reduced-motion:reduce){#homeView *,#homeView *:before,#homeView *:after{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
 @media(max-width:430px){.homeRatingRow{grid-template-columns:1fr}.homeRatingRow svg{max-height:65px}#homeOpeningInsights{grid-template-columns:1fr}}
 #homeDashboardTab .homeNavSymbol{font-size:26px;line-height:1.1;display:block}
 @media(max-width:800px){.homeTabs{overflow-x:auto!important;justify-content:flex-start!important;scrollbar-width:none}.homeTabs::-webkit-scrollbar{display:none}.homeTabs .homeTab{flex:0 0 65px!important;min-width:65px!important}#homeView{padding:10px 12px 104px}.homeRecentCard{min-width:156px;width:44vw}.homeMetrics>div{padding:9px 10px}.homeDailyIcon{width:64px;height:64px}}

@@ -21,7 +21,7 @@ Research and limitations: [FRIENDS-DISCOVERY-RESEARCH.md](docs/FRIENDS-DISCOVERY
 
 ## Opponent Scout increment
 
-Starting point: `main` commit `32bd26f`. Branch: `codex/opponent-scout`. Extends Friends & Players and its existing data client and Analysis Board.
+Merged in [PR #63](https://github.com/rk93/chess-analyser/pull/63) as `198fef0`. Extends Friends & Players and its existing data client and Analysis Board.
 
 | Priority | Improvement | Acceptance criteria | Status |
 | --- | --- | --- | --- |
@@ -33,12 +33,27 @@ Starting point: `main` commit `32bd26f`. Branch: `codex/opponent-scout`. Extends
 
 Validation, acceptance evidence and screenshots: [OPPONENT-SCOUT-VALIDATION.md](docs/OPPONENT-SCOUT-VALIDATION.md).
 
+## Weakness evidence and personal Home increment
+
+Starting point: `main` commit `198fef0`. Branch: `codex/weakness-home-command-centre`. One evidence framework powers Home; existing Game Review, Analysis Board, personal training and saved data remain the source of truth.
+
+| Priority | Improvement | Acceptance criteria | Status |
+| --- | --- | --- | --- |
+| P2 | Game-history weakness observations | Opening/colour/timeout/short-loss/rating-band/recent-decline signals; documented minima, known-result denominators, one format per finding, recent date coverage and source-game links | Implemented; descriptive outcomes never become tactical diagnoses |
+| P2 | Saved engine evidence | Exact, complete, versioned Stockfish cache; depth ≥8; legal stronger alternatives; recurrence in at least three distinct games; reviewed-game denominators, precise source positions and phase estimates | Implemented for repeated blunders, immediate missed mates, stronger captures and phase patterns; broader structural/motif diagnoses remain planned |
+| P2 | Reliable trends and coverage | Disjoint 30-day windows; history trends need ten outcomes each, engine trends five eligible reviews each; missing reviews never count as clean games | Implemented; UI reports coverage and withholds unsupported trends |
+| P3 | Personal Chess Pulse | Four distinct saved-rating pools; 7/30-day changes need a prior observation; interactive 7/30/90-day chart with keyboard/touch exploration | Implemented; no live-rating claims or cross-format strength ranking |
+| P3 | Actionable Home | Personal greeting, Pip's actual-data insight, three growth priorities, expandable evidence, resume the last saved game at its move, opening/practice shortcuts, real recent boards and per-pool saved rating bests | Implemented; existing weekly, DNA, training and puzzle flows retained |
+| P0 | Privacy, responsiveness and navigation | Explicit saved-review check, at most 60 recent games, progress/cancel/retry, account and navigation invalidation; no background engine work, schema changes or additional endpoints | Implemented; full regression matrix and before/after evidence documented below |
+
+Validation and screenshots: [WEAKNESS-HOME-VALIDATION.md](docs/WEAKNESS-HOME-VALIDATION.md).
+
 ## Remaining priorities from the product transformation brief
 
 1. **P0 reliability:** maintain navigation and mobile review controls; investigate concrete regressions before adding features.
 2. **P1 discovery refinements:** additional profile learning links and cached-sample management (cache-first offline loading is covered in the Scout increment); reconsider real friend import only with verified official documentation and authorization support.
-3. **P2 intelligence:** after Scout, implement repertoire deviations and an expanded weakness framework separating result observations from verified tactical/phase evidence, with representative game/position links and review coverage. Never claim tactics, endgames, pawn structure or king-safety weaknesses from results alone.
-4. **P3 personal command centre:** Chess Pulse, daily insight, evidenced growth areas, resume review/training and meaningful milestones; keep initial loading bounded and preserve real board previews.
+3. **P2 intelligence:** build on the initial weakness framework with repertoire deviations, geometry-verified motifs, pawn-structure/king-safety evidence and reviewed opening-position associations. These need dedicated engine/board validation and must not be inferred from results.
+4. **P3 command-centre refinements:** comparable training-improvement history, useful practice continuity and additional verified milestones. The initial Pulse, personal insight, growth evidence and saved-review resume are covered by the current increment.
 5. **P4 coherent screen improvements:** Games filtering/previews, guided review moments, Analysis Board sharing, Explorer attribution, educational puzzles, interactive analytics and public Top Player study links. Extend existing components rather than adding parallel implementations.
 
 These are later independently shippable stages, not completed capabilities of this increment. Each requires full regression checks, 360/393/430px and relevant desktop coverage, screenshot inspection, evidence/source disclosures and a review-ready PR. Do not merge while required checks are incomplete.
@@ -58,7 +73,7 @@ These are later independently shippable stages, not completed capabilities of th
 
 | Opportunity | Expected player benefit | Required evidence / dependencies | Priority | Status / acceptance criteria |
 | --- | --- | --- | --- | --- |
-| Early-game mistake intelligence | Locate recurring weak decisions in an opening and show verified alternatives | Verified reviews associated with opening, side and exact position | P1 | Planned: distinguish results-based opening observations from engine-confirmed mistakes; link to real source positions |
+| Early-game mistake intelligence | Locate recurring weak decisions in an opening and show verified alternatives | Verified reviews associated with opening, side and exact position | P1 | Partial: phase patterns and exact source positions implemented; opening-specific position associations remain planned |
 | Weekly coach report with three concrete actions | A short, actionable practice plan | Recent verified-review coverage, recurring positions and local progress | P1 | Planned: show reviewed-game denominator, distinguish missing reviews from clean play, never invent weekly tactical totals |
 | Repeated tactical motif detection | Identify reliable forks, pins, hanging pieces and missed mates | Board geometry, legal continuations, engine verification and motif-specific regression positions | P1 | Planned: initial increment groups only objectively identifiable best-move captures and checkmates; no speculative motif names |
 | Training improvement over time | Show whether practice carries over into real games | Versioned attempt history, per-game review coverage and comparable periods | P1 | Planned: count assisted answers separately and account for differing game/review sample sizes |
@@ -67,7 +82,7 @@ These are later independently shippable stages, not completed capabilities of th
 | Game-duration and clock insights | Understand elapsed duration and time-management observations | Explicit UTC start and actual end timestamps; reliable clock annotations with increment semantics for future move-time work | P2 | Partial: Scout elapsed-duration median and explicit timeout results implemented; per-move clock research remains |
 | Most instructive recent game | Find the best review target, beyond the latest loss | Verified evaluation swings, player identity and review availability | P2 | Planned: rank only analyzed games and make missing coverage visible |
 | Personal milestones | Recognize rating bests and meaningful achievements | Separate rated pools and reliable historical baselines | P2 | Partial: saved-rating bests implemented; additional achievements need explicit definitions and persistence |
-| Recent versus historical performance | Compare like-for-like results and opponent strength | Pool, colour, opponent ratings, sufficiently large comparable periods | P2 | Planned: display sample sizes and uncertainty; never label a small fluctuation statistically significant |
+| Recent versus historical performance | Compare like-for-like results and opponent strength | Pool, colour, opponent ratings, sufficiently large comparable periods | P2 | Partial: weakness findings show qualified recent/previous 30-day trends and sample sizes; adjustment for changing opponent mix remains planned |
 
 ## Validation and release policy
 
