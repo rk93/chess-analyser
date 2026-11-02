@@ -1,6 +1,7 @@
 import { discoverPlayers, readPlayerDirectory, validPlayerName, writePlayerDirectory } from './player-directory.js';
 import { createPublicPlayerClient } from './player-public-data.js';
 import { COMPARISON_POOLS, formatSummary, headToHead, openingGroups, publicFormatStats, selectSample } from './comparison-intelligence.js';
+import { createOpponentScoutView } from './opponent-scout-view.js';
 export { safeArchives } from './player-public-data.js';
 
 const $ = id => document.getElementById(id);
@@ -18,6 +19,7 @@ const client = createPublicPlayerClient();
 let owner = '', directory = { favourites: [], searches: [] }, local = [], slots = ['', ''], metadata = {}, samples = {};
 let source = 'local', pool = 'all', days = 60, generation = 0, controller = null, busy = false;
 let pickerSlot = 1, activeOption = -1, options = [], openingViews = [];
+let studyMode = 'compare', scout = null;
 
 async function localGames() {
   return new Promise((resolve, reject) => {
@@ -62,6 +64,7 @@ function renderProfiles() {
   wireImages(root);
   if(focusKey)[...root.querySelectorAll(`[data-${focusKey}]`)].find(button=>button.dataset[focusKey]===focusValue)?.focus({preventScroll:true});
   $('loadPublicPlayers').disabled = busy || !slots.every(Boolean) || slots[0] === slots[1];
+  $('loadPublicPlayers').textContent = source === 'local' ? 'Load public data' : 'Refresh public data';
 }
 function renderPicker() {
   const input = $('comparePlayerSearch'), query = input.value.trim();
@@ -80,6 +83,7 @@ async function choosePlayer(raw) {
   const user = validPlayerName(raw); if (!user) { status('Enter a Chess.com username using letters, numbers, underscores or hyphens.', true); return; }
   if (slots[1 - pickerSlot] === user) { status('Choose a different player for the other side.', true); return; }
   controller?.abort(); generation++; busy = false;
+  scout?.clear();
   slots[pickerSlot] = user;
   if (user !== owner) saveDirectory({ ...directory, searches: [user, ...directory.searches.filter(name => name !== user)] });
   closePicker(); $('comparePlayerSearch').value = ''; renderProfiles(); renderComparison();
@@ -133,11 +137,15 @@ function renderComparison() {
   document.querySelectorAll('[data-source]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.source === source)));
   const rows = currentRows(), both = slots.every(Boolean);
   $('friendsAnalyticsPanel').querySelector('.playerComparison').classList.toggle('pcHasComparison',both);
-  $('playerCompareResults').hidden = !both; $('playerComparisonWelcome').hidden = both;
+  $('playerStudyResults').hidden = !both; $('playerComparisonWelcome').hidden = both;
+  $('playerCompareResults').hidden = !both || studyMode !== 'compare';
+  $('opponentScoutPanel').hidden = !both || studyMode !== 'scout';
+  document.querySelectorAll('[data-study-mode]').forEach(button => { button.setAttribute('aria-pressed', String(button.dataset.studyMode === studyMode)); if (button.dataset.studyMode === 'scout') button.disabled = !both; });
   if (!both) return;
   $('comparisonScope').innerHTML = slots.map((user, i) => `<span><b>${esc(user)}</b> · ${esc(scope(rows[i], user))}</span>`).join('');
   $('comparisonPeriod').disabled = source === 'lifetime';
   $('comparisonSummary').textContent = source === 'lifetime' ? 'Lifetime records are separate for each format. They do not contain historical rating trends or opening moves.' : `${days === 'all' ? 'All available dates' : `Same last ${days} days for both players`} · sample coverage may differ. Ratings are never compared across formats.`;
+  if (studyMode === 'scout') { scout.update(rows[1], { owner, user:slots[1], source, pool, days }); return; }
   $('comparisonFormats').innerHTML = (pool === 'all' ? COMPARISON_POOLS : [pool]).map(format => formatRow(format, rows)).join('') + detailedFormat(rows);
   $('comparisonOpenings').innerHTML = renderOpenings(rows); $('comparisonEncounters').innerHTML = renderHeadToHead(rows);
   $('comparisonEvidence').textContent = source === 'lifetime' ? 'Source: Chess.com public statistics. Different opponents and lifetime periods affect these records.' : `${source === 'local' ? 'Source: locally saved game history' : 'Source: recent public game archives'}. Trends use rated observations; percentages exclude unknown outcomes. Small samples are descriptive, not reliable measures of playing strength.`;
@@ -171,6 +179,7 @@ async function refreshLocal(reset = false) {
   if (reset || nextOwner !== owner) {
     controller?.abort(); generation++; busy = false; owner = nextOwner; directory = readPlayerDirectory(localStorage, owner);
     slots = [owner, '']; metadata = {}; samples = {}; source = 'local'; pool = 'all'; days = 60;
+    studyMode = 'compare'; scout?.clear();
     $('comparisonPeriod').value = '60'; $('cancelPlayerLoad').hidden = true;
   }
   const token = generation;
@@ -195,9 +204,20 @@ async function replay(pgn, name, white = true, maxPlies = 24) {
 }
 function init() {
   const panel = $('friendsAnalyticsPanel'); if (!panel) return;
-  panel.innerHTML = `<section class="playerComparison" aria-labelledby="playerComparisonTitle"><header class="pcHero"><span class="pcEyebrow">Friends & Players</span><h2 id="playerComparisonTitle">Your chess circle.</h2><p>Pick a familiar opponent. Find the patterns.</p></header><form id="playerCompareForm" class="pcPicker" autocomplete="off"><label id="playerPickerLabel" for="comparePlayerSearch">Find an opponent</label><div class="pcSearchBox">${icon('search')}<input id="comparePlayerSearch" role="combobox" aria-autocomplete="list" aria-controls="playerSearchOptions" aria-expanded="false" placeholder="Search players or enter a username" maxlength="50" spellcheck="false"><button type="submit" class="pcButton" aria-label="Select player">${icon('arrow')}</button></div><div id="playerSearchOptions" class="pcSearchOptions" role="listbox" aria-label="Suggested players" hidden></div></form><div id="playerDiscoveryChips" class="pcDiscoveryChips" aria-label="Players from your saved games and favourites"></div><details class="pcDiscoveryNote"><summary>Where do these players come from?</summary><p>Recent opponents come from your saved games. Favourites and recent searches are saved on this device for your configured username. These are not imported Chess.com friends. Search completes locally known names; enter an exact username to study someone new.</p></details><div id="playerProfileCards" class="pcProfileCards"></div><section class="pcWorkspace"><div class="pcWorkspaceTop"><div class="pcSourceTabs" aria-label="Comparison data source">${[['local','Saved games'],['public','Public sample'],['lifetime','Lifetime stats']].map(([key,label])=>`<button type="button" data-source="${key}" aria-pressed="${key==='local'}">${label}</button>`).join('')}</div><div class="pcLoadActions"><button id="loadPublicPlayers" class="pcButton pcButtonQuiet" type="button">Load public data</button><button id="cancelPlayerLoad" class="pcTextButton" type="button" hidden>Cancel</button></div></div><p id="playerCompareStatus" role="status" aria-live="polite"></p><div id="playerComparisonWelcome" class="pcWelcome">${icon('players')}<h3>A little rivalry. A lot to learn.</h3><p>Choose a player above to compare all four formats. Your own profile is filled in from your saved username.</p></div><div id="playerCompareResults" hidden><div class="pcComparisonControls"><div class="pcPoolTabs" aria-label="Time-control comparison"><button type="button" data-pool="all" aria-pressed="true">Overview</button>${COMPARISON_POOLS.map(format=>`<button type="button" data-pool="${format}" aria-pressed="false">${title(format)}</button>`).join('')}</div><label class="pcPeriodLabel">Period<select id="comparisonPeriod"><option value="30">Last 30 days</option><option value="60" selected>Last 60 days</option><option value="90">Last 90 days</option><option value="all">All available</option></select></label></div><p id="comparisonSummary" class="pcFootnote"></p><div id="comparisonScope" class="pcScope"></div><section class="pcSection"><div class="pcSectionHeading"><h3>Four formats. Different stories.</h3><span class="pcTag">Win rate</span></div><div id="comparisonFormats"></div><p id="comparisonEvidence" class="pcFootnote"></p></section><section class="pcSection"><div class="pcSectionHeading"><h3>Opening fingerprints</h3><span class="pcTag">Explore & replay</span></div><div id="comparisonOpenings"></div></section><div id="comparisonEncounters"></div></div></section></section>`;
+  panel.innerHTML = `<section class="playerComparison" aria-labelledby="playerComparisonTitle"><header class="pcHero"><span class="pcEyebrow">Friends & Players</span><h2 id="playerComparisonTitle">Your chess circle.</h2><p>Pick a familiar opponent. Find the patterns.</p></header><form id="playerCompareForm" class="pcPicker" autocomplete="off"><label id="playerPickerLabel" for="comparePlayerSearch">Find an opponent</label><div class="pcSearchBox">${icon('search')}<input id="comparePlayerSearch" role="combobox" aria-autocomplete="list" aria-controls="playerSearchOptions" aria-expanded="false" placeholder="Search players or enter a username" maxlength="50" spellcheck="false"><button type="submit" class="pcButton" aria-label="Select player">${icon('arrow')}</button></div><div id="playerSearchOptions" class="pcSearchOptions" role="listbox" aria-label="Suggested players" hidden></div></form><div id="playerDiscoveryChips" class="pcDiscoveryChips" aria-label="Players from your saved games and favourites"></div><details class="pcDiscoveryNote"><summary>Where do these players come from?</summary><p>Recent opponents come from your saved games. Favourites and recent searches are saved on this device for your configured username. These are not imported Chess.com friends. Search completes locally known names; enter an exact username to study someone new.</p></details><div id="playerProfileCards" class="pcProfileCards"></div><section class="pcWorkspace"><div class="pcStudyModes" role="group" aria-label="Player study"><button type="button" data-study-mode="compare" aria-pressed="true">Comparison</button><button type="button" data-study-mode="scout" aria-pressed="false" disabled>Opponent Scout</button></div><div class="pcWorkspaceTop"><div class="pcSourceTabs" aria-label="Comparison data source">${[['local','Saved games'],['public','Public sample'],['lifetime','Lifetime stats']].map(([key,label])=>`<button type="button" data-source="${key}" aria-pressed="${key==='local'}">${label}</button>`).join('')}</div><div class="pcLoadActions"><button id="loadPublicPlayers" class="pcButton pcButtonQuiet" type="button">Load public data</button><button id="cancelPlayerLoad" class="pcTextButton" type="button" hidden>Cancel</button></div></div><p id="playerCompareStatus" role="status" aria-live="polite"></p><div id="playerComparisonWelcome" class="pcWelcome">${icon('players')}<h3>A little rivalry. A lot to learn.</h3><p>Choose a player above to compare all four formats. Your own profile is filled in from your saved username.</p></div><div id="playerStudyResults" hidden><div class="pcComparisonControls"><div class="pcPoolTabs" aria-label="Time-control comparison"><button type="button" data-pool="all" aria-pressed="true">Overview</button>${COMPARISON_POOLS.map(format=>`<button type="button" data-pool="${format}" aria-pressed="false">${title(format)}</button>`).join('')}</div><label class="pcPeriodLabel">Period<select id="comparisonPeriod"><option value="30">Last 30 days</option><option value="60" selected>Last 60 days</option><option value="90">Last 90 days</option><option value="all">All available</option></select></label></div><p id="comparisonSummary" class="pcFootnote"></p><div id="comparisonScope" class="pcScope"></div><div id="opponentScoutPanel" hidden></div><div id="playerCompareResults"><section class="pcSection"><div class="pcSectionHeading"><h3>Four formats. Different stories.</h3><span class="pcTag">Win rate</span></div><div id="comparisonFormats"></div><p id="comparisonEvidence" class="pcFootnote"></p></section><section class="pcSection"><div class="pcSectionHeading"><h3>Opening fingerprints</h3><span class="pcTag">Explore & replay</span></div><div id="comparisonOpenings"></div></section><div id="comparisonEncounters"></div></div></div></section></section>`;
+  scout = createOpponentScoutView($('opponentScoutPanel'), replay);
+  $('opponentScoutPanel').addEventListener('scoutRetry', renderComparison);
   panel.addEventListener('click', event => {
     const button = event.target.closest('button'); if (!button) return;
+    if (button.dataset.studyMode) {
+      studyMode = button.dataset.studyMode;
+      if (studyMode === 'scout' && pool === 'all') {
+        const rows = currentRows()[1];
+        pool = ['rapid','blitz','bullet','daily'].sort((a,b) => rows.filter(row=>row.pool===b).length-rows.filter(row=>row.pool===a).length)[0];
+      }
+      if (studyMode !== 'scout') scout.stop();
+      renderComparison();
+    }
     if (button.dataset.pick !== undefined) focusPicker(Number(button.dataset.pick));
     if (button.dataset.option !== undefined) void choosePlayer(options[Number(button.dataset.option)]?.name);
     if (button.dataset.discover) { pickerSlot = 1; void choosePlayer(button.dataset.discover); }
@@ -206,7 +226,7 @@ function init() {
       if(!directory.favourites.includes(user)&&directory.favourites.length>=24){status('You have 24 saved favourites. Remove one before adding another.',true);return;}
       saveDirectory({ ...directory, favourites: directory.favourites.includes(user) ? directory.favourites.filter(name => name !== user) : [user, ...directory.favourites] }); renderProfiles(); renderDiscoveryChips();
     }
-    if (button.dataset.source) { controller?.abort(); generation++; busy = false; source = button.dataset.source; $('cancelPlayerLoad').hidden = true; renderComparison(); if (source !== 'local') void loadPublic(false); else renderProfiles(); }
+    if (button.dataset.source) { controller?.abort(); generation++; busy = false; source = button.dataset.source; $('cancelPlayerLoad').hidden = true; renderProfiles(); renderComparison(); if (source !== 'local') void loadPublic(false); }
     const selectedPool = button.dataset.pool || button.dataset.formatDrill;
     if (selectedPool) { pool = selectedPool; renderComparison(); }
     if (button.dataset.opening !== undefined) { const group = openingViews[Number(button.dataset.opening)]; if (group) void replay(group.rows[0].game.pgn, group.name, group.white); }
@@ -225,9 +245,14 @@ function init() {
   });
   $('playerCompareForm').addEventListener('submit', event => { event.preventDefault(); void choosePlayer(activeOption >= 0 ? options[activeOption]?.name : $('comparePlayerSearch').value); });
   $('comparisonPeriod').addEventListener('change', event => { days = event.target.value === 'all' ? 'all' : Number(event.target.value); renderComparison(); });
-  $('loadPublicPlayers').addEventListener('click', () => { if (source === 'local') source = 'public'; renderComparison(); void loadPublic(true); });
+  $('loadPublicPlayers').addEventListener('click', () => { const refresh = source !== 'local'; if (source === 'local') source = 'public'; renderComparison(); void loadPublic(refresh); });
   $('cancelPlayerLoad').addEventListener('click', () => controller?.abort());
-  document.addEventListener('click', event => { if (!$('playerCompareForm').contains(event.target) && !event.target.closest('[data-pick]')) closePicker(); });
+  document.addEventListener('click', event => {
+    if (!$('playerCompareForm').contains(event.target) && !event.target.closest('[data-pick]')) closePicker();
+    const tab = event.target.closest('.homeTab,#myAnalyticsTab');
+    if (tab && tab.id !== 'analyticsTab') scout.stop();
+  });
+  window.addEventListener('popstate', () => scout.stop());
   $('friendsAnalyticsTab').addEventListener('click', () => void refreshLocal());
   window.addEventListener('chessImportFinished', () => void refreshLocal());
   window.addEventListener('chessGamesImported', () => void refreshLocal());
