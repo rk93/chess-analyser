@@ -1,4 +1,5 @@
 import { getLocalStockfish } from './local-stockfish.js';
+import { gameIdentity } from './player-insights.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 const $=id=>document.getElementById(id);
 const DB_NAME='rk93-chess-analyser', DB_VERSION=1, STORE='games';
@@ -118,6 +119,21 @@ function renderGames(games,u){
     else if(avatarObserver)avatarObserver.observe(d);
   });
 }
+// Resolve Home actions by saved identity; filters and pagination can reorder cards.
+window.addEventListener('requestOpenSavedGame',async event=>{
+  const user=(localStorage.getItem('chess-username')||'').trim();
+  try{
+    const games=userGames(await allGames(),user);
+    if(user!==(localStorage.getItem('chess-username')||'').trim())return;
+    const game=games.find(game=>gameIdentity(game)===event.detail?.key);
+    if(!game)throw new Error('This saved game is no longer available. Open Games and sync again.');
+    openGame(game,user);
+    window.dispatchEvent(new CustomEvent('savedGameOpened',{detail:{key:gameIdentity(game)}}));
+  }catch(error){
+    const status=document.getElementById('homeInsightText');
+    if(status)status.textContent=error.message||'Could not open this saved game. Open Games to retry.';
+  }
+});
 function formatTimeControl(tc){if(!tc)return 'Game';if(tc.includes('+')){const [s,i]=tc.split('+').map(Number);return `${Math.round(s/60)}+${i}`}const s=Number(tc);return Number.isFinite(s)?`${Math.round(s/60)} min`:tc}
 function parseInitialFen(pgn){const m=pgn.match(/^\[FEN\s+"([^"]+)"\]/m);return m?m[1]:null}
 function freshChess(){const fen=parseInitialFen(selectedGame?.pgn||'');return fen?new Chess(fen):new Chess()}

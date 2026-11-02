@@ -36,6 +36,52 @@
 .homeOpeningCard{background:#302f2a;border-color:#46483e}
 .homeOpeningCard>strong{font-size:16px}
 .homeInsightCard{border-color:#4e6446}
+.homeWeekCard,.homeDnaCard{background:#302f2a;border:1px solid #46483e;border-radius:16px;padding:16px;margin-bottom:17px;min-width:0}
+.homeWeekCard>p,.homeDnaCard>p{font-size:13px;line-height:1.5;color:#c1c8b8;margin:8px 0}
+#homeView .homeDataNote{font-size:12px;line-height:1.5;color:#aab5a2}
+.homeWeeklyRatings{display:flex;gap:8px;flex-wrap:wrap;font-size:12px;color:#c5dda9}
+.homeWeeklyRatings>span{background:#3b4630;border-radius:8px;padding:7px 9px}
+.homeTextButton{margin-top:12px;background:none;border:0;padding:10px 0;color:#b0db87;font-size:14px;font-weight:750;cursor:pointer;text-align:left}
+.homeTextButton:focus-visible,#homeTimeClass:focus-visible{outline:3px solid #a4cd7f;outline-offset:3px}
+.homePoolLabel{font-size:11px;color:#c1c8b8;display:flex;gap:4px;flex-direction:column}
+#homeTimeClass{background:#262821;color:#f1f1e9;border:1px solid #647a50;border-radius:8px;min-height:40px;padding:5px 8px;max-width:135px;font:inherit;font-size:13px}
+.homeColorResults{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
+.homeColorResults>div{padding:11px;border-radius:10px;background:#262821;display:flex;flex-direction:column;gap:7px;font-size:13px;min-width:0}
+.homeColorResults span{color:#b4c1aa;font-size:11px}
+.homeRatingRow{border-top:1px solid #4a4d40;padding:14px 0;display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:12px}
+.homeRatingRow>div{display:flex;flex-direction:column;gap:5px;font-size:14px;min-width:0}
+.homeRatingRow span{font-size:12px;color:#bac9ab}
+.homeRatingRow svg{width:100%;max-height:80px;overflow:visible}
+.homeRatingRow path{fill:none;stroke:#a4cd7f;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.homeDnaCard h3{font-size:16px;margin:16px 0 12px}
+#homeOpeningInsights{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.homeOpeningInsight{border-radius:10px;background:#262821;padding:12px;min-width:0;overflow-wrap:anywhere}
+.homeOpeningInsight>span{display:block;color:#b6cf9a;font-size:11px;margin-bottom:7px}
+.homeOpeningInsight>strong{font-size:14px;line-height:1.4}
+.homeOpeningInsight p,.homeOpeningInsight small{font-size:12px;color:#b4c1aa;line-height:1.5;margin:7px 0 0}
+.homeEmpty{box-sizing:border-box}
+.homeTrainingCard{background:#30332b;border:1px solid #51673f;border-radius:16px;padding:16px;margin-bottom:17px}
+.homeTrainingCard>p{font-size:13px;line-height:1.5;color:#c1c8b8}
+#homeTrainingList{display:grid;gap:8px}
+.homePracticeCard{padding:12px;border:1px solid #5b7049;border-radius:10px;background:#262c22;color:#d8eac8;font-size:13px;line-height:1.5;text-align:left;cursor:pointer;min-height:44px}
+.homePracticeCard:focus-visible{outline:3px solid #a4cd7f;outline-offset:2px}
+.homePracticeCard:disabled{opacity:.6;cursor:wait}
+.playerComparison{max-width:100%;box-sizing:border-box;padding:18px}
+.playerCompareFields{display:grid;grid-template-columns:1fr 1fr 130px;gap:12px;margin:16px 0}
+.playerCompareFields label{display:flex;flex-direction:column;gap:7px;min-width:0;font-size:13px}
+.playerCompareFields input,.playerCompareFields select{box-sizing:border-box;width:100%;min-width:0;min-height:44px;background:#262821;border:1px solid #63724f;border-radius:8px;color:#f1f1e9;padding:9px;font:inherit}
+.playerCompareFetch{display:flex;align-items:flex-start;gap:9px;font-size:13px;line-height:1.5;margin:15px 0}
+.playerCompareFetch input{flex:none;min-width:18px;min-height:18px}
+#playerCompareStatus{font-size:13px;line-height:1.5}
+#playerCompareResults{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.playerCompareCard{border:1px solid #4c5b3e;border-radius:14px;padding:15px;min-width:0;overflow-wrap:anywhere}
+.playerCompareCard h3{margin:0 0 10px;color:#cae6ad}
+.playerCompareCard p{font-size:13px;line-height:1.5;color:#bac9ab}
+.playerCompareCard dl{margin:12px 0}
+.playerCompareCard dl>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:10px 0;border-bottom:1px solid #424a39;font-size:13px}
+.playerCompareCard dd{font-weight:800;margin:0;text-align:right}
+@media(max-width:650px){.playerCompareFields,#playerCompareResults{grid-template-columns:1fr}.playerCompareFields input{font-size:16px}}
+@media(max-width:430px){.homeRatingRow{grid-template-columns:1fr}.homeRatingRow svg{max-height:65px}#homeOpeningInsights{grid-template-columns:1fr}}
 #homeDashboardTab .homeNavSymbol{font-size:26px;line-height:1.1;display:block}
 @media(max-width:800px){.homeTabs{overflow-x:auto!important;justify-content:flex-start!important;scrollbar-width:none}.homeTabs::-webkit-scrollbar{display:none}.homeTabs .homeTab{flex:0 0 65px!important;min-width:65px!important}#homeView{padding:10px 12px 104px}.homeRecentCard{min-width:156px;width:44vw}.homeMetrics>div{padding:9px 10px}.homeDailyIcon{width:64px;height:64px}}
 
