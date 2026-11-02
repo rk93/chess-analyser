@@ -1,5 +1,5 @@
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
-import { cacheGet, simpleHash } from './analysis-store.js';
+import { readSavedReview } from './saved-review.js';
 import { playerGames } from './player-insights.js';
 import { getLocalStockfish } from './local-stockfish.js';
 import { verifiedPracticeCandidates, recordTrainingAttempt } from './personal-training-core.js';
@@ -63,11 +63,7 @@ export async function findPersonalTraining(games) {
     for (const [index, row] of rows.entries()) {
       if (token !== generation || user !== username()) return;
       try {
-        const board = new Chess(); board.loadPgn(row.game.pgn || '');
-        const moves = board.history({ verbose: true });
-        const title = `${row.game.white.username} ${row.game.white.rating ?? ''} — ${row.game.black.username} ${row.game.black.rating ?? ''}`;
-        const key = simpleHash(`${title}|${moves.map(move => move.san).join(' ')}`);
-        const data = await cacheGet('review', key);
+        const { moves, data } = await readSavedReview(row);
         if (data?.verifiedReviewVersion === 1) reviewed++;
         for (const exercise of verifiedPracticeCandidates(moves, data, row.white)) {
           if (seen.has(exercise.id)) continue;

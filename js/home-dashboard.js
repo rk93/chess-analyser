@@ -1,8 +1,9 @@
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { buildPlayerInsights } from './player-insights.js';
 import { findPersonalTraining, invalidatePersonalTraining } from './personal-training.js';
+import { createHomeCommandCentre } from './home-command-centre.js';
 const $=id=>document.getElementById(id),glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
-let active=false,loaded=false,refreshId=0,loadedUser='',savedGames=[];
+let active=false,loaded=false,refreshId=0,loadedUser='',savedGames=[],command=null;
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const username=()=>String(localStorage.getItem('chess-username')||'').trim().toLowerCase();
 function miniBoard(pgn){
@@ -42,6 +43,7 @@ function create(){
  <section class="homeOpeningCard"><div class="homeSectionTop"><h2>Most played opening</h2><span>♟</span></div><strong id="homeOpeningName">Sync games to discover your openings</strong><p id="homeOpeningCount">Based on your saved games</p></section>
  <section class="homeDailyCard"><div class="homeSectionTop"><h2>Daily puzzle</h2><span>♟ A new challenge each day</span></div><div class="homeDailyBody"><span class="homeDailyIcon" aria-hidden="true">♞</span><div><strong>Find today's best move</strong><p>Practise your calculation with Pip.</p></div></div><button type="button" class="homePrimary" id="homeSolvePuzzle">Solve puzzle →</button></section>`;
  const library=$('libraryView');library?.parentNode?.insertBefore(view,library);
+ command=createHomeCommandCentre(view,requestGame);
  button.addEventListener('click',show);
  $('homeAnalyticsLink').addEventListener('click',()=>{const tab=$('analyticsTab');if(tab)tab.click();});
  $('homeViewAllGames').addEventListener('click',()=>$('gamesTab')?.click());
@@ -51,17 +53,19 @@ function create(){
  invalidatePersonalTraining();
  document.addEventListener('click',e=>{
   const tab=e.target.closest?.('.homeTabs .homeTab');
+  if(tab)command.rememberPosition();
   if(tab&&tab.id!=='homeDashboardTab')hide();
  },true);
- const invalidate=()=>{loaded=false;refreshId++;invalidatePersonalTraining();if(active)void refresh()};
+ const invalidate=()=>{loaded=false;refreshId++;command.reset();invalidatePersonalTraining();if(active)void refresh()};
  window.addEventListener('chessImportFinished',invalidate);
  window.addEventListener('chessGamesImported',invalidate);
  window.addEventListener('storage',e=>{if(e.key==='chess-username'||e.key===null)invalidate()});
- window.addEventListener('savedGameOpened',hide);
- window.addEventListener('gameReviewUpdated',invalidatePersonalTraining);
+ window.addEventListener('savedGameOpened',event=>{command.remember(event.detail?.key,event.detail?.ply);hide()});
+ window.addEventListener('gameReviewUpdated',()=>{invalidatePersonalTraining();command.invalidateReviews()});
  window.addEventListener('requestChessSync',()=>{loaded=false});
+ window.addEventListener('popstate',()=>command.rememberPosition());
 }
-function hide(){if(!active)return;active=false;const view=$('homeView');if(view)view.hidden=true}
+function hide(){command?.rememberPosition();command?.pause();if(!active)return;active=false;const view=$('homeView');if(view)view.hidden=true}
 function show(){
  active=true;
  for(const id of ['libraryView','boardLabView','explorerView','puzzlesView','analyticsView','topPlayersView','settingsView']){
@@ -76,19 +80,13 @@ function show(){
 const percent=value=>value===null?'—':Math.round(value)+'%';
 const signed=value=>(value>0?'+':'')+value;
 const title=value=>value.charAt(0).toUpperCase()+value.slice(1);
-function requestGame(key){window.dispatchEvent(new CustomEvent('requestOpenSavedGame',{detail:{key}}))}
+function requestGame(key,ply=0){window.dispatchEvent(new CustomEvent('requestOpenSavedGame',{detail:{key,ply}}))}
 function renderInsights(games,user){
  const stats=buildPlayerInsights(games,user),latest=stats.ratings[0];
  $('homeMetrics').innerHTML='<div><strong>'+stats.totals.games.toLocaleString()+'</strong><small>Your games</small></div><div><strong>'+percent(stats.totals.winRate)+'</strong><small>Win rate'+(stats.totals.unknown?' · known results':'')+'</small></div><div><strong>'+(latest?.latest??'—')+'</strong><small>'+escapeHtml(latest?title(latest.pool)+' rating':'Rated games needed')+'</small></div>';
  const week=stats.week;
  $('homeWeekSummary').textContent=week.games?`${week.games} games · ${week.wins}W / ${week.draws}D / ${week.losses}L${week.unknown?` · ${week.unknown} unknown results`:''}. ${signed(week.games-week.previous.games)} games compared with the previous 7 days.`:'No saved games in the last 7 days. Import recent games to build your weekly report.';
  $('homeWeeklyRatings').innerHTML=stats.ratings.filter(item=>item.weeklyDelta!==null).map(item=>`<span>${escapeHtml(title(item.pool))} <b>${signed(item.weeklyDelta)}</b> rating points</span>`).join('');
- const loss=stats.rows.find(row=>row.result==='L');
- const target=stats.weakest&&stats.weakest.score<50?stats.weakest:null;
- $('homeInsightText').textContent=!user?'Import games for your Chess.com username to get personal insights.':!stats.totals.games?'No saved standard-chess games for this player yet. Import games from the Games screen.':target?`Your ${target.white?'White':'Black'} ${target.pool} games with ${target.name} score ${percent(target.score)} across ${target.known} games. Review a loss in this opening before trying a different line.`:loss?'Review a recent loss and look for one decision you would change. Game results alone cannot tell us which tactical skills need work.':'Start with a saved game review or a daily puzzle. More games will help reveal patterns.';
- const suggestion=target?target.rows.find(row=>row.result==='L')||loss:loss;
- $('homeReviewSuggestion').hidden=!suggestion;
- $('homeReviewSuggestion').onclick=()=>{if(suggestion)requestGame(suggestion.key)};
  $('homeOpeningName').textContent=stats.commonOpening?.[0]||'No opening names recorded yet';
  $('homeOpeningCount').textContent=stats.commonOpening?stats.commonOpening[1].toLocaleString()+' saved games with this opening':'Your next sync may include opening information';
  const selected=$('homeTimeClass').value,dna=buildPlayerInsights(games,user,{pool:selected});
@@ -103,6 +101,7 @@ function renderInsights(games,user){
  }).join('')||'<p class="homeDataNote">Import rated games to see rating trends. Each time control has its own rating.</p>';
  const entries=[['Strongest observed',dna.strongest],['Room to explore',dna.weakest]].filter(([,group],i,list)=>group&&(i===0||group!==list[0][1]));
  $('homeOpeningInsights').innerHTML=entries.map(([label,group])=>`<article class="homeOpeningInsight"><span>${label}</span><strong>${escapeHtml(group.name)}</strong><p>${group.white?'White':'Black'} · ${escapeHtml(title(group.pool))} · ${group.known} games · ${percent(group.score)} score</p><small>${group.wins}W / ${group.draws}D / ${group.losses}L</small></article>`).join('')||'<p class="homeDataNote">Play at least five completed games with the same opening, colour and time control to compare opening results.</p>';
+ command.update(games,user);
 }
 async function refresh(){
  const id=++refreshId,scroller=$('homeRecentScroller'),user=username();
@@ -115,7 +114,7 @@ async function refresh(){
    const g=row.game,result={result:({W:'Win',D:'Draw',L:'Loss'})[row.result]||'Unknown',opponent:row.opponent,rating:row.rating??'—'},card=document.createElement('button');
    card.type='button';card.className='homeRecentCard';
    card.setAttribute('aria-label','Review '+result.result.toLowerCase()+' game against '+result.opponent);
-   card.innerHTML=miniBoard(g.pgn)+'<span class="homeRecentTitle">'+escapeHtml(result.opponent)+'</span><span class="homeRecentDetails"><b class="homeResult '+result.result.toLowerCase()+'">'+result.result+'</b> · '+escapeHtml(g.time_class||'Game')+' · '+escapeHtml(result.rating)+'</span>';
+   card.innerHTML=miniBoard(g.pgn)+'<span class="homeRecentTitle">'+escapeHtml(result.opponent)+'</span><span class="homeRecentDetails"><b class="homeResult '+result.result.toLowerCase()+'">'+result.result+'</b> · '+escapeHtml(g.time_class||'Game')+' · '+escapeHtml(result.rating)+'</span><small class="homeRecentOpening">'+escapeHtml(row.opening||'Opening not recorded')+'</small>';
    card.dataset.gameKey=row.key;
    card.addEventListener('click',()=>requestGame(row.key));
    scroller.appendChild(card);
