@@ -50,7 +50,7 @@ Validation and screenshots: [WEAKNESS-HOME-VALIDATION.md](docs/WEAKNESS-HOME-VAL
 
 ## Premium sound and tactile UI increment
 
-Starting point: `main` commit `b753246`. Dedicated branch: `codex/premium-feedback`. Extends the original move-sound preference and press-feedback hooks; the old two-tone implementation is replaced by one shared controller.
+Merged in [PR #65](https://github.com/rk93/chess-analyser/pull/65) as `56cf236`. Extends the original move-sound preference and press-feedback hooks; the old two-tone implementation is replaced by one shared controller.
 
 | Improvement | Acceptance criteria | Status |
 | --- | --- | --- |
@@ -61,6 +61,20 @@ Starting point: `main` commit `b753246`. Dedicated branch: `codex/premium-feedba
 | Safety and regression coverage | Trusted-gesture activation only, mute/volume-zero, event deduplication, rejected/absent audio and vibration support, preference persistence, mobile/desktop and real audio lifecycle tests | 172 unit tests and 232 browser checks passed; inspected screenshots in the linked report |
 
 Validation: [FEEDBACK-VALIDATION.md](docs/FEEDBACK-VALIDATION.md). Initial rating-best cards remain silent; achievement sound is tied to an actually earned puzzle milestone rather than rendering old achievements. Existing opt-in coach speech keeps its separate controls.
+
+## Pip welcome, review progress and tactile controls increment
+
+Starting point: latest `main`, `56cf236`. Dedicated branch: `codex/pip-welcome-review-engagement`. This increment continues P0 reliability, the P3 personal Home experience and P4 guided review without adding another analysis or audio implementation.
+
+| Improvement | Acceptance criteria | Status |
+| --- | --- | --- |
+| Original first-visit welcome | A deliberate sound/silent choice, existing mute and volume preserved, once per browser, no automatic audio or blocking splash screen | Implemented with the shared synth; original 4.3s adventure score, gentler Soft version |
+| Useful review waiting | Actual completed positions and separate deep-check counts; indeterminate startup; general study tips; working Stop, Retry and preview actions | Implemented using events from the existing Stockfish pipeline; no artificial delay, invented ETA or progress sounds |
+| Reliable cancellation | Stop the active UCI search, drain its result before the next queued search, reject late results after navigation or cancellation | Implemented with optional AbortSignal support; existing engine calculations and review depth settings retained |
+| Tactile controls | Trusted clicks, checkbox/select changes, keyboard/touch slider steps and settled user carousel changes; independent haptics and separately opt-in UI sounds | Implemented with rate limits and no sound on programmatic updates; Settings changes remain quiet |
+| Review readiness and layout | Unverified previews stay labelled as previews; retain the existing desktop board grid; touch targets, reduced motion and offline shell preserved | Complete: 177 unit tests and 260 browser checks passed; inspected screenshots recorded in the linked report |
+
+Validation: [PIP-ENGAGEMENT-VALIDATION.md](docs/PIP-ENGAGEMENT-VALIDATION.md). The next intelligence increment remains the evidence-based weekly coach report with three practice actions, followed by broader tactical motifs requiring legal board and engine verification. These are separate stages; generic waiting tips are not personalised engine findings.
 
 ## Remaining priorities from the product transformation brief
 

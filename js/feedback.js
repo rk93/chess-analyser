@@ -3,6 +3,7 @@ import {createSynthPlayer} from './feedback-audio.js';
 
 const $=id=>document.getElementById(id),animations=new Set(),timers=new Set();
 let installed=false,pressInstalled=false,activePress=null,playback={playing:false,interval:0};
+let rangeValues=new WeakMap(),carouselGestures=new WeakMap();const carouselPositions=new WeakMap();
 const motion=()=>{try{return matchMedia('(prefers-reduced-motion: reduce)').matches}catch{return false}};
 export function feedbackPreferences(){try{return readFeedbackPreferences(localStorage)}catch{return readFeedbackPreferences(null)}}
 function visible(context){return !document.hidden&&(!context||!!$(context)?.getClientRects().length)}
@@ -20,6 +21,7 @@ export function feedbackPulse(node,success=true){
 }
 export function playFeedback(type,options={}){return feedback.emit(type,options)}
 export function selectionFeedback(boardId){void playFeedback('selection',{context:boardId});}
+function controlFeedback(node,type='uiTap'){void playFeedback(node.closest?.('#settingsView')?'selection':type);}
 export function markLegalTargets(boardId,moves=[]) {
   const targets=new Map(moves.map(move=>[move.to,!!move.captured]));
   $(boardId)?.querySelectorAll('[data-square]').forEach(square=>{square.classList.toggle('feedbackLegalTarget',targets.has(square.dataset.square)&&!targets.get(square.dataset.square));square.classList.toggle('feedbackLegalCapture',targets.get(square.dataset.square)===true);});
@@ -37,6 +39,7 @@ export function moveFeedback(move,{boardId,automatic=false,sound=true,type}={}) 
   if(move.captured||move.promotion)feedbackPulse(board.querySelector(`[data-square="${move.to}"]`));
 }
 function cleanup(){
+  rangeValues=new WeakMap();carouselGestures=new WeakMap();
   playback={playing:false,interval:0};
   feedback.stop();
   feedback.playback({playing:false});
@@ -76,19 +79,32 @@ export function installPressFeedback(){
 }
 function init(){
   if(installed)return;installed=true;installSettings();installPressFeedback();
-  const unlock=event=>{if(event.isTrusted&&(['pointerdown','click'].includes(event.type)||['Enter',' ','ArrowLeft','ArrowRight'].includes(event.key)))feedback.unlock();};
+  const unlock=event=>{if(event.isTrusted&&(['pointerdown','click'].includes(event.type)||['Enter',' ','ArrowLeft','ArrowRight','ArrowUp','ArrowDown','Home','End','PageUp','PageDown'].includes(event.key)))feedback.unlock();};
   document.addEventListener('pointerdown',unlock,{capture:true,passive:true});document.addEventListener('keydown',unlock,true);document.addEventListener('click',unlock,true);
   document.addEventListener('click',event=>{if(event.target.closest?.('.homeTab,#back,#explorerHome')){cleanup();const target=event.target.closest('.homeTab');if(target&&!reducedFeedbackMotion())later(()=>{const route={homeDashboardTab:'homeView',gamesTab:'libraryView',boardLabTab:'boardLabView',explorerTab:'explorerView',puzzlesTab:'puzzlesView',analyticsTab:'analyticsView',topPlayersTab:'topPlayersView',settingsNav:'settingsView'}[target.id],view=$(route);if(view?.getClientRects().length)animate(view,[{opacity:.92},{opacity:1}],{duration:120,easing:'ease-out'});},0);}},true);
   document.addEventListener('click',event=>{
-    const node=event.target.closest?.('button,[role="tab"]');if(!event.isTrusted||!node||node.disabled||node.matches('.ctrl,#reviewAutoPlay,#reviewPrev,#reviewNext,#labBack,#labForward,#feedbackPreview'))return;
-    void playFeedback('uiTap');
+    const node=event.target.closest?.('button,[role="tab"],summary,input[type="checkbox"],input[type="radio"]');if(!event.isTrusted||!node||node.disabled||node.matches('.ctrl,#reviewAutoPlay,#reviewPrev,#reviewNext,#labBack,#labForward,#feedbackPreview,[data-feedback-own]'))return;
+    controlFeedback(node);
   });
+  document.addEventListener('input',event=>{
+    const node=event.target;if(!event.isTrusted||!node.matches?.('input[type="range"]')||node.disabled||rangeValues.get(node)===node.value)return;
+    rangeValues.set(node,node.value);controlFeedback(node,'uiTick');
+  });
+  document.addEventListener('change',event=>{if(event.isTrusted&&event.target.matches?.('select')&&!event.target.disabled)controlFeedback(event.target);});
+  const armCarousel=event=>{const node=event.target.closest?.('[data-feedback-carousel]');if(event.isTrusted&&node&&!carouselGestures.has(node))carouselGestures.set(node,event.type==='wheel'?(carouselPositions.get(node)??0):node.scrollLeft);};
+  document.addEventListener('pointerdown',armCarousel,{capture:true,passive:true});document.addEventListener('wheel',armCarousel,{capture:true,passive:true});document.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight'].includes(event.key))armCarousel(event);},true);
+  document.addEventListener('scrollend',event=>{
+    const node=event.target;if(!node.matches?.('[data-feedback-carousel]'))return;
+    const from=carouselGestures.get(node);carouselPositions.set(node,node.scrollLeft);if(!carouselGestures.has(node))return;carouselGestures.delete(node);
+    const card=node.firstElementChild,step=(card?.getBoundingClientRect().width||0)+(parseFloat(getComputedStyle(node).columnGap)||0);
+    if(step>0&&Math.round(from/step)!==Math.round(node.scrollLeft/step)&&node.getClientRects().length)void playFeedback('uiTick');
+  },true);
   for(const event of ['popstate','requestOpenSettingsPage','requestOpenSavedGame'])window.addEventListener(event,cleanup);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)cleanup();});
   window.addEventListener('pagehide',()=>{cleanup();feedback.dispose();});
   window.addEventListener('chessPreference',event=>{if(['sound','soundVolume','soundTheme','haptics','uiSounds','reducedAnimations'].includes(event.detail?.key)){feedback.stop();syncSettings();}});
   window.addEventListener('storage',event=>{if(event.key===null||event.key?.startsWith(FEEDBACK_PREFIX)){feedback.stop();syncSettings();}});
-  try{matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>{cleanup();syncSettings();});}catch{}
+  try{matchMedia('(prefers-reduced-motion: reduce)').addEventListener('change',()=>{feedback.stop();syncSettings();});}catch{}
   window.addEventListener('reviewFeedbackPlayback',event=>{playback=event.detail;feedback.playback(event.detail);});
   window.addEventListener('gameReviewVerified',event=>{
     if(event.detail?.cached!==false)return;

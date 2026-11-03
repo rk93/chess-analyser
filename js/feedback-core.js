@@ -1,5 +1,6 @@
+import {generateWelcomeSound} from './welcome-sound.js';
 export const FEEDBACK_PREFIX='chess-analyser-pref:';
-export const SOUND_EVENTS=Object.freeze(['move','capture','check','checkmate','castle','promotion','illegal','puzzleSuccess','puzzleIncorrect','victory','defeat','draw','achievement','reviewComplete','uiTap']);
+export const SOUND_EVENTS=Object.freeze(['move','capture','check','checkmate','castle','promotion','illegal','puzzleSuccess','puzzleIncorrect','victory','defeat','draw','achievement','reviewComplete','uiTap','uiTick','reviewStart','welcome']);
 const THEMES=['classic','soft','modern'];
 export function readFeedbackPreferences(storage=globalThis.localStorage) {
   const read=key=>{try{return storage?.getItem(FEEDBACK_PREFIX+key)}catch{return null}};
@@ -21,7 +22,7 @@ export function gameResultFeedback(game,username) {
   const result=game?.[side]?.result;
   return result==='win'?'victory':['agreed','repetition','stalemate','insufficient','50move','timevsinsufficient','draw'].includes(result)?'draw':['checkmated','resigned','timeout','lose','abandoned'].includes(result)?'defeat':null;
 }
-const HAPTICS={selection:6,capture:12,puzzleSuccess:[10,30,16],puzzleIncorrect:[7,25,7],illegal:7,achievement:[10,30,16]};
+const HAPTICS={selection:6,uiTap:4,uiTick:3,capture:12,puzzleSuccess:[10,30,16],puzzleIncorrect:[7,25,7],illegal:7,achievement:[10,30,16]};
 
 // Injected platform adapter keeps preference, deduplication and lifecycle rules
 // testable without creating audio or touching browser globals on import.
@@ -38,16 +39,15 @@ export function createFeedbackController({read=readFeedbackPreferences,createPla
         if(!armed||!isActive(context)||(!SOUND_EVENTS.includes(type)&&type!=='selection'))return false;
         const settings=read(),boardMove=['move','capture','check','checkmate','castle','promotion','victory','defeat','draw'].includes(type),auto=automatic||(context==='board'&&playback.playing&&boardMove);
         if(auto&&(!playback.playing||playback.interval<=500))return false;
-        const stamp=now(),priority=type==='uiTap'?0:1;
-        if(type==='uiTap'&&(!settings.sound||!settings.uiSounds))return false;
+        const stamp=now(),interaction=['uiTap','uiTick'].includes(type),priority=interaction?0:1;
         if(type==='selection'){if(!settings.haptics||auto||stamp-lastTouch<50)return false;lastTouch=stamp;try{return vibrate(HAPTICS.selection)!==false}catch{return false;}}
         if(id!==undefined){const key=context+'|'+id;if(seen.has(key))return false;seen.set(key,true);if(seen.size>128)seen.delete(seen.keys().next().value);}
-        if(stamp-lastTime<65 || (priority<lastPriority&&stamp-lastTime<200))return false;
+        if((stamp-lastTime<(type==='uiTick'?120:65)&&priority<=lastPriority) || (priority<lastPriority&&stamp-lastTime<200))return false;
         lastTime=stamp;lastPriority=priority;
         let touched=false;
         const pattern=HAPTICS[haptic||type];
         if(settings.haptics&&!auto&&pattern){try{touched=vibrate(pattern)!==false}catch{}}
-        if(type==='selection'||!settings.sound||settings.volume<=0||(type==='uiTap'&&!settings.uiSounds))return touched;
+        if(!settings.sound||settings.volume<=0||(interaction&&!settings.uiSounds))return touched;
         player=player||createPlayer();if(!player)return touched;
         const token=generation;
         const current=()=>token===generation&&isActive(context)&&read().sound&&read().volume>0;
@@ -59,9 +59,10 @@ export function createFeedbackController({read=readFeedbackPreferences,createPla
   };
 }
 
-const NOTES={move:[310],capture:[185],check:[560,690],checkmate:[440,330,220],castle:[275,310],promotion:[440,660,880],illegal:[200,170],puzzleSuccess:[440,550,660],puzzleIncorrect:[260,220],victory:[440,550,660,880],defeat:[330,275,220],draw:[330,330],achievement:[440,660,880,1100],reviewComplete:[390,520,650],uiTap:[420]};
+const NOTES={move:[310],capture:[185],check:[560,690],checkmate:[440,330,220],castle:[275,310],promotion:[440,660,880],illegal:[200,170],puzzleSuccess:[440,550,660],puzzleIncorrect:[260,220],victory:[440,550,660,880],defeat:[330,275,220],draw:[330,330],achievement:[440,660,880,1100],reviewComplete:[390,520,650],uiTap:[420],uiTick:[640],reviewStart:[330,440]};
 // Original, deterministic percussion and chimes. No third-party sound assets.
 export function generateSound(type,theme='classic',sampleRate=44100) {
+  if(type==='welcome')return generateWelcomeSound(theme,sampleRate,generateSound);
   const notes=NOTES[type];if(!notes)return new Float32Array();
   const step=type==='castle'?.052:type==='uiTap'?.016:.065;
   const tail=type==='uiTap'?.025:['move','capture','castle'].includes(type)?.09:.15;

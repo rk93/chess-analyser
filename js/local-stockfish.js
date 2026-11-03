@@ -55,13 +55,15 @@ class LocalStockfish{
     });
     return this.readyPromise;
   }
-  analyse(fen,{depth=15,movetime=0,multipv=1,clearHash=true}={}){
-    const run=this.queue.catch(()=>{}).then(()=>this._analyse(fen,{depth,movetime,multipv,clearHash}));
+  analyse(fen,{depth=15,movetime=0,multipv=1,clearHash=true,signal}={}){
+    const run=this.queue.catch(()=>{}).then(()=>this._analyse(fen,{depth,movetime,multipv,clearHash,signal}));
     this.queue=run.catch(()=>{});
     return run;
   }
-  async _analyse(fen,{depth,movetime,multipv,clearHash}){
+  async _analyse(fen,{depth,movetime,multipv,clearHash,signal}){
+    signal?.throwIfAborted();
     await this.ready();
+    signal?.throwIfAborted();
     const turn=String(fen).split(/\s+/)[1]||'w';
     return new Promise((resolve,reject)=>{
       const state={depth:0,cp:0,mate:null,pv:'',best:'',lines:new Map()};
@@ -69,7 +71,8 @@ class LocalStockfish{
         cleanup();try{this.worker.postMessage('stop')}catch{}
         reject(new Error('Local Stockfish timed out'));
       },30000);
-      const cleanup=()=>{clearTimeout(timer);this.worker?.removeEventListener('message',onMessage)};
+      const onAbort=()=>{try{this.worker.postMessage('stop')}catch{}};
+      const cleanup=()=>{clearTimeout(timer);this.worker?.removeEventListener('message',onMessage);signal?.removeEventListener('abort',onAbort)};
       const onMessage=e=>{
         const line=String(e.data||'');
         parseInfo(line,state,turn);
@@ -78,10 +81,13 @@ class LocalStockfish{
           state.best=m[1]&&m[1]!=='(none)'?m[1]:'';
           const lines=[...state.lines.values()].sort((a,b)=>a.multipv-b.multipv);
           cleanup();
-          resolve({...state,lines,source:'Stockfish 19 local'});
+          if(signal?.aborted)reject(signal.reason||new DOMException('Analysis stopped','AbortError'));
+          else resolve({...state,lines,source:'Stockfish 19 local'});
         }
       };
       this.worker.addEventListener('message',onMessage);
+      // Drain bestmove after stop before advancing the shared engine queue.
+      signal?.addEventListener('abort',onAbort,{once:true});
       this.worker.postMessage('ucinewgame');
       if(clearHash)this.worker.postMessage('setoption name Clear Hash');
       this.worker.postMessage('setoption name MultiPV value '+Math.max(1,Math.min(4,Number(multipv)||1)));

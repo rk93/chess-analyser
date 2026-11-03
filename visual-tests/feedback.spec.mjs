@@ -58,7 +58,7 @@ test('training feedback is one correct or incorrect event, with legal movement p
 });
 test('rapid autoplay is silent, relaxed autoplay can sound and navigation cancels its pending feedback',async({page})=>{
   await auditFeedback(page);await page.goto('/');await seedFeedbackReview(page);await page.locator('#gamesTab').click();await expect(page.locator('.gameWithAvatar')).toHaveCount(1);await page.locator('.gameWithAvatar').click();
-  await expect(page.locator('#reviewAutoPlay')).toBeVisible();if(page.viewportSize().width>800)await page.locator('#reviewAutoPlay').click();await expect(page.locator('#reviewAutoPlay')).toHaveAttribute('aria-pressed','true');
+  await expect(page.locator('#reviewAutoPlay')).toBeVisible();await page.evaluate(()=>{feedbackAudit.vibrations=[]});if(page.viewportSize().width>800)await page.locator('#reviewAutoPlay').click();await expect(page.locator('#reviewAutoPlay')).toHaveAttribute('aria-pressed','true');
   await expect(page.locator('#reviewAutoPlay')).toHaveAttribute('aria-pressed','false',{timeout:10000});expect(await count(page)).toBe(0);
   expect(await page.evaluate(()=>feedbackAudit.vibrations)).toEqual([]);
   await page.locator('#reviewAutoPlay').click();await expect(page.locator('#reviewAutoPlay')).toHaveAttribute('aria-pressed','true');await expect(page.locator('#reviewAutoPlay')).toHaveAttribute('aria-pressed','false',{timeout:10000});expect(await count(page)).toBe(0);
