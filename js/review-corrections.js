@@ -22,7 +22,15 @@ const BADGE={Brilliant:'brilliant',Great:'great',Best:'best',Excellent:'excellen
 const LOCAL_REVIEW_VERSION=21;
 const BASE_DEPTH=8;
 const DEEP_DEPTH=12;
-let auditing=false;
+let activeAudit=null;
+function auditProgress(audit,phase,done=0,total=0,depth=0){
+  if(activeAudit!==audit||audit.controller.signal.aborted)return;
+  window.dispatchEvent(new CustomEvent('reviewAnalysisProgress',{detail:{key:audit.key,phase,done,total,depth}}));
+}
+function cancelAudit(){
+  const audit=activeAudit;if(!audit)return;activeAudit=null;audit.controller.abort();
+  window.dispatchEvent(new CustomEvent('reviewAnalysisProgress',{detail:{key:audit.key,phase:'cancelled'}}));
+}
 
 function moveEls(){return [...document.querySelectorAll('#moves .move')]}
 function sans(){return moveEls().map(e=>e.childNodes[0]?.textContent?.trim()||e.textContent.trim())}
@@ -94,21 +102,24 @@ function refreshSummary(data){
   if(headline)headline.textContent=blunders?`${blunders} blunder${blunders===1?'':'s'} found by local Stockfish. Review the largest Win% swings.`:mistakes?`No blunders, but ${mistakes} mistake${mistakes===1?'':'s'} found by local Stockfish.`:'A clean local Stockfish review with no major Win% drops.';
 }
 
-async function analysePosition(engine,fen,{depth,multipv}){
+async function analysePosition(engine,fen,{depth,multipv,signal}){
+  signal?.throwIfAborted();
   const t=terminalEval(fen);
   if(t!==null)return{cp:t,best:'',depth:99,pv:'',lines:[{cp:t,depth:99,pv:'',best:''}]};
-  return engine.analyse(fen,{depth,multipv,clearHash:true});
+  return engine.analyse(fen,{depth,multipv,clearHash:true,signal});
 }
 
-async function firstPass(ctx,config){
+async function firstPass(ctx,config,audit){
   const engine=getLocalStockfish();await engine.ready();
   const n=ctx.positions.length,evals=new Array(n),bestMoves=new Array(n).fill(''),depths=new Array(n).fill(0),pvs=new Array(n).fill(''),multiLines=new Array(n).fill(null),secondCps=new Array(n).fill(null);
   for(let i=0;i<n;i++){
+    audit.controller.signal.throwIfAborted();auditProgress(audit,'positions',i,n,config.base);
     const status=$('reviewStatus');if(status)status.textContent=`Stockfish review ${i+1}/${n} · depth ${config.base}…`;
-    const r=await analysePosition(engine,ctx.positions[i],{depth:config.base,multipv:i<n-1?2:1});
+    const r=await analysePosition(engine,ctx.positions[i],{depth:config.base,multipv:i<n-1?2:1,signal:audit.controller.signal});
     evals[i]=r.cp;bestMoves[i]=r.best||r.lines?.[0]?.best||'';depths[i]=r.depth||config.base;pvs[i]=r.pv||r.lines?.[0]?.pv||'';
     multiLines[i]=(r.lines||[]).slice(0,3).map(line=>({pv:line.pv||'',cp:line.cp,depth:line.depth||r.depth||config.base}));
     if(r.lines?.[1]&&Number.isFinite(r.lines[1].cp))secondCps[i]=r.lines[1].cp;
+    auditProgress(audit,'positions',i+1,n,config.base);
   }
   return{engine,evals,bestMoves,depths,pvs,multiLines,secondCps};
 }
@@ -142,13 +153,16 @@ function deepTargets(engineData,ctx,classification){
   return [...set].filter(i=>i>=0&&i<ctx.positions.length&&terminalEval(ctx.positions[i])===null).sort((a,b)=>a-b);
 }
 
-async function deepen(engineData,ctx,indexes,config){
+async function deepen(engineData,ctx,indexes,config,audit){
+  auditProgress(audit,'critical',0,indexes.length,config.critical);
   for(let n=0;n<indexes.length;n++){
+    audit.controller.signal.throwIfAborted();
     const i=indexes[n],status=$('reviewStatus');if(status)status.textContent=`Deep verification ${n+1}/${indexes.length} · depth ${config.critical}…`;
-    const r=await analysePosition(engineData.engine,ctx.positions[i],{depth:config.critical,multipv:i<ctx.positions.length-1?2:1});
+    const r=await analysePosition(engineData.engine,ctx.positions[i],{depth:config.critical,multipv:i<ctx.positions.length-1?2:1,signal:audit.controller.signal});
     engineData.evals[i]=r.cp;engineData.bestMoves[i]=r.best||r.lines?.[0]?.best||engineData.bestMoves[i];engineData.depths[i]=r.depth||config.critical;engineData.pvs[i]=r.pv||r.lines?.[0]?.pv||engineData.pvs[i];
     engineData.multiLines[i]=(r.lines||[]).slice(0,3).map(line=>({pv:line.pv||'',cp:line.cp,depth:line.depth||r.depth||config.critical}));
     engineData.secondCps[i]=r.lines?.[1]&&Number.isFinite(r.lines[1].cp)?r.lines[1].cp:null;
+    auditProgress(audit,'critical',n+1,indexes.length,config.critical);
   }
 }
 
@@ -177,10 +191,11 @@ function buildReview(engineData,ctx,prior,config){
 }
 
 async function deepCorrect(detail){
-  if(auditing)return;
   const prior=detail?.data;if(!prior?.evals?.length)return;
   const config=getReviewDepthPreset();
   const ctx=build(),originalKey=reviewKey();if(detail?.key&&detail.key!==originalKey)return;if(ctx.positions.length!==prior.evals.length)return;
+  if(activeAudit?.key===originalKey)return;
+  if(activeAudit)cancelAudit();
   const positions=ctx.positions.map(fen=>({terminal:terminalEval(fen)!==null}));
   if(prior.localStockfishVersion===LOCAL_REVIEW_VERSION&&reviewCoverage(prior,positions).complete&&reviewDepthIsCurrent(prior,config)){
     const needed=!prior.displayPrecomputed||Number(prior.displayPrecomputedVersion)<2||displayCacheNeedsRepair(prior,ctx.ucis.length);
@@ -188,24 +203,31 @@ async function deepCorrect(detail){
     if(originalKey!==reviewKey())return;
     refreshMoveTags(prior);refreshSummary(prior);window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data:prior}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));window.dispatchEvent(new CustomEvent('gameReviewVerified',{detail:{key:originalKey,cached:true}}));return;
   }
-  if(!await localStockfishAvailable()){const status=$('reviewStatus');if(status)status.textContent='Local Stockfish is unavailable; the quick review remains visible.';return}
-  auditing=true;
+  const audit={key:originalKey,controller:new AbortController()};activeAudit=audit;auditProgress(audit,'starting');
   try{
+    if(!await localStockfishAvailable())throw new Error('Local Stockfish is unavailable');
+    audit.controller.signal.throwIfAborted();
     const status=$('reviewStatus');if(status)status.textContent='Starting authoritative local Stockfish review…';
-    const engineData=await firstPass(ctx,config);
+    const engineData=await firstPass(ctx,config,audit);
     const provisional=classifyAll(engineData,ctx,prior),targets=deepTargets(engineData,ctx,provisional);
-    await deepen(engineData,ctx,targets,config);
+    await deepen(engineData,ctx,targets,config,audit);
+    audit.controller.signal.throwIfAborted();
     if(originalKey!==reviewKey())return; // Avoid writing another game's analysis.
     assertEngineCoverage(engineData,positions);
     const data=buildReview(engineData,ctx,prior,config);
     if(!reviewCoverage(data,positions).complete)throw new Error('Coverage validation failed; review not saved');
     refreshMoveTags(data);refreshSummary(data);await cacheSet('review',originalKey,data);
-    if(originalKey!==reviewKey())return;
+    if(audit.controller.signal.aborted||activeAudit!==audit||originalKey!==reviewKey())return;
+    auditProgress(audit,'complete',ctx.positions.length,ctx.positions.length);
     if(status)status.textContent=`Stockfish Review v2 ready · all ${ctx.positions.length} positions evaluated · ${targets.length} deeply rechecked · ${data.labels.filter(x=>x==='Blunder').length} blunder${data.labels.filter(x=>x==='Blunder').length===1?'':'s'}.`;
     window.dispatchEvent(new CustomEvent('gameReviewUpdated',{detail:{data}}));window.dispatchEvent(new CustomEvent('reviewNavigation'));window.dispatchEvent(new CustomEvent('gameReviewVerified',{detail:{key:originalKey,cached:false}}));
   }catch(e){
+    if(audit.controller.signal.aborted||activeAudit!==audit||originalKey!==reviewKey())return;
+    auditProgress(audit,'error');
     const status=$('reviewStatus');if(status)status.textContent=`Verified review incomplete — ${e?.message||e}. Retry Review game to repair it.`;
-  }finally{auditing=false}
+  }finally{if(activeAudit===audit)activeAudit=null}
 }
 
 window.addEventListener('gameReviewReady',e=>{deepCorrect(e.detail).catch(()=>{})});
+window.addEventListener('cancelGameReview',cancelAudit);
+window.addEventListener('feedbackCleanup',cancelAudit);

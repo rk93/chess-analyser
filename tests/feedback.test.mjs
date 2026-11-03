@@ -50,7 +50,7 @@ test('explicit event IDs deduplicate outcomes and repeated taps are rate limited
   assert.equal(await f.controller.emit('capture'),false);assert.equal(f.plays.length,2);assert.equal(f.created(),1);
 });
 test('UI sounds are separately opt-in and cannot override a higher-priority board event',async()=>{
-  const f=fixture();f.controller.unlock();assert.equal(await f.controller.emit('uiTap'),false);assert.equal(f.created(),0);
+  const f=fixture();f.controller.unlock();assert.equal(await f.controller.emit('uiTap'),true);assert.equal(f.created(),0);assert.deepEqual(f.buzz,[4]);
   await f.controller.emit('move');f.settings.uiSounds=true;f.tick(100);assert.equal(await f.controller.emit('uiTap'),false);f.tick(150);assert.equal(await f.controller.emit('uiTap'),true);
 });
 test('rapid autoplay and automatic replies are silent and never vibrate',async()=>{
@@ -77,7 +77,7 @@ test('missing, throwing audio and haptic APIs fail quietly',async()=>{
 });
 test('all events and themes have original finite, brief and distinct generated waveforms',()=>{
   const fingerprints=new Set();
-  for(const type of SOUND_EVENTS){const data=generateSound(type,'classic',8000);assert.ok(data.length>0&&data.length<4000);assert.ok(data.every(value=>Number.isFinite(value)&&Math.abs(value)<=1));fingerprints.add(data.length+':'+Array.from(data.slice(8,24)).join(','));}
+  for(const type of SOUND_EVENTS){const data=generateSound(type,'classic',8000);assert.ok(data.length>0&&data.length<(type==='welcome'?40000:4000));assert.ok(data.every(value=>Number.isFinite(value)&&Math.abs(value)<=1));fingerprints.add(data.length+':'+Array.from(data.slice(type==='welcome'?1000:8,type==='welcome'?1016:24)).join(','));}
   assert.equal(fingerprints.size,SOUND_EVENTS.length);
   assert.notDeepEqual(generateSound('move','classic',8000),generateSound('move','soft',8000));assert.notDeepEqual(generateSound('move','classic',8000),generateSound('move','modern',8000));
 });

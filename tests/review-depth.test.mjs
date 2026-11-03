@@ -18,7 +18,7 @@ test('cached verified reviews are specific to the selected depth',()=>{
 });
 test('engine uses depth config for full pass, deep pass and cache validation',async()=>{
  const src=await readFile('js/review-corrections.js','utf8');
- assert.match(src,/firstPass\(ctx,config\)/);
+ assert.match(src,/firstPass\(ctx,config,audit\)/);
  assert.match(src,/depth:config\.base/);
  assert.match(src,/depth:config\.critical/);
  assert.match(src,/reviewDepthIsCurrent\(prior,config\)/);
