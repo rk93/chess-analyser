@@ -1,3 +1,4 @@
+import {installPressFeedback} from './feedback.js';
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=()=>window.matchMedia('(max-width:800px)').matches?5:20,DB_NAME='rk93-chess-analyser',STORE='games';
 let page=1,filterResult='all',filterSpeed='all',query='',lastViewId='gamesTab',pagerFrame=0;
@@ -36,18 +37,6 @@ function setOnlyActive(id){document.querySelectorAll('.homeTabs .homeTab').forEa
 function decorateNav(){const nav=document.querySelector('.homeTabs');if(!nav)return;ensureSettingsNav();nav.classList.add('modernNav');nav.querySelectorAll('.homeTab').forEach(paintNavButton)}
 function hideSettingsPage(){const v=$('settingsView');if(v)v.hidden=true}
 function showSettingsPage(){const v=ensureSettingsPage();for(const id of ['libraryView','boardLabView','explorerView','puzzlesView','analyticsView','topPlayersView']){const el=$(id);if(el)el.hidden=true}if($('analysisView'))$('analysisView').style.display='none';v.hidden=false;setOnlyActive('settingsNav');window.scrollTo({top:0,behavior:'instant'})}
-function installPressFeedback(){
-  document.addEventListener('pointerdown',event=>{
-    const el=event.target.closest?.('button,.btn,.ctrl,#flip');
-    if(!el||el.disabled)return;
-    el.classList.remove('premiumTapped');
-    void el.offsetWidth;
-    el.classList.add('premiumTapped');
-  },{passive:true});
-  document.addEventListener('animationend',event=>{
-    if(event.target.classList?.contains('premiumTapped'))event.target.classList.remove('premiumTapped');
-  });
-}
 
 /* Native Android Back and browser Back: keep in-app destinations on the stack. */
 function installInAppBack(){

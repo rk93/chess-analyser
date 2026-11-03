@@ -168,6 +168,7 @@ function ensureVoiceControl(card){
 }
 function stopAutoPlay(){
   autoPlaying=false;
+  window.dispatchEvent(new CustomEvent('reviewFeedbackPlayback',{detail:{playing:false,interval:0}}));
   autoPlayGeneration++;
   if(autoPlayTimer){clearTimeout(autoPlayTimer);autoPlayTimer=0}
   spokenGeneration++;spokenPending=false;spokenPly=-1;
@@ -192,6 +193,7 @@ function queueAutoPlay(delay=null){
   autoPlayTimer=0;
   const generation=++autoPlayGeneration;
   if(!autoPlaying)return;
+  window.dispatchEvent(new CustomEvent('reviewFeedbackPlayback',{detail:{playing:true,interval:getAutoPlayMs()}}));
   if(document.hidden||!activeReview||currentPly()>=preparedSans.length){stopAutoPlay();return}
   // Voice-on playback follows speech-end events. A safety timeout prevents
   // indefinite stalls in browsers that never fire onend/onerror.
@@ -222,6 +224,7 @@ function ensureAutoPlayControls(card){
   play.onclick=()=>{
     if(autoPlaying){stopAutoPlay();return}
     if(!activeReview||!preparedSans?.length)return;
+    window.dispatchEvent(new CustomEvent('reviewFeedbackPlayback',{detail:{playing:true,interval:getAutoPlayMs()}}));
     if(currentPly()>=preparedSans.length)$('start')?.click();
     autoPlaying=true;updateAutoPlayControls();
     if(voiceEnabled&&currentPly()>0){spokenPly=-1;speakComment(currentPly(),$('reviewGuideComment')?.textContent||'')}
@@ -389,7 +392,7 @@ function showSummaryScreen(data,{force=false}={}){
   $('reviewBreakdown').innerHTML=LABELS.map(label=>`<div class="reviewBreakRow"><span class="label">${label}</span><span class="left">${counts.white[label]||0}</span><span class="reviewBreakIcon badge-${BADGE[label]}">${SYMBOL[label]}</span><span class="right">${counts.black[label]||0}</span></div>`).join('');el.hidden=false;
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function startGuidedReview(){const el=$('reviewSummaryScreen');if(el)el.hidden=true;$('start')?.click();setTimeout(()=>{$('next')?.click();setTimeout(renderCurrentMove,0)},20)}
+function startGuidedReview({automatic=false}={}){const el=$('reviewSummaryScreen');if(el)el.hidden=true;const generation=autoPlayGeneration,key=reviewKey();if(automatic)window.dispatchEvent(new CustomEvent('reviewFeedbackPlayback',{detail:{playing:true,interval:getAutoPlayMs()}}));$('start')?.click();setTimeout(()=>{if(generation!==autoPlayGeneration||key!==reviewKey()||!$('board')?.getClientRects().length||document.hidden)return;$('next')?.click();setTimeout(renderCurrentMove,0)},20)}
 
 function displayReview(data,{cached=false,showSummary=true,dispatchReady=true}={}){
   const positions=buildPositions(),sans=moveSans();if(positions.length!==data.evals.length||sans.length!==data.labels.length)return false;
@@ -482,13 +485,14 @@ function handleVerifiedAutoReview(e){
   // The same game may generate repeated verification notifications.
   if(autoFlowKey===key+'|playing'||activeReview&&reviewPlaybackStartedKey===key)return;
   autoFlowKey=key+'|playing';reviewPlaybackStartedKey=key;
-  startGuidedReview();
+  const generation=autoPlayGeneration;
+  startGuidedReview({automatic:true});
   setTimeout(()=>{
-    if(key!==reviewKey()||!activeReview||document.hidden)return;
+    if(generation!==autoPlayGeneration||key!==reviewKey()||!activeReview||document.hidden||!$('board')?.getClientRects().length)return;
     const btn=$('reviewAutoPlay');
     if(btn&&!autoPlaying)btn.click();
   },90);
 }
 function resetAutoReviewFlow(){autoFlowKey='';autoFlowStartedKey='';reviewPlaybackStartedKey='';closeDepthPrompt()}
-function init(){ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('reviewAutoPlaySpeedChanged',()=>{updateAutoPlayControls();if(autoPlaying&&!spokenPending)queueAutoPlay();});window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
+function init(){window.addEventListener('feedbackCleanup',stopAutoPlay);ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('reviewAutoPlaySpeedChanged',()=>{updateAutoPlayControls();if(autoPlaying&&!spokenPending)queueAutoPlay();});window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

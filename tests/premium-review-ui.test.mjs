@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-const app=await readFile('js/app.js','utf8'),review=await readFile('review-experience.css','utf8'),css=await readFile('ux-shell.css','utf8'),shell=await readFile('js/ux-shell.js','utf8');
+const app=await readFile('js/app.js','utf8'),review=await readFile('review-experience.css','utf8'),css=await readFile('ux-shell.css','utf8'),shell=(await readFile('js/ux-shell.js','utf8'))+(await readFile('js/feedback.js','utf8'));
 test('first-page avatars load eagerly despite pagination hiding items',()=>{
  assert.match(app,/if\(root\.children\.length<=5\)d\.loadAvatar\(\)/);
  assert.match(app,/avatar\.classList\.add\('hasAvatar'\)/);

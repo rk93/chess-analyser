@@ -1,0 +1,15 @@
+/* Shared interaction polish. Existing press/selection styles remain the base. */
+.feedbackSettings{padding-top:16px;border-top:1px solid #4b5142}
+.feedbackSettings h2{font-size:18px;margin:0 0 8px}.feedbackSettings>p{font-size:12px;color:#b7c0aa;line-height:1.6}
+.feedbackSettingsGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+.feedbackSettingsGrid>label{display:flex;flex-direction:column;gap:8px;font-size:12px;color:#d5dec9;min-width:0}
+.feedbackSettingsGrid select{min-height:44px}.feedbackSettingsGrid input[type=range]{min-height:44px;width:100%;accent-color:#a8cc79}
+.feedbackToggles{display:grid;gap:4px;margin:15px 0}.feedbackToggles label{display:flex;align-items:center;gap:10px;min-height:44px;font-size:13px;line-height:1.5;color:#d5dec9}.feedbackToggles input{width:19px;height:19px;accent-color:#a8cc79;flex:none}
+.feedbackSettings output{font-variant-numeric:tabular-nums;color:#b8de90}.feedbackSettings .btn{min-height:44px}.feedbackSettings :is(button,input,select):focus-visible{outline:2px solid #b8de90;outline-offset:3px}
+.feedbackLegalTarget:after{content:'';position:absolute;width:24%;height:24%;border-radius:50%;background:#22351c55;pointer-events:none;z-index:4}
+.feedbackLegalCapture:after{content:'';position:absolute;inset:3%;border:4px solid #22351c77;border-radius:50%;pointer-events:none;z-index:4}
+.evalFill{transition:height .18s ease-out}.reviewMoveProgressFill{transition:width .15s ease-out}
+@media(max-width:650px){.feedbackSettingsGrid{grid-template-columns:1fr 1fr}.feedbackSettingsGrid>label:last-child{grid-column:1/-1}}
+:root[data-reduced-animations=true] *, :root[data-reduced-animations=true] *:before, :root[data-reduced-animations=true] *:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+:root[data-reduced-animations=true] :is(button,.btn,.ctrl,.homeTab,.gameWithAvatar):active{transform:none!important}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}:is(button,.btn,.ctrl,.homeTab,.gameWithAvatar):active{transform:none!important}}

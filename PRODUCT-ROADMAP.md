@@ -35,7 +35,7 @@ Validation, acceptance evidence and screenshots: [OPPONENT-SCOUT-VALIDATION.md](
 
 ## Weakness evidence and personal Home increment
 
-Starting point: `main` commit `198fef0`. Branch: `codex/weakness-home-command-centre`. One evidence framework powers Home; existing Game Review, Analysis Board, personal training and saved data remain the source of truth.
+Merged in [PR #64](https://github.com/rk93/chess-analyser/pull/64) as `b753246`. One evidence framework powers Home; existing Game Review, Analysis Board, personal training and saved data remain the source of truth.
 
 | Priority | Improvement | Acceptance criteria | Status |
 | --- | --- | --- | --- |
@@ -47,6 +47,20 @@ Starting point: `main` commit `198fef0`. Branch: `codex/weakness-home-command-ce
 | P0 | Privacy, responsiveness and navigation | Explicit saved-review check, at most 60 recent games, progress/cancel/retry, account and navigation invalidation; no background engine work, schema changes or additional endpoints | Implemented; full regression matrix and before/after evidence documented below |
 
 Validation and screenshots: [WEAKNESS-HOME-VALIDATION.md](docs/WEAKNESS-HOME-VALIDATION.md).
+
+## Premium sound and tactile UI increment
+
+Starting point: `main` commit `b753246`. Dedicated branch: `codex/premium-feedback`. Extends the original move-sound preference and press-feedback hooks; the old two-tone implementation is replaced by one shared controller.
+
+| Improvement | Acceptance criteria | Status |
+| --- | --- | --- |
+| Original generated sounds | Distinct move/capture/check/mate/castle/promotion/illegal, puzzle/training outcomes, win/loss/draw, milestone, review-completion and optional UI-tap events; no downloaded sound assets | Implemented with a single lazy AudioContext, bounded cached buffers and one active voice |
+| Saved preferences | Preserve explicit legacy sound on/off; new installs muted; Classic at 35%, light haptics enabled where supported, UI taps off; volume, theme and reduced-animation controls | Implemented inside the existing Settings panel; no migrations or duplicate controls |
+| Tactile interaction | Existing press effect shared across screens; actual-coordinate piece/rook motion, legal targets, capture/success feedback, short route fades and evaluation/progress transitions | Implemented; device and app reduced-motion settings suppress effects |
+| Quiet autoplay and cleanup | 0.3–0.5s playback and automatic puzzle replies silent; no autoplay haptics; one event per outcome; cancel pending voices, motion and callbacks on navigation/visibility changes | Implemented, including the first automatic guided step and pending puzzle replies |
+| Safety and regression coverage | Trusted-gesture activation only, mute/volume-zero, event deduplication, rejected/absent audio and vibration support, preference persistence, mobile/desktop and real audio lifecycle tests | 172 unit tests and 232 browser checks passed; inspected screenshots in the linked report |
+
+Validation: [FEEDBACK-VALIDATION.md](docs/FEEDBACK-VALIDATION.md). Initial rating-best cards remain silent; achievement sound is tied to an actually earned puzzle milestone rather than rendering old achievements. Existing opt-in coach speech keeps its separate controls.
 
 ## Remaining priorities from the product transformation brief
 
