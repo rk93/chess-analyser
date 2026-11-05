@@ -5,13 +5,14 @@ import { getLocalStockfish } from './local-stockfish.js';
 import { verifiedPracticeCandidates, recordTrainingAttempt } from './personal-training-core.js';
 
 const $ = id => document.getElementById(id);
-let generation = 0, exercises = [], trainingUser = '', activePractice = null;
+let generation = 0, practiceGeneration=0, exercises = [], trainingUser = '', activePractice = null;
 const username = () => (localStorage.getItem('chess-username') || '').trim().toLowerCase();
 const progressKey = user => `chess-personal-training:${user}`;
 function readProgress(user) {
   try { const data = JSON.parse(localStorage.getItem(progressKey(user)) || '{}'); return data && typeof data === 'object' && !Array.isArray(data) ? data : {}; }
   catch { return {}; }
 }
+export {readProgress as readPersonalTrainingProgress};
 function renderProgress() {
   const progress = readProgress(trainingUser), records = Object.values(progress);
   const attempts = records.reduce((n, row) => n + (Number(row?.attempts) || 0), 0);
@@ -34,25 +35,31 @@ export function invalidatePersonalTraining() {
   renderProgress();
 }
 
-async function startExercise(exercise, button) {
-  const token = generation, user = trainingUser;
+export async function startExercise(exercise, button, {onStatus,signal}={}) {
+  const user = username();
+  if(exercise.trainingUser&&exercise.trainingUser!==user)return;
+  const token=generation,attempt=++practiceGeneration;
+  trainingUser=user;
+  const status=(message,phase='checking')=>{if($('homeTrainingStatus'))$('homeTrainingStatus').textContent=message;onStatus?.(message,phase);};
   button.disabled = true;
-  $('homeTrainingStatus').textContent = 'Checking this solution again with local Stockfish…';
+  status('Checking this solution again with local Stockfish…');
   try {
-    const result = await getLocalStockfish().analyse(exercise.fen, { depth: 12, multipv: 1, clearHash: true });
-    if (token !== generation || user !== username() || $('homeView').hidden) return;
+    const result = await getLocalStockfish().analyse(exercise.fen, { depth: 12, multipv: 1, clearHash: true,signal });
+    signal?.throwIfAborted();
+    if (token !== generation || attempt!==practiceGeneration || user !== username() || $('homeView').hidden) return;
     if (!Number.isFinite(result.cp) || result.depth < 12 || result.best !== exercise.bestMove) throw new Error('A deeper search changed this recommendation. Review the source game again before practising it.');
     activePractice = { id: exercise.id, user };
+    status('Solution checked with Stockfish at depth 12. Return here for another exercise.','ready');
     $('boardLabTab')?.click();
     window.dispatchEvent(new CustomEvent('practiceMistake', { detail: { ...exercise, trainingId: exercise.id, trainingUser: user } }));
-    $('homeTrainingStatus').textContent = 'Solution checked with Stockfish at depth 12. Return here for another exercise.';
   } catch (error) {
-    if (token === generation && user === username()) $('homeTrainingStatus').textContent = error.message || 'Could not verify the solution. Try again.';
+    if (token === generation && attempt===practiceGeneration && user === username()&&!$('homeView').hidden) status(error.name==='AbortError'?'Practice check paused.':error.message || 'Could not verify the solution. Try again.','error');
   } finally { button.disabled = false; }
 }
 
 export async function findPersonalTraining(games) {
   const user = username(), token = ++generation;
+  window.dispatchEvent(new Event('personalTrainingScanStarted'));
   trainingUser = user; exercises = [];
   const button = $('homeFindTraining'), list = $('homeTrainingList');
   button.disabled = true; list.replaceChildren();

@@ -1,6 +1,7 @@
 import { buildChessPulse } from './chess-pulse.js';
 import { buildWeaknessReport } from './weakness-core.js';
 import { gameIdentity } from './player-insights.js';
+import { createWeeklyCoach } from './weekly-coach.js';
 
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const title=value=>value[0].toUpperCase()+value.slice(1);
@@ -28,9 +29,10 @@ export function createHomeCommandCentre(view,openGame) {
   const milestones=document.createElement('section');milestones.className='homeMilestones';
   milestones.innerHTML='<div class="homeSectionTop"><h2>Your personal milestones</h2><span>Progress with perspective</span></div><div id="homeMilestoneList"></div><p class="homeDataNote">Bests refer to ratings in your saved games, separately for each format. Missing older games can change these records.</p>';
   recent.after(milestones);
+  const weekly=createWeeklyCoach(view,{openGame,checkReviews:options=>void checkReviews(options),cancelReviews:()=>{if(controller){cancel();$('homeWeaknessStatus').textContent='Review check paused. Your saved data is unchanged.';weekly.setBusy(false,'Review check paused. Your last completed evidence check is unchanged.');}}});
 
-  function cancel() { controller?.abort();controller=null;generation++;$('homeCheckWeaknesses').disabled=false;$('homeCancelWeaknesses').hidden=true; }
-  function reset() { cancel();user='';games=[];report=null;pulse=[];showAll=false;for(const id of ['homeGrowthList','homePulsePools','homePulseChart','homeMilestoneList'])$(id).replaceChildren();$('homePulseReadout').textContent='Loading your saved observations…';$('homePulseDelta').textContent='';$('homeInsightText').textContent='Loading your saved games…';$('homeReviewSuggestion').hidden=true;$('homeShowAllWeaknesses').hidden=true;view.querySelectorAll('.homeVerifiedBadge').forEach(badge=>badge.remove());$('homePulseCursor').hidden=true;$('homeResumeReview').hidden=true;$('homeContinueOpening').hidden=true;$('homeWeaknessStatus').textContent='Engine evidence has not been checked. No new analysis runs here.'; }
+  function cancel() { controller?.abort();controller=null;generation++;$('homeCheckWeaknesses').disabled=false;$('homeCancelWeaknesses').hidden=true;weekly.setBusy(false); }
+  function reset() { cancel();weekly.reset();user='';games=[];report=null;pulse=[];showAll=false;for(const id of ['homeGrowthList','homePulsePools','homePulseChart','homeMilestoneList'])$(id).replaceChildren();$('homePulseReadout').textContent='Loading your saved observations…';$('homePulseDelta').textContent='';$('homeInsightText').textContent='Loading your saved games…';$('homeReviewSuggestion').hidden=true;$('homeShowAllWeaknesses').hidden=true;view.querySelectorAll('.homeVerifiedBadge').forEach(badge=>badge.remove());$('homePulseCursor').hidden=true;$('homeResumeReview').hidden=true;$('homeContinueOpening').hidden=true;$('homeWeaknessStatus').textContent='Engine evidence has not been checked. No new analysis runs here.'; }
   function resume() {
     try { const value=JSON.parse(localStorage.getItem('chess-home-review:'+user)||'null');return value&&games.some(game=>gameIdentity(game)===value.key)?value:null; }
     catch {return null;}
@@ -70,20 +72,23 @@ export function createHomeCommandCentre(view,openGame) {
     else {const row=report?.rows.find(row=>row.result==='L')||report?.rows[0];$('homeInsightText').textContent=row?'Choose one decision from a recent saved game to study. No recurring pattern meets the evidence threshold yet.':'Import your games to discover personal patterns and a useful next step.';$('homeReviewSuggestion').hidden=!row;$('homeReviewSuggestion').textContent='Review a recent game';$('homeReviewSuggestion').onclick=()=>{if(row)openGame(row.key)};}
     renderContinue();
   }
-  async function checkReviews() {
+  async function checkReviews({pool:focusPool=null,days=90}={}) {
     cancel();controller=new AbortController();const signal=controller.signal,token=generation,currentUser=user;
+    const now=Date.now()/1000,selected=report.rows.filter(row=>(!focusPool||row.pool===focusPool)&&row.end>=now-days*86400);
+    weekly.setBusy(true,'Checking saved review evidence. No new engine analysis…');
     $('homeCheckWeaknesses').disabled=true;$('homeCancelWeaknesses').hidden=false;$('homeWeaknessStatus').textContent='Checking up to 60 recent saved reviews. No new engine analysis…';
     try {
       const {inspectWeaknessReviews}=await import('./weakness-reviews.js');signal.throwIfAborted();
-      const reviews=await inspectWeaknessReviews(report.rows,{signal,onProgress:(done,total)=>{if(token===generation)$('homeWeaknessStatus').textContent=`Checking saved reviews: ${done} / ${total}`;}});
+      const reviews=await inspectWeaknessReviews(selected,{signal,onProgress:(done,total)=>{if(token===generation){$('homeWeaknessStatus').textContent=`Checking saved reviews: ${done} / ${total}`;weekly.setBusy(true,`Checking saved reviews: ${done} / ${total}`);}}});
       if(token!==generation||user!==currentUser)return;
       report=buildWeaknessReport(games,user,{reviews});renderFindings();
+      weekly.setReviews(reviews);
       $('homeWeaknessStatus').textContent=`${report.reviewed} eligible saved Stockfish reviews / ${report.scanned} games checked, from ${report.rows.length} games in the 90-day selection. Missing, partial, low-depth or invalid reviews are excluded; unchecked games are not treated as mistake-free.`;
       const verified=new Set(reviews.filter(review=>review.facts).map(review=>review.row.key));
       view.querySelectorAll('.homeVerifiedBadge').forEach(badge=>badge.remove());
       view.querySelectorAll('.homeRecentCard').forEach(card=>{if(verified.has(card.dataset.gameKey)&&!card.querySelector('.homeVerifiedBadge'))card.insertAdjacentHTML('beforeend','<small class="homeVerifiedBadge">Verified review available</small>');});
-    } catch(error) {if(token===generation)$('homeWeaknessStatus').textContent=error.name==='AbortError'?'Review check paused. Your saved data is unchanged.':'Saved reviews could not be checked. Reconnect if the chess library is unavailable, then retry.';}
-    finally {if(token===generation){controller=null;$('homeCheckWeaknesses').disabled=false;$('homeCancelWeaknesses').hidden=true;}}
+    } catch(error) {if(token===generation){$('homeWeaknessStatus').textContent=error.name==='AbortError'?'Review check paused. Your saved data is unchanged.':'Saved reviews could not be checked. Reconnect if the chess library is unavailable, then retry.';weekly.setBusy(false,$('homeWeaknessStatus').textContent);}}
+    finally {if(token===generation){controller=null;$('homeCheckWeaknesses').disabled=false;$('homeCancelWeaknesses').hidden=true;weekly.setBusy(false);}}
   }
   section.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button)return;
@@ -103,7 +108,7 @@ export function createHomeCommandCentre(view,openGame) {
     else openGame(row.key,Math.max(0,(row.ply||1)-1));
   });
   $('homeCheckWeaknesses').addEventListener('click',()=>void checkReviews());
-  $('homeCancelWeaknesses').addEventListener('click',()=>{cancel();$('homeWeaknessStatus').textContent='Review check paused. Your saved data is unchanged.';});
+  $('homeCancelWeaknesses').addEventListener('click',()=>{cancel();$('homeWeaknessStatus').textContent='Review check paused. Your saved data is unchanged.';weekly.setBusy(false,'Review check paused. Your last completed evidence check is unchanged.');});
   $('homeShowAllWeaknesses').addEventListener('click',()=>{showAll=!showAll;renderFindings();});
   $('homeResumeReview').addEventListener('click',()=>{const last=resume();if(last)openGame(last.key,last.ply);});
   $('homeContinuePractice').addEventListener('click',()=>{$('homeFindTraining').click();$('homeTrainingStatus').closest('section').scrollIntoView({block:'start'});});
@@ -115,9 +120,10 @@ export function createHomeCommandCentre(view,openGame) {
     update(nextGames,nextUser) {
       if(games!==nextGames||user!==nextUser){cancel();user=nextUser;games=nextGames;showAll=false;report=buildWeaknessReport(games,user);pulse=buildChessPulse(games,user);if(!pulse.find(item=>item.pool===format)?.points.length)format=pulse.find(item=>item.points.length)?.pool||'rapid';$('homeWeaknessStatus').textContent='Engine evidence has not been checked. No new analysis runs here.';}
       $('homeViewHeading').textContent=nextUser?`Your next good move, ${nextUser}.`:'Your next good move.';renderPulse();renderFindings();
+      weekly.update(nextGames,nextUser);
     },reset,
-    pause(){if(controller){cancel();$('homeWeaknessStatus').textContent='Review check paused. Return and check saved reviews when ready.';}},
-    invalidateReviews(){cancel();view.querySelectorAll('.homeVerifiedBadge').forEach(badge=>badge.remove());if(report){report=buildWeaknessReport(games,user);renderFindings();$('homeWeaknessStatus').textContent='Saved review evidence changed. Check again to refresh these patterns.';}},
+    pause(){weekly.pause();if(controller){cancel();$('homeWeaknessStatus').textContent='Review check paused. Return and check saved reviews when ready.';weekly.setBusy(false,'Review check paused. Return and check when ready.');}},
+    invalidateReviews(){cancel();weekly.invalidate();view.querySelectorAll('.homeVerifiedBadge').forEach(badge=>badge.remove());if(report){report=buildWeaknessReport(games,user);renderFindings();$('homeWeaknessStatus').textContent='Saved review evidence changed. Check again to refresh these patterns.';}},
     remember(key,ply=0){if(!user||!games.some(game=>gameIdentity(game)===key&&[game.white?.username,game.black?.username].some(name=>String(name||'').toLowerCase()===user)))return;try{localStorage.setItem('chess-home-review:'+user,JSON.stringify({key,ply:Number.isSafeInteger(ply)&&ply>=0?ply:0}));renderContinue();}catch{}},
     rememberPosition(){const last=resume();if(last){const active=document.querySelector('#moves .move.active');if(active)this.remember(last.key,[...document.querySelectorAll('#moves .move')].indexOf(active)+1);}},
   };

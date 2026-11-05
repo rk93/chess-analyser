@@ -64,7 +64,7 @@ Validation: [FEEDBACK-VALIDATION.md](docs/FEEDBACK-VALIDATION.md). Initial ratin
 
 ## Pip welcome, review progress and tactile controls increment
 
-Starting point: latest `main`, `56cf236`. Dedicated branch: `codex/pip-welcome-review-engagement`. This increment continues P0 reliability, the P3 personal Home experience and P4 guided review without adding another analysis or audio implementation.
+Merged in [PR #66](https://github.com/rk93/chess-analyser/pull/66) as `40a54ba`. This increment continues P0 reliability, the P3 personal Home experience and P4 guided review without adding another analysis or audio implementation.
 
 | Improvement | Acceptance criteria | Status |
 | --- | --- | --- |
@@ -74,7 +74,21 @@ Starting point: latest `main`, `56cf236`. Dedicated branch: `codex/pip-welcome-r
 | Tactile controls | Trusted clicks, checkbox/select changes, keyboard/touch slider steps and settled user carousel changes; independent haptics and separately opt-in UI sounds | Implemented with rate limits and no sound on programmatic updates; Settings changes remain quiet |
 | Review readiness and layout | Unverified previews stay labelled as previews; retain the existing desktop board grid; touch targets, reduced motion and offline shell preserved | Complete: 177 unit tests and 260 browser checks passed; inspected screenshots recorded in the linked report |
 
-Validation: [PIP-ENGAGEMENT-VALIDATION.md](docs/PIP-ENGAGEMENT-VALIDATION.md). The next intelligence increment remains the evidence-based weekly coach report with three practice actions, followed by broader tactical motifs requiring legal board and engine verification. These are separate stages; generic waiting tips are not personalised engine findings.
+Validation: [PIP-ENGAGEMENT-VALIDATION.md](docs/PIP-ENGAGEMENT-VALIDATION.md). The weekly coach increment below follows this stage. Broader tactical motifs require legal board and engine verification; generic waiting tips are not personalised engine findings.
+
+## Evidence-based weekly coach increment
+
+Starting point: latest `main`, `40a54ba`. Dedicated branch: `codex/weekly-coach-report`. Extends the existing weekly Home card, saved-review scan, Game Review, opening replay and personal-training launcher.
+
+| Improvement | Acceptance criteria | Status |
+| --- | --- | --- |
+| A focused weekly plan | Up to three distinct study actions in one selected format, from rolling 7-day saved games; fewer actions when evidence is insufficient | Implemented; no filler weakness claims or cross-format strength rankings |
+| Reliable evidence | Three distinct eligible games for recurring engine observations; five known same-colour/format opening outcomes for opening study; reviewed/inspected/unchecked coverage shown separately | Implemented using the existing evidence framework |
+| Comparable results | Disjoint previous/current 7-day windows, known-result denominators and ten known outcomes per window before a score change | Implemented; result differences remain descriptive |
+| Useful end-to-end actions | Fresh depth-12 check before practising a saved position, existing opening board replay and source-game review; account-scoped self-reported study marks expire after seven days | Implemented; practice marks do not claim playing improvement |
+| Performance and privacy | No engine/network work on Home load; one shared cancellable saved-review scan, at most 60 cached reviews per explicit check; stop stale practice checks after navigation/account/scan changes | Complete: 187 unit tests and 300 browser checks passed; all 40 affected weekly flows passed again after final report refinements; mobile/desktop screenshots inspected |
+
+Validation: [WEEKLY-COACH-VALIDATION.md](docs/WEEKLY-COACH-VALIDATION.md). Next: reliable tactical motif detection, using legal board geometry and engine evidence; training improvement history remains a separate later stage.
 
 ## Remaining priorities from the product transformation brief
 
@@ -102,7 +116,7 @@ These are later independently shippable stages, not completed capabilities of th
 | Opportunity | Expected player benefit | Required evidence / dependencies | Priority | Status / acceptance criteria |
 | --- | --- | --- | --- | --- |
 | Early-game mistake intelligence | Locate recurring weak decisions in an opening and show verified alternatives | Verified reviews associated with opening, side and exact position | P1 | Partial: phase patterns and exact source positions implemented; opening-specific position associations remain planned |
-| Weekly coach report with three concrete actions | A short, actionable practice plan | Recent verified-review coverage, recurring positions and local progress | P1 | Planned: show reviewed-game denominator, distinguish missing reviews from clean play, never invent weekly tactical totals |
+| Weekly coach report with up to three concrete actions | A short, actionable practice plan | Recent verified-review coverage, recurring positions and local progress | P1 | Implemented: qualified engine/opening/coverage actions, source links, fresh practice checks and self-reported study marks; final validation in this increment's report |
 | Repeated tactical motif detection | Identify reliable forks, pins, hanging pieces and missed mates | Board geometry, legal continuations, engine verification and motif-specific regression positions | P1 | Planned: initial increment groups only objectively identifiable best-move captures and checkmates; no speculative motif names |
 | Training improvement over time | Show whether practice carries over into real games | Versioned attempt history, per-game review coverage and comparable periods | P1 | Planned: count assisted answers separately and account for differing game/review sample sizes |
 | Spaced personal puzzle training | Revisit difficult positions at useful intervals | Verified exercises and persistent per-player progress | P2 | Planned: accessible session queue, due dates, reveal/assist state and multi-move solution verification |
