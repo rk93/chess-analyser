@@ -51,7 +51,7 @@ function trainingFeedback(move){
 function ensurePracticeCoachActions(){
  const host=document.querySelector('.labButtons');
  if(!host||$('labPracticeReveal'))return;
- const lesson=document.createElement('details');lesson.id='labPracticeMotif';lesson.hidden=true;lesson.innerHTML='<summary>Why this motif fits</summary><p></p>';$('labLine').after(lesson);
+ const lesson=document.createElement('details');lesson.id='labPracticeMotif';lesson.hidden=true;lesson.innerHTML='<summary>Why this motif fits</summary><p></p>';
  const dock=document.createElement('div');dock.id='labPracticeCoachDock';dock.className='labPracticeCoachDock';dock.hidden=true;
  dock.innerHTML='<div class="labPracticeMessage" aria-live="polite">Find Stockfish’s better move.</div><div class="labPracticeButtons"></div>';
  document.body.appendChild(dock);
@@ -67,6 +67,8 @@ function ensurePracticeCoachActions(){
   showPracticeMotif(true);
  });
  dock.querySelector('.labPracticeButtons').appendChild(reveal);
+ // Keep the explanation inside the fixed practice dock so it stays tappable above global navigation.
+ dock.appendChild(lesson);
 }
 function legalMove(from,to){const options=chess.moves({square:from,verbose:true}).filter(m=>m.to===to);if(!options.length)return false;lastMove=chess.move({from,to,promotion:options.some(m=>m.promotion)?'q':undefined});selected=null;recordHistory();clearAnalysis();render();const outcome=practice&&!practice.attempted?(lastMove.from+lastMove.to+(lastMove.promotion||'')===practice.bestMove?'puzzleSuccess':'puzzleIncorrect'):undefined;moveFeedback(lastMove,{boardId:'labBoard',type:outcome|| (chess.isDraw()?'draw':undefined)});trainingFeedback(lastMove);return true}
 function tap(sq){if(selected){if(legalMove(selected,sq))return;if(sq!==selected&&chess.get(sq)?.color!==chess.turn())void playFeedback('illegal',{context:'labBoard'});selected=null}const p=chess.get(sq);if(p&&p.color===chess.turn()){selected=sq;selectionFeedback('labBoard')}render()}
