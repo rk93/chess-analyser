@@ -3,6 +3,8 @@ import { readSavedReview } from './saved-review.js';
 import { playerGames } from './player-insights.js';
 import { getLocalStockfish } from './local-stockfish.js';
 import { verifiedPracticeCandidates, recordTrainingAttempt } from './personal-training-core.js';
+import { classifyTacticalMotif } from './tactical-motifs.js';
+import { reliableReview } from './weakness-core.js';
 
 const $ = id => document.getElementById(id);
 let generation = 0, practiceGeneration=0, exercises = [], trainingUser = '', activePractice = null;
@@ -19,10 +21,11 @@ function renderProgress() {
   const solved = records.filter(row => row?.solvedAt).length;
   $('homeTrainingProgress').textContent = attempts ? `${solved} ${solved===1?"position":"positions"} solved · ${attempts} ${attempts===1?"attempt":"attempts"}, saved on this device. Revealed answers count as assisted practice.` : 'Your practice progress stays on this device.';
 }
-function describeBest(fen, uci) {
+function describeBest(fen, uci, completeReview) {
   const board = new Chess(fen), move = board.move({ from: uci.slice(0, 2), to: uci.slice(2, 4), promotion: uci[4] });
   if (!move) return null;
-  return { san: move.san, theme: move.san.includes('#') ? 'Missed checkmate' : move.captured ? 'Missed capture' : 'Stronger move' };
+  const motif=completeReview?classifyTacticalMotif(fen,uci,value=>new Chess(value)):null;
+  return { san: move.san, theme: move.san.includes('#') ? 'Missed checkmate' : motif?.title || (move.captured ? 'Missed capture' : 'Stronger move'),motif };
 }
 
 export function invalidatePersonalTraining() {
@@ -72,12 +75,15 @@ export async function findPersonalTraining(games) {
       try {
         const { moves, data } = await readSavedReview(row);
         if (data?.verifiedReviewVersion === 1) reviewed++;
+        const completeReview=reliableReview(data,moves);
         for (const exercise of verifiedPracticeCandidates(moves, data, row.white)) {
           if (seen.has(exercise.id)) continue;
-          const best = describeBest(exercise.fen, exercise.bestMove);
+          const index=moves.findIndex(move=>move.before===exercise.fen&&move.san===exercise.badMove);
+          const positiveLoss=index>=0&&(data.evals[index]-data.evals[index+1])*(row.white?1:-1)>0;
+          const best = describeBest(exercise.fen, exercise.bestMove,completeReview&&positiveLoss);
           if (!best) continue;
           seen.add(exercise.id);
-          exercises.push({ ...exercise, bestSan: best.san, theme: best.theme, gameKey: row.key, opponent: row.opponent });
+          exercises.push({ ...exercise, bestSan: best.san, theme: best.theme,motif:best.motif, gameKey: row.key, opponent: row.opponent });
         }
       } catch { /* Invalid PGNs or old reviews cannot supply verified exercises. */ }
       if (index % 5 === 4) await new Promise(resolve => setTimeout(resolve, 0));

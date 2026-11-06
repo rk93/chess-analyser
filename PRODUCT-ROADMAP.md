@@ -90,6 +90,32 @@ Starting point: latest `main`, `40a54ba`. Dedicated branch: `codex/weekly-coach-
 
 Validation: [WEEKLY-COACH-VALIDATION.md](docs/WEEKLY-COACH-VALIDATION.md). Next: reliable tactical motif detection, using legal board geometry and engine evidence; training improvement history remains a separate later stage.
 
+## P0: permanent review-navigation lifecycle fix
+
+Dedicated branch: `codex/review-navigation-and-tactics`, based on `36ca4f6`. Prioritised over new features; includes the already implemented tactical lessons in the same PR as requested.
+
+| Acceptance | Implementation / evidence |
+| --- | --- |
+| Reproduce the reported defect before fixing it | Actual saved-game/cache/Back journey reproduces missing navigation at 360px, 393px and 430px; hidden Review child reappears after the 120ms restoration callback |
+| Understand PRs #58 and #60 | Class/style repair and CSS overrides left high-specificity hidden-child selectors and late restoration alive; old tests simulated classes or checked too early |
+| One source of truth | Shared screen controller, one route-based mobile nav visibility rule, guarded/cancellable Review callbacks; remove repair observer and conflicting nav selectors |
+| Complete user lifecycle | Ten full two-review journeys plus ten Home recent-game exits per viewport, both Back paths, actual tab clicks/hit testing, native Stockfish Stop/completion/reopening and delayed restoration |
+| Delivery | Complete: 200 unit tests and 330 browser checks passed; natural and deterministic failures proven on archived main; all linked before/after screenshots inspected. Hosted CI and mobile QA required before merge; [evidence](docs/NAVIGATION-LIFECYCLE-VALIDATION.md) |
+
+## Verified tactical motifs increment
+
+Base: latest `main`, `36ca4f6` (weekly coach merged in PR #67). Dedicated branch: `codex/review-navigation-and-tactics`. Extends the existing Home evidence, weekly study plan and personal practice.
+
+| Improvement | Acceptance criteria | Status |
+| --- | --- | --- |
+| Checking knight forks | Legal engine-recommended knight move checks the king and attacks a queen/rook; every legal defence must leave a legal capture of an original target | Implemented; reject removable knights and continuations that pin the knight |
+| Absolute pins | A new bishop/rook/queen line has exactly one opposing minor/major piece before its king; reject existing pins, blocked rays and immediately removable pinners | Implemented; identifies a pin without claiming a forced material win |
+| Evidence and recurrence | Complete exact saved reviews, verified player-side mistakes, positive evaluation loss and depth ≥8; at least three distinct games per format for a recurring observation | Implemented in the existing weakness framework; no result-only tactical labels |
+| Useful lessons | Exact source games/positions and plain explanations; shared practice discovery and fresh depth-12 recheck; reveal/solve opens a collapsed motif lesson | Implemented; assistance/progress identifiers preserved; lessons reset on retry/navigation |
+| Performance and compatibility | No engine or network work on Home load; retain the existing 60-game explicit scans, cancellation, storage and offline shell | Complete: 200 unit tests and all 330 browser checks passed; mobile/desktop before/after screenshots inspected |
+
+Other fork types, relative pins, hanging-piece diagnoses, forced-gain lines, pawn structure and king safety remain unsupported. The legal geometry is verified; it does not prove the player's overall tactical strength or a forced game win. See `docs/TACTICAL-MOTIFS-VALIDATION.md` for delivery evidence. Next independently shippable priority: comparable training-improvement history; broader motifs need their own continuation tests.
+
 ## Remaining priorities from the product transformation brief
 
 1. **P0 reliability:** maintain navigation and mobile review controls; investigate concrete regressions before adding features.
@@ -116,8 +142,8 @@ These are later independently shippable stages, not completed capabilities of th
 | Opportunity | Expected player benefit | Required evidence / dependencies | Priority | Status / acceptance criteria |
 | --- | --- | --- | --- | --- |
 | Early-game mistake intelligence | Locate recurring weak decisions in an opening and show verified alternatives | Verified reviews associated with opening, side and exact position | P1 | Partial: phase patterns and exact source positions implemented; opening-specific position associations remain planned |
-| Weekly coach report with up to three concrete actions | A short, actionable practice plan | Recent verified-review coverage, recurring positions and local progress | P1 | Implemented: qualified engine/opening/coverage actions, source links, fresh practice checks and self-reported study marks; final validation in this increment's report |
-| Repeated tactical motif detection | Identify reliable forks, pins, hanging pieces and missed mates | Board geometry, legal continuations, engine verification and motif-specific regression positions | P1 | Planned: initial increment groups only objectively identifiable best-move captures and checkmates; no speculative motif names |
+| Weekly coach report with up to three concrete actions | A short, actionable practice plan | Recent verified-review coverage, recurring positions and local progress | P1 | Merged in PR #67: qualified engine/opening/coverage actions, source links, fresh practice checks and self-reported study marks |
+| Repeated tactical motif detection | Identify reliable forks, pins, hanging pieces and missed mates | Board geometry, legal continuations, engine verification and motif-specific regression positions | P1 | Checking knight forks and absolute pins implemented in this increment; other forks, relative pins and hanging-piece claims remain planned |
 | Training improvement over time | Show whether practice carries over into real games | Versioned attempt history, per-game review coverage and comparable periods | P1 | Planned: count assisted answers separately and account for differing game/review sample sizes |
 | Spaced personal puzzle training | Revisit difficult positions at useful intervals | Verified exercises and persistent per-player progress | P2 | Planned: accessible session queue, due dates, reveal/assist state and multi-move solution verification |
 | Performance by time of day | Find descriptive patterns without small-sample exaggeration | Explicit timezone and reliable timestamps; minimum samples | P2 | Planned: distinguish UTC time from local playing time and avoid causal claims |

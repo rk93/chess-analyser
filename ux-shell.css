@@ -39,9 +39,7 @@
 
 /* While a game is open, prioritise game transport over the global tab bar.
    The Games back button remains available in the analysis header. */
-@media(max-width:800px){
-  body:has(#analysisView[style*="display: block"]) .modernNav{display:none!important}
-}
+
 
 /* The analysis dock belongs to document flow, never over the move controls. */
 @media(max-width:800px){
@@ -60,10 +58,6 @@
 /* Mobile back-navigation regression: review-only rules must never hide tabs
    after analysisView has been closed. */
 @media(max-width:800px){
- body:has(#analysisView[style*="display: none"]) .modernNav,
- body:has(#libraryView[style*="display: block"]) .modernNav{
-   display:flex!important;
- }
  .modernNav .homeTab{font-size:clamp(10px,2.7vw,12px)!important;font-weight:700!important;gap:5px!important}
  .modernNav .navIcon,.modernNav .navIcon svg{width:25px!important;height:25px!important}
  .modernNav{padding:7px 5px!important;min-height:68px!important}
@@ -323,29 +317,20 @@
 
 /* Pip Coach training: a small fixed dock below the board on phones. */
 .labPracticeCoachDock[hidden]{display:none!important}
-.labPracticeCoachDock{position:fixed;z-index:2350;left:50%;transform:translateX(-50%);bottom:calc(94px + env(safe-area-inset-bottom));width:min(540px,calc(100vw - 24px));padding:10px 12px;box-sizing:border-box;border:1px solid #57784c;border-radius:14px;background:rgba(36,49,35,.97);box-shadow:0 5px 18px #0008;color:#e9f3dc;display:flex;flex-direction:column;gap:8px}
+.labPracticeCoachDock{position:fixed;z-index:2350;left:50%;transform:translateX(-50%);bottom:calc(94px + env(safe-area-inset-bottom));width:min(540px,calc(100vw - 24px));padding:10px 12px;box-sizing:border-box;border:1px solid #57784c;border-radius:14px;background:rgba(36,49,35,.97);box-shadow:0 5px 18px #0008;color:#e9f3dc;display:flex;flex-direction:column;gap:8px;max-height:calc(100dvh - 124px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 .labPracticeMessage{font-size:clamp(12px,3.4vw,15px);line-height:1.35;font-weight:650}
+#labPracticeMotif[hidden]{display:none!important}
+#labPracticeMotif{margin-top:12px;border-top:1px solid #57784c;color:#dce9d1;line-height:1.5}
+#labPracticeMotif summary{display:flex;align-items:center;min-height:44px;cursor:pointer;color:#b8d992;font-weight:700}
+#labPracticeMotif summary::after{content:'+';margin-left:auto}
+#labPracticeMotif[open] summary::after{content:'−'}
+#labPracticeMotif p{margin:0 0 12px;overflow-wrap:anywhere}
+.homeMotifExplanation{border-left:2px solid #81b64c;padding-left:10px}
 .labPracticeButtons{display:flex;gap:8px;justify-content:center}
 .labPracticeButtons .btn{min-height:40px;flex:1;max-width:240px;border-radius:9px;padding:6px 9px;font-size:13px;font-weight:800}
 @media(min-width:801px){.labPracticeCoachDock{left:auto;right:16px;transform:none;bottom:20px;width:min(360px,calc(100vw - 32px))}}
 
-/* Bottom tabs follow the actual review visibility, not stale body state. */
+/* The route controller is the sole owner of global navigation visibility. */
 @media(max-width:800px){
- body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav{display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
- body:has(#homeView:not([hidden])) .homeTabs.modernNav,
- body:has(#libraryView:not([hidden])) .homeTabs.modernNav{display:flex!important;visibility:visible!important;opacity:1!important}
-}
-
-@media(max-width:800px){
- body:has(#analysisView[style*="display: block"]) .homeTabs.modernNav{
-  display:none!important;visibility:hidden!important;pointer-events:none!important;
- }
-}
-
-/* Explicit review state wins over stale legacy style-attribute selectors. */
-@media(max-width:800px){
- body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav,
- body:has(#analysisView[style*="display: none"]) .homeTabs.modernNav{
-  display:flex!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;
- }
+ html[data-chess-screen="review"] .homeTabs.modernNav{display:none!important}
 }

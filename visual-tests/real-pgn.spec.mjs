@@ -1,3 +1,5 @@
+import {auditFeedback,seedFeedbackReview} from './fixtures/feedback-fixtures.mjs';
+import {assertNavigationUsable,waitForReviewExit} from './fixtures/navigation-fixtures.mjs';
 import { test, expect } from '@playwright/test';
 
 const pgn = '[Event "Mobile QA"]\n[Site "Chess.com"]\n[Date "2026.10.20"]\n[White "qa_white"]\n[Black "qa_black"]\n[Result "1-0"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Ba4 Nf6 5. O-O Be7 6. Re1 b5 7. Bb3 O-O 8. c3 d6 1-0';
@@ -210,64 +212,29 @@ test('Home restores all nav icons after opening a real game and pressing Back',a
 });
 
 test('Game Review back restores all mobile tabs and stable home navigation',async({page},testInfo)=>{
- await page.goto('/');
- await page.locator('#gamesTab').click();
- await page.evaluate(()=>{
-  const view=document.getElementById('analysisView');
-  view.style.display='block';document.getElementById('libraryView').style.display='none';
-  document.body.classList.add('review-guided-active');
- });
- await page.locator('#back').click();
- await expect(page.locator('#analysisView')).toBeHidden();
- await expect(page.locator('.homeTabs.modernNav')).toBeVisible();
- for(const id of ['explorerTab','puzzlesTab','analyticsTab','topPlayersTab'])await expect(page.locator('#'+id)).toBeVisible();
- await page.locator('#homeDashboardTab').click();
- await expect(page.locator('#homeView')).toBeVisible();
- await expect(page.locator('.homeTabs.modernNav')).toBeVisible();
+ await auditFeedback(page,{sound:null});await page.goto('/');await seedFeedbackReview(page);
+ await page.locator('#gamesTab').click();await page.locator('.gameWithAvatar').click();await expect(page.locator('#analysisView')).toBeVisible();
+ await page.locator('#back').click();await waitForReviewExit(page);
+ await page.locator('#homeDashboardTab').click();await expect(page.locator('#homeView')).toBeVisible();await assertNavigationUsable(page);
  await page.screenshot({path:testInfo.outputPath('tabs-after-review-back.png'),fullPage:false});
 });
 
-test('review exit restores every bottom icon after stale inline hiding on Home and other tabs',async({page},testInfo)=>{
- await page.goto('/');
- await page.locator('#gamesTab').click();
- await page.evaluate(()=>{
-  document.getElementById('analysisView').style.display='block';
-  document.getElementById('libraryView').style.display='none';
-  const nav=document.querySelector('.homeTabs');
-  nav.classList.add('reviewHidden');
-  nav.style.display='none';
-  document.body.classList.add('review-guided-active');
- });
- await page.locator('#back').click();
- await page.locator('#homeDashboardTab').click();
- const nav=page.locator('.homeTabs.modernNav');
- await expect(nav).toBeVisible();
- for(const id of ['homeDashboardTab','gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav']){
-  await expect(page.locator('#'+id)).toBeVisible();
- }
- await expect(nav).not.toHaveClass(/reviewHidden/);
- await expect(page.locator('body')).not.toHaveClass(/review-guided-active/);
+test('exiting a genuine guided review restores navigation on Home and other tabs',async({page},testInfo)=>{
+ await auditFeedback(page,{sound:null});await page.goto('/');await seedFeedbackReview(page);
+ await page.locator('#gamesTab').click();await page.locator('.gameWithAvatar').click();await expect(page.locator('#reviewGuideCard')).toBeVisible();
+ const play=page.locator('#reviewAutoPlay');if(await play.getAttribute('aria-pressed')==='true')await play.click();
+ const previous=page.locator('#reviewPrev');if(await previous.isEnabled())await previous.click();else await page.locator('#reviewNext').click();
+ await page.locator('#back').click();await waitForReviewExit(page);
+ await page.locator('#homeDashboardTab').click();await expect(page.locator('body')).not.toHaveClass(/review-guided-active/);await assertNavigationUsable(page);
  await page.screenshot({path:testInfo.outputPath('review-to-home-all-tabs-visible.png'),fullPage:false});
- for(const tab of ['explorerTab','puzzlesTab','analyticsTab','topPlayersTab','boardLabTab','gamesTab','homeDashboardTab']){
-  await page.locator('#'+tab).click();
-  await expect(nav).toBeVisible();
-  await expect(page.locator('#explorerTab')).toBeVisible();
-  await expect(page.locator('#puzzlesTab')).toBeVisible();
+ for(const [tab,view] of [['explorerTab','explorerView'],['puzzlesTab','puzzlesView'],['analyticsTab','analyticsView'],['topPlayersTab','topPlayersView'],['boardLabTab','boardLabView'],['gamesTab','libraryView']]){
+  await page.locator('#'+tab).click();await expect(page.locator('#'+view)).toBeVisible();await assertNavigationUsable(page);
  }
 });
 
-test('Android Back from review reconciles hidden navigation without reloading',async({page})=>{
- await page.goto('/');
- await page.locator('#gamesTab').click();
- await page.evaluate(()=>{
-  document.getElementById('analysisView').style.display='block';
-  document.getElementById('libraryView').style.display='none';
-  document.querySelector('.homeTabs').style.display='none';
-  document.body.classList.add('review-guided-active');
-  history.pushState({chessNav:true,screen:'analysis'},'');
- });
- await page.goBack();
- await expect(page.locator('#analysisView')).toBeHidden();
- await expect(page.locator('.homeTabs.modernNav')).toBeVisible();
- await expect(page.locator('#puzzlesTab')).toBeVisible();
+test('Android Back and browser Forward restore the actual cached review route without reloading',async({page})=>{
+ await auditFeedback(page,{sound:null});await page.goto('/');await seedFeedbackReview(page);
+ await page.locator('#gamesTab').click();await page.locator('.gameWithAvatar').click();await expect(page.locator('#analysisView')).toBeVisible();
+ await page.goBack();await waitForReviewExit(page);await page.goForward();await expect(page.locator('#analysisView')).toBeVisible();
+ await expect(page.locator('#reviewGuideCard')).toBeVisible();await page.goBack();await waitForReviewExit(page);
 });

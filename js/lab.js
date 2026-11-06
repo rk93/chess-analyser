@@ -1,3 +1,4 @@
+import {showScreen} from './app-navigation.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { getPositionEval,setPositionEval } from './analysis-store.js';
 import { getLocalStockfish } from './local-stockfish.js';
@@ -23,7 +24,6 @@ function order(){const files=orientation==='white'?['a','b','c','d','e','f','g',
 function announcePosition(){window.dispatchEvent(new CustomEvent('chessPositionChanged',{detail:{fen:chess.fen(),context:'lab'}}))}
 function practicePrompt(){if(!practice)return'';return `${practice.label} on ${practice.side} move ${practice.moveNumber}: you played ${practice.badMove}. Find a better move.`}
 function applyUiPolish(){
-  const analysis=$('analysisView');if(analysis)analysis.style.display='none';
   if(!document.getElementById('uiPolishStyles')){const s=document.createElement('style');s.id='uiPolishStyles';s.textContent=`.homeTabs{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}.homeTabs::-webkit-scrollbar{display:none}@media(max-width:760px){.homeTabs{justify-content:flex-start}.homeTab{flex:0 0 auto;min-width:max-content}}`;document.head.appendChild(s)}
 }
 function resetHistory(){history=[chess.fen()];historyIndex=0;updateHistoryButtons()}
@@ -33,6 +33,7 @@ function navigateHistory(delta){const next=historyIndex+delta;if(next<0||next>=h
 function ensureHistoryButtons(){const host=document.querySelector('.labButtons');if(!host||$('labBack'))return;const back=document.createElement('button'),forward=document.createElement('button');back.id='labBack';back.className='btn';back.type='button';back.textContent='← Back';forward.id='labForward';forward.className='btn';forward.type='button';forward.textContent='Forward →';back.addEventListener('click',()=>navigateHistory(-1));forward.addEventListener('click',()=>navigateHistory(1));host.appendChild(back);host.appendChild(forward);updateHistoryButtons()}
 function render(){const b=$('labBoard');if(!b)return;b.innerHTML='';order().forEach(sq=>{const f=sq.charCodeAt(0)-97,r=Number(sq[1]),el=document.createElement('div');el.className=`sq ${(f+r)%2?'dark':'light'}`;el.dataset.square=sq;if(selected===sq)el.classList.add('selected');if(lastMove&&(lastMove.from===sq||lastMove.to===sq))el.classList.add('last');const p=chess.get(sq);if(p){const img=document.createElement('img');img.className='piece labPiece';img.src=pieceSrc(p.color,p.type);img.draggable=false;img.alt='';img.addEventListener('pointerdown',e=>startDrag(e,sq,img));el.appendChild(img)}el.addEventListener('click',e=>{if(Date.now()-(dragState?.endedAt||0)<250&&dragState?.from===sq)return;tap(sq)});b.appendChild(el)});themeBoard();markLegalTargets('labBoard',selected?chess.moves({square:selected,verbose:true}):[]);updateHistoryButtons();announcePosition()}
 function updatePracticeDock(message){const dock=$('labPracticeCoachDock');if(dock)dock.querySelector('.labPracticeMessage').textContent=message}
+function showPracticeMotif(visible=false){const lesson=$('labPracticeMotif');if(!lesson)return;lesson.hidden=!visible||!practice?.motif;lesson.open=false;lesson.querySelector('p').textContent=visible?practice?.motif?.explanation||'':''}
 function trainingFeedback(move){
  if(!practice||practice.attempted)return;
  practice.attempted=true;
@@ -41,6 +42,7 @@ function trainingFeedback(move){
  if(played===practice.bestMove){
   $('labSource').textContent='Pip Coach · solved ✓';
   $('labLine').textContent=`Excellent! ${move.san} matches the verified Stockfish recommendation. You found the stronger move!`;updatePracticeDock($('labLine').textContent);
+  showPracticeMotif(true);
   return;
  }
  $('labSource').textContent='Pip Coach · try again';
@@ -49,6 +51,7 @@ function trainingFeedback(move){
 function ensurePracticeCoachActions(){
  const host=document.querySelector('.labButtons');
  if(!host||$('labPracticeReveal'))return;
+ const lesson=document.createElement('details');lesson.id='labPracticeMotif';lesson.hidden=true;lesson.innerHTML='<summary>Why this motif fits</summary><p></p>';
  const dock=document.createElement('div');dock.id='labPracticeCoachDock';dock.className='labPracticeCoachDock';dock.hidden=true;
  dock.innerHTML='<div class="labPracticeMessage" aria-live="polite">Find Stockfish’s better move.</div><div class="labPracticeButtons"></div>';
  document.body.appendChild(dock);
@@ -61,8 +64,11 @@ function ensurePracticeCoachActions(){
   practice.revealed=true;
   $('labSource').textContent='Pip Coach · best continuation';
   $('labLine').textContent=`Stockfish recommends ${practice.bestSan||practice.bestMove}. Reset the board to practise that move again.`;updatePracticeDock($('labLine').textContent);
+  showPracticeMotif(true);
  });
  dock.querySelector('.labPracticeButtons').appendChild(reveal);
+ // Keep the explanation inside the fixed practice dock so it stays tappable above global navigation.
+ dock.appendChild(lesson);
 }
 function legalMove(from,to){const options=chess.moves({square:from,verbose:true}).filter(m=>m.to===to);if(!options.length)return false;lastMove=chess.move({from,to,promotion:options.some(m=>m.promotion)?'q':undefined});selected=null;recordHistory();clearAnalysis();render();const outcome=practice&&!practice.attempted?(lastMove.from+lastMove.to+(lastMove.promotion||'')===practice.bestMove?'puzzleSuccess':'puzzleIncorrect'):undefined;moveFeedback(lastMove,{boardId:'labBoard',type:outcome|| (chess.isDraw()?'draw':undefined)});trainingFeedback(lastMove);return true}
 function tap(sq){if(selected){if(legalMove(selected,sq))return;if(sq!==selected&&chess.get(sq)?.color!==chess.turn())void playFeedback('illegal',{context:'labBoard'});selected=null}const p=chess.get(sq);if(p&&p.color===chess.turn()){selected=sq;selectionFeedback('labBoard')}render()}
@@ -73,7 +79,7 @@ function onDragMove(e){if(!dragState)return;e.preventDefault();dragState.moved=t
 function finishDrag(e,cancelled=false){if(!dragState)return;const state=dragState;state.ghost?.remove();document.querySelectorAll('#labBoard .sq.dragTarget').forEach(el=>el.classList.remove('dragTarget'));let moved=false;if(!cancelled&&state.moved){const target=document.elementFromPoint(e.clientX,e.clientY)?.closest?.('#labBoard .sq');if(target)moved=legalMove(state.from,target.dataset.square)}if(!moved){selected=state.from;render()}dragState={endedAt:Date.now(),from:state.from}}
 function onDragEnd(e){finishDrag(e,false)}
 function onDragCancel(e){finishDrag(e,true)}
-function clearAnalysis(){$('labScore').textContent='—';$('labSource').textContent=practice?'Training':'Ready';$('labLine').textContent=practice&&!practice.attempted?practicePrompt():'Position changed. Tap Analyse position.';$('labEvalFill').style.height='50%';$('labArrows').innerHTML=''}
+function clearAnalysis(){showPracticeMotif();$('labScore').textContent='—';$('labSource').textContent=practice?'Training':'Ready';$('labLine').textContent=practice&&!practice.attempted?practicePrompt():'Position changed. Tap Analyse position.';$('labEvalFill').style.height='50%';$('labArrows').innerHTML=''}
 function score(pv){if(pv?.mate!==undefined&&pv?.mate!==null&&Number(pv.mate)!==0){const m=Number(pv.mate);return{n:m>0?20:-20,label:(m<0?'-':'')+'M'+Math.abs(m)}}const n=(Number(pv?.cp)||0)/100;return{n,label:(n>=0?'+':'')+n.toFixed(2)}}
 function squareCenter(sq){const f=sq.charCodeAt(0)-97,r=Number(sq[1]),x=orientation==='white'?f:7-f,y=orientation==='white'?8-r:r-1;return{x:(x+.5)*100,y:(y+.5)*100}}
 function draw(pvs){const svg=$('labArrows');svg.innerHTML='<defs><marker id="labArrow" markerWidth="5" markerHeight="5" refX="4.1" refY="2.5" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L5,2.5 L0,5 Z" fill="#8bc34a"/></marker></defs>';pvs.slice(0,3).forEach((pv,i)=>{const u=String(pv.moves||'').trim().split(/\s+/)[0];if(!/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u))return;const a=squareCenter(u.slice(0,2)),b=squareCenter(u.slice(2,4));svg.insertAdjacentHTML('beforeend',`<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="${['#8bc34a','#f4c542','#58a6ff'][i]}" stroke-width="${i?10:14}" stroke-linecap="round" opacity=".88" marker-end="url(#labArrow)"/>`)})}
@@ -126,9 +132,9 @@ async function analyse(){
     if(run===analysisRun){btn.disabled=false;btn.textContent='Analyse position'}
   }
 }
-function showTab(which){const lab=which==='lab',analytics=which==='analytics',topPlayers=which==='topPlayers';$('analysisView').style.display='none';$('libraryView').style.display='';$('libraryView').hidden=lab||analytics||topPlayers;$('boardLabView').hidden=!lab;$('analyticsView').hidden=!analytics;$('topPlayersView').hidden=!topPlayers;$('gamesTab').classList.toggle('active',which==='games');$('boardLabTab').classList.toggle('active',lab);$('analyticsTab').classList.toggle('active',analytics);$('topPlayersTab')?.classList.toggle('active',topPlayers);if(lab)render();if(analytics)window.dispatchEvent(new CustomEvent('analyticsTabOpened'));if(topPlayers)window.dispatchEvent(new CustomEvent('topPlayersTabOpened'))}
+function showTab(which){showScreen(which);if(which==='lab')render();if(which==='analytics')window.dispatchEvent(new CustomEvent('analyticsTabOpened'));if(which==='topPlayers')window.dispatchEvent(new CustomEvent('topPlayersTabOpened'))}
 function loadPractice(detail){if(!detail?.fen||!detail.bestMove)return;try{ensurePracticeCoachActions();$('labPracticeReveal').hidden=false;$('labPracticeCoachDock').hidden=false;practice={...detail,attempted:false};chess=new Chess(detail.fen);orientation=chess.turn()==='b'?'black':'white';selected=null;lastMove=null;resetHistory();showTab('lab');panel()?.classList.add('practiceActive');clearAnalysis();render();$('labSource').textContent='Training · from your game';$('labLine').textContent=practicePrompt()}catch(e){practice=null;$('labLine').textContent='Could not load training position: '+e.message}}
-function leavePractice(){practice=null;const reveal=$('labPracticeReveal');if(reveal)reveal.hidden=true;const dock=$('labPracticeCoachDock');if(dock)dock.hidden=true;panel()?.classList.remove('practiceActive')}
+function leavePractice(){showPracticeMotif();practice=null;const reveal=$('labPracticeReveal');if(reveal)reveal.hidden=true;const dock=$('labPracticeCoachDock');if(dock)dock.hidden=true;panel()?.classList.remove('practiceActive')}
 function resetLab(){if(practice){chess=new Chess(practice.fen);practice.attempted=false;orientation=chess.turn()==='b'?'black':'white';selected=null;lastMove=null;resetHistory();clearAnalysis();render();$('labSource').textContent='Training · retry';$('labLine').textContent=practicePrompt();updatePracticeDock($('labLine').textContent);return}chess=new Chess();selected=null;lastMove=null;resetHistory();clearAnalysis();render()}
 function loadOpeningStudy(detail){
  try{
@@ -141,5 +147,5 @@ function loadOpeningStudy(detail){
  }catch{$('labLine').textContent='This opening could not be loaded. Choose another saved game.'}
 }
 window.addEventListener('loadLabPgn',event=>loadOpeningStudy(event.detail));
-function init(){if(!$('labBoard'))return;window.addEventListener('feedbackCleanup',()=>{if(dragState?.ghost)finishDrag(null,true)});applyUiPolish();ensureHistoryButtons();ensurePracticeCoachActions();$('gamesTab').addEventListener('click',()=>{leavePractice();showTab('games')});$('boardLabTab').addEventListener('click',()=>{leavePractice();showTab('lab')});$('analyticsTab')?.addEventListener('click',()=>{leavePractice();showTab('analytics')});$('topPlayersTab')?.addEventListener('click',()=>{leavePractice();showTab('topPlayers')});$('labAnalyse').addEventListener('click',analyse);$('labReset').addEventListener('click',resetLab);$('labFlip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';render()});const settings=$('settingsToggleLab');if(settings)settings.addEventListener('click',()=>document.getElementById('settingsToggleLibrary')?.click());window.addEventListener('chessPreference',e=>{if(e.detail?.key==='pieces'||e.detail?.key==='board')render();});window.addEventListener('practiceMistake',e=>loadPractice(e.detail));window.addEventListener('loadLabFen',e=>{try{leavePractice();chess=new Chess(e.detail.fen);selected=null;lastMove=null;resetHistory();clearAnalysis();render();$('labLine').textContent='Custom position loaded. Tap Analyse position.'}catch(err){$('labLine').textContent='Could not load custom position: '+err.message}});window.addEventListener('refreshLabBoard',()=>render());render()}
+function init(){if(!$('labBoard'))return;window.addEventListener('appScreenChanged',event=>{if(event.detail.screen!=='lab')leavePractice()});window.addEventListener('feedbackCleanup',()=>{if(dragState?.ghost)finishDrag(null,true)});applyUiPolish();ensureHistoryButtons();ensurePracticeCoachActions();$('gamesTab').addEventListener('click',()=>{leavePractice();showTab('games')});$('boardLabTab').addEventListener('click',()=>{leavePractice();showTab('lab')});$('analyticsTab')?.addEventListener('click',()=>{leavePractice();showTab('analytics')});$('topPlayersTab')?.addEventListener('click',()=>{leavePractice();showTab('topPlayers')});$('labAnalyse').addEventListener('click',analyse);$('labReset').addEventListener('click',resetLab);$('labFlip').addEventListener('click',()=>{orientation=orientation==='white'?'black':'white';render()});const settings=$('settingsToggleLab');if(settings)settings.addEventListener('click',()=>document.getElementById('settingsToggleLibrary')?.click());window.addEventListener('chessPreference',e=>{if(e.detail?.key==='pieces'||e.detail?.key==='board')render();});window.addEventListener('practiceMistake',e=>loadPractice(e.detail));window.addEventListener('loadLabFen',e=>{try{leavePractice();chess=new Chess(e.detail.fen);selected=null;lastMove=null;resetHistory();clearAnalysis();render();$('labLine').textContent='Custom position loaded. Tap Analyse position.'}catch(err){$('labLine').textContent='Could not load custom position: '+err.message}});window.addEventListener('refreshLabBoard',()=>render());render()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

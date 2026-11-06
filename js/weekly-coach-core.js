@@ -28,19 +28,20 @@ export function buildWeeklyCoach(games,user,{now=Date.now()/1000,pool='rapid',re
   const current=record(week),prior=record(previous),coverage={games:week.length,inspected:inspected.length,reviewed:eligible.length,unavailable:inspected.length-eligible.length,unchecked:week.length-inspected.length};
   const actions=[],used=new Set();
   function add(action,key){action.id=identity(action.kind,pool,key);action.completed=completed(progress?.[action.id],now);actions.push(action);if(action.target?.key)used.add(action.target.key);}
-  const patterns=engineWeaknesses(eligible,{now}).filter(finding=>['mate','capture','blunders'].includes(finding.kind)).sort((a,b)=>b.games-a.games||['mate','capture','blunders'].indexOf(a.kind)-['mate','capture','blunders'].indexOf(b.kind));
+  const priority=['mate','knight-fork','absolute-pin','capture','blunders'];
+  const patterns=engineWeaknesses(eligible,{now}).filter(finding=>priority.includes(finding.kind)).sort((a,b)=>priority.indexOf(a.kind)-priority.indexOf(b.kind)||b.games-a.games);
   const pattern=patterns[0],moments=eligible.flatMap(review=>review.facts.events.map(event=>({...event,key:review.row.key,opponent:review.row.opponent,end:review.row.end})));
   const history=event=>{
     const value=trainingProgress?.[event.fen+'|'+event.bestMove],valid=Number.isFinite(value?.solvedAt)&&value.solvedAt>0&&value.solvedAt/1000<=now&&Number.isSafeInteger(value.correct)&&value.correct>0;
     const known=valid&&Number.isSafeInteger(value.assisted)&&value.assisted>=0&&value.assisted<=value.correct;
     return {solved:valid,assistanceKnown:known,unassisted:known&&value.correct>value.assisted};
   };
-  const choices=pattern?moments.filter(event=>pattern.kind==='blunders'?event.label==='Blunder':event.theme===pattern.kind):moments;
+  const choices=pattern?moments.filter(event=>pattern.kind==='blunders'?event.label==='Blunder':['knight-fork','absolute-pin'].includes(pattern.kind)?event.motif?.kind===pattern.kind:event.theme===pattern.kind):moments;
   const moment=choices.find(event=>!history(event).unassisted)||choices[0];
   if(moment){
     const past=history(moment);
-    add({kind:'practice',source:'engine-review',title:past.unassisted?'Revisit a solved position':pattern?.kind==='mate'?'Find the missed mate':pattern?.kind==='capture'?'Look again at a stronger capture':'Revisit one verified decision',
-      text:pattern?`${pattern.kind==='mate'?'A missed checkmate':pattern.kind==='capture'?'A stronger capture':'A verified blunder'} appears in ${pattern.games} of ${pattern.denominator} eligible reviewed ${pool} games this week.`:'One saved, engine-verified moment to study. One game does not establish a recurring weakness.',
+    add({kind:'practice',source:'engine-review',title:past.unassisted?'Revisit a solved position':({'mate':'Find the missed mate','knight-fork':'Practise a checking knight fork','absolute-pin':'Study an absolute pin','capture':'Look again at a stronger capture'}[pattern?.kind]||'Revisit one verified decision'),
+      text:pattern?`${({'mate':'A missed checkmate','knight-fork':'A checking knight fork in a stronger move','absolute-pin':'An absolute pin in a stronger move','capture':'A stronger capture'}[pattern.kind]||'A verified blunder')} appears in ${pattern.games} of ${pattern.denominator} eligible reviewed ${pool} games this week.`:'One saved, engine-verified moment to study. One game does not establish a recurring weakness.',
       evidence:pattern?`${pattern.games} supporting / ${pattern.denominator} reviewed games · depth ≥${pattern.depth}`:`1 supporting game · depth ≥${moment.depth}`,
       practiceStatus:past.solved?(past.unassisted?'Previously solved without reveal':past.assistanceKnown?'Previously solved with help':'Previous solve recorded'):'',target:moment,practice:{...moment,id:moment.fen+'|'+moment.bestMove,gameKey:moment.key,trainingUser:user}},moment.fen+'|'+moment.bestMove);
   }

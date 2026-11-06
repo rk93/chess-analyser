@@ -1,7 +1,8 @@
+import {showScreen} from './app-navigation.js';
 import {installPressFeedback} from './feedback.js';
 const $=id=>document.getElementById(id);
 const PAGE_SIZE=()=>window.matchMedia('(max-width:800px)').matches?5:20,DB_NAME='rk93-chess-analyser',STORE='games';
-let page=1,filterResult='all',filterSpeed='all',query='',lastViewId='gamesTab',pagerFrame=0;
+let page=1,filterResult='all',filterSpeed='all',query='',pagerFrame=0;
 const NAV_ICONS={
   gamesTab:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8a2 2 0 0 1 2 2v14l-6-3-6 3V5a2 2 0 0 1 2-2Z"/></svg>',
   boardLabTab:'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h16v16H4V4Zm0 8h16M12 4v16"/></svg>',
@@ -33,28 +34,19 @@ async function updateLibraryChrome(){const cards=[...document.querySelectorAll('
 function ensureSettingsNav(){const nav=document.querySelector('.homeTabs');if(!nav||$('settingsNav'))return;const b=document.createElement('button');b.id='settingsNav';b.className='homeTab settingsNav';b.type='button';b.textContent='Settings';b.setAttribute('aria-label','Settings');nav.appendChild(b)}
 function ensureSettingsPage(){if($('settingsView'))return $('settingsView');const app=document.querySelector('.app'),view=document.createElement('section');view.id='settingsView';view.hidden=true;view.innerHTML='<div class="topbar settingsPageTop"><div><h1>Settings</h1><div class="muted">Personalise your board and analysis experience.</div></div></div><div id="settingsPageHost" class="settingsPageHost"></div>';const analysis=$('analysisView');app?.insertBefore(view,analysis||null);const panel=$('settingsPanel'),host=view.querySelector('#settingsPageHost');if(panel&&host){host.appendChild(panel);panel.hidden=false;panel.classList.remove('open');panel.classList.add('settingsPagePanel')}return view}
 function paintNavButton(b){const label=b.dataset.label||b.textContent.trim()||'Menu';b.dataset.label=label;const icon=NAV_ICONS[b.id];if(!icon)return;if(!b.querySelector('.navIcon'))b.innerHTML=`<span class="navIcon">${icon}</span><span class="navLabel">${label}</span>`}
-function setOnlyActive(id){document.querySelectorAll('.homeTabs .homeTab').forEach(b=>b.classList.toggle('active',b.id===id));if(id!=='settingsNav')lastViewId=id}
 function decorateNav(){const nav=document.querySelector('.homeTabs');if(!nav)return;ensureSettingsNav();nav.classList.add('modernNav');nav.querySelectorAll('.homeTab').forEach(paintNavButton)}
-function hideSettingsPage(){const v=$('settingsView');if(v)v.hidden=true}
-function showSettingsPage(){const v=ensureSettingsPage();for(const id of ['libraryView','boardLabView','explorerView','puzzlesView','analyticsView','topPlayersView']){const el=$(id);if(el)el.hidden=true}if($('analysisView'))$('analysisView').style.display='none';v.hidden=false;setOnlyActive('settingsNav');window.scrollTo({top:0,behavior:'instant'})}
+function showSettingsPage(){ensureSettingsPage();showScreen('settings');window.scrollTo({top:0,behavior:'instant'})}
 
 /* Native Android Back and browser Back: keep in-app destinations on the stack. */
 function installInAppBack(){
  const routeIds=['homeDashboardTab','gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav'];
- const viewIds={homeDashboardTab:'homeView',gamesTab:'libraryView',boardLabTab:'boardLabView',explorerTab:'explorerView',puzzlesTab:'puzzlesView',analyticsTab:'analyticsView',topPlayersTab:'topPlayersView',settingsNav:'settingsView'};
  let restoring=false;
- const activeView=()=>{
-  if($('analysisView')?.style.display!=='none'&&$('analysisView')?.getBoundingClientRect().height>0&&!$('analysisView')?.hidden)return'analysis';
-  for(const [tab,view] of Object.entries(viewIds)){const el=$(view);if(el&&!el.hidden&&getComputedStyle(el).display!=='none')return tab}
-  return'gamesTab';
- };
  function ensureHomeState(){
   if(!history.state?.chessNav)history.replaceState({...(history.state||{}),chessNav:true,screen:'homeDashboardTab'},'');
  }
  ensureHomeState();
  function navTo(target){
-  if(target==='analysis'){return}
-  if(target==='gamesTab'&&activeView()==='analysis'){$('back')?.click();return}
+  if(target==='analysis'){showScreen('review');return}
   $(target)?.click();
  }
  document.addEventListener('click',event=>{
@@ -76,12 +68,6 @@ function installInAppBack(){
  window.addEventListener('savedGameOpened',()=>{
   if(!restoring&&history.state?.screen!=='analysis')history.pushState({chessNav:true,screen:'analysis'},'');
  });
- document.addEventListener('click',event=>{
-  if(restoring)return;
-  const card=event.target.closest?.('#games .game');
-  if(!card)return;
-  if(history.state?.screen!=='analysis')history.pushState({chessNav:true,screen:'analysis'},'');
- },true);
  window.addEventListener('popstate',event=>{
   const screen=event.state?.chessNav?event.state.screen:'homeDashboardTab';
   restoring=true;
@@ -109,46 +95,5 @@ function installConnectivityIndicator(){
 }
 
 
-// Review and tab modules own different parts of the screen. Reconcile their
-// visibility whenever either route changes, including hardware/browser Back.
-function installNavVisibilityGuard(){
- const nav=document.querySelector('.homeTabs');
- const analysis=$('analysisView');
- if(!nav||!analysis)return;
- let pending=false;
- const sync=()=>{
-  pending=false;
-  const inReview=analysis.style.display==='block'&&!analysis.hidden;
-  if(inReview)return;
-  // Only clear transient Review hiding; never disturb the selected tab.
-  if(document.body.classList.contains('review-guided-active'))document.body.classList.remove('review-guided-active');
-  if(nav.classList.contains('reviewHidden'))nav.classList.remove('reviewHidden');
-  if(nav.style.display==='none')nav.style.removeProperty('display');
-  if(nav.hidden)nav.hidden=false;
-  if(nav.style.visibility==='hidden')nav.style.removeProperty('visibility');
-  if(nav.style.opacity==='0')nav.style.removeProperty('opacity');
-  // The tab buttons must remain available after DOM redecoration.
-  for(const id of ['homeDashboardTab','gamesTab','boardLabTab','explorerTab','puzzlesTab','analyticsTab','topPlayersTab','settingsNav']){
-   const button=$(id);
-   if(button?.hidden)button.hidden=false;
-   if(button?.style.display==='none')button.style.removeProperty('display');
-  }
- };
- const schedule=()=>{if(pending)return;pending=true;requestAnimationFrame(sync)};
- const observer=new MutationObserver(schedule);
- observer.observe(analysis,{attributes:true,attributeFilter:['style','hidden','class']});
- observer.observe(nav,{attributes:true,attributeFilter:['style','hidden','class'],childList:true,subtree:false});
- observer.observe(document.body,{attributes:true,attributeFilter:['class']});
- for(const id of ['homeView','libraryView','boardLabView','explorerView','puzzlesView','analyticsView','topPlayersView','settingsView']){
-  const view=$(id);
-  if(view)observer.observe(view,{attributes:true,attributeFilter:['style','hidden']});
- }
- window.addEventListener('popstate',schedule);
- document.addEventListener('click',e=>{
-  if(e.target.closest?.('.homeTabs .homeTab,#back,#explorerHome'))schedule();
- },true);
- schedule();
-}
-
-function observe(){installNavVisibilityGuard();installConnectivityIndicator();installInAppBack();installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}hideSettingsPage();setOnlyActive(tab.id);requestAnimationFrame(()=>setOnlyActive(tab.id))},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
+function observe(){installConnectivityIndicator();installInAppBack();installPressFeedback();window.addEventListener('resize',()=>renderPagination(),{passive:true});ensureStyles();decorateNav();ensureSettingsPage();updateLibraryChrome();const nav=document.querySelector('.homeTabs');if(nav)new MutationObserver(()=>requestAnimationFrame(decorateNav)).observe(nav,{childList:true});const games=$('games');if(games)new MutationObserver(()=>{clearTimeout(observe.t);observe.t=setTimeout(updateLibraryChrome,40)}).observe(games,{childList:true});document.addEventListener('click',e=>{const tab=e.target.closest?.('.homeTabs .homeTab');if(!tab)return;if(tab.id==='settingsNav'){e.preventDefault();e.stopPropagation();showSettingsPage();return}},true);window.addEventListener('requestOpenSettingsPage',showSettingsPage);window.addEventListener('chessImportFinished',()=>updateLibraryChrome());setTimeout(updateLibraryChrome,150);setTimeout(updateLibraryChrome,800)}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',observe);else observe();

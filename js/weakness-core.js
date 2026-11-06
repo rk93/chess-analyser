@@ -85,7 +85,7 @@ export function reliableReview(data, moves) {
     moves.every((move,i)=>data.moveVerified?.[i]===true&&/^[a-h][1-8][a-h][1-8][qrbn]?$/.test(data.bestMoves?.[i]||''));
 }
 // The browser supplies legal-move validation through describe; no engine runs.
-export function savedReviewFacts(moves, data, white, describe) {
+export function savedReviewFacts(moves, data, white, describe, identifyMotif) {
   if (!reliableReview(data,moves)) return null;
   const side = white?'w':'b', own = moves.filter(move=>move.color===side);
   if (!own.length) return null;
@@ -97,7 +97,7 @@ export function savedReviewFacts(moves, data, white, describe) {
       if (index<0 || loss<=0) return [];
       const best = describe(candidate.fen,candidate.bestMove);
       return [{...candidate,ply:index+1,phase:estimatedPhase(candidate.fen),theme:best.san.includes('#')?'mate':best.captured?'capture':'alternative',
-        bestSan:best.san,depth:Math.min(data.localDepths[index],data.localDepths[index+1])}];
+        bestSan:best.san,motif:identifyMotif?.(candidate.fen,candidate.bestMove)||null,depth:Math.min(data.localDepths[index],data.localDepths[index+1])}];
     });
     return {events,phases:[...new Set(own.map(move=>estimatedPhase(move.before)).filter(Boolean))]};
   } catch { return null; }
@@ -108,6 +108,8 @@ export function engineWeaknesses(reviews, {now=Date.now()/1000}={}) {
   for (const pool of COMPARISON_POOLS) {
     const cohort = reviews.filter(review=>review.row.pool===pool && review.facts);
     const patterns = [
+      ['knight-fork','Checking knight forks to practise',event=>event.motif?.kind==='knight-fork',null],
+      ['absolute-pin','Absolute pins to practise',event=>event.motif?.kind==='absolute-pin',null],
       ['blunders','Repeated verified blunders',event=>event.label==='Blunder',null],
       ['mate','Missed checkmate opportunities',event=>event.theme==='mate',null],
       ['capture','Stronger captures to review',event=>event.theme==='capture',null],
@@ -122,7 +124,7 @@ export function engineWeaknesses(reviews, {now=Date.now()/1000}={}) {
       const delta=recent.length>=5&&previous.length>=5?rate(recent)-rate(previous):null;
       findings.push({id:JSON.stringify([kind,pool]),kind,pool,title,source:'engine-review',games:supporting.length,denominator:eligible.length,
         ...interval(eligible.map(review=>review.row)),reliability:supporting.length>=10?'Repeated across more games':'Limited reviewed sample',
-        text:`Saved Stockfish reviews support this pattern in ${supporting.length} of ${eligible.length} eligible reviewed ${pool} games. Each supporting position has exact evaluations and depth of at least 8. This describes reviewed positions, not a general skill diagnosis.`,
+        text:`Saved Stockfish reviews support this pattern in ${supporting.length} of ${eligible.length} eligible reviewed ${pool} games. Each supporting position has exact evaluations and depth of at least 8. ${['knight-fork','absolute-pin'].includes(kind)?'Legal board checks identify this motif in the stronger recommended move. The motif does not establish a forced win. ':''}This describes reviewed positions, not a general skill diagnosis.`,
         depth:Math.min(...supporting.flatMap(review=>review.facts.events.filter(matches).map(event=>event.depth))),
         trend:delta===null?null:{delta,direction:Math.abs(delta)<5?'Similar':delta<0?'Improving':'Declining',recentGames:recent.length,previousGames:previous.length},
         representatives:supporting.slice(0,3).map(review=>({key:review.row.key,opponent:review.row.opponent,end:review.row.end,...review.facts.events.find(matches)}))});

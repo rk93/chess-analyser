@@ -1,3 +1,4 @@
+import {showScreen} from './app-navigation.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { buildPlayerInsights } from './player-insights.js';
 import { findPersonalTraining, invalidatePersonalTraining } from './personal-training.js';
@@ -63,20 +64,16 @@ function create(){
  window.addEventListener('chessImportFinished',invalidate);
  window.addEventListener('chessGamesImported',invalidate);
  window.addEventListener('storage',e=>{if(e.key==='chess-username'||e.key===null)invalidate()});
+ window.addEventListener('appScreenChanged',event=>{if(event.detail.screen!=='home')hide()});
  window.addEventListener('savedGameOpened',event=>{command.remember(event.detail?.key,event.detail?.ply);hide()});
  window.addEventListener('gameReviewUpdated',()=>{invalidatePersonalTraining();command.invalidateReviews()});
  window.addEventListener('requestChessSync',()=>{loaded=false});
  window.addEventListener('popstate',()=>command.rememberPosition());
 }
-function hide(){command?.rememberPosition();command?.pause();if(!active)return;active=false;const view=$('homeView');if(view)view.hidden=true}
+function hide(){command?.rememberPosition();command?.pause();if(!active)return;active=false;}
 function show(){
  active=true;
- for(const id of ['libraryView','boardLabView','explorerView','puzzlesView','analyticsView','topPlayersView','settingsView']){
-  if($(id))$(id).hidden=true;
- }
- if($('analysisView'))$('analysisView').style.display='none';
- $('homeView').hidden=false;
- document.querySelectorAll('.homeTabs .homeTab').forEach(b=>b.classList.toggle('active',b.id==='homeDashboardTab'));
+ showScreen('home');
  window.scrollTo({top:0,behavior:'instant'});
  if(!loaded||loadedUser!==username())void refresh();
 }
