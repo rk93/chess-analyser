@@ -317,7 +317,7 @@
 
 /* Pip Coach training: a small fixed dock below the board on phones. */
 .labPracticeCoachDock[hidden]{display:none!important}
-.labPracticeCoachDock{position:fixed;z-index:2350;left:50%;transform:translateX(-50%);bottom:calc(94px + env(safe-area-inset-bottom));width:min(540px,calc(100vw - 24px));padding:10px 12px;box-sizing:border-box;border:1px solid #57784c;border-radius:14px;background:rgba(36,49,35,.97);box-shadow:0 5px 18px #0008;color:#e9f3dc;display:flex;flex-direction:column;gap:8px}
+.labPracticeCoachDock{position:fixed;z-index:2350;left:50%;transform:translateX(-50%);bottom:calc(94px + env(safe-area-inset-bottom));width:min(540px,calc(100vw - 24px));padding:10px 12px;box-sizing:border-box;border:1px solid #57784c;border-radius:14px;background:rgba(36,49,35,.97);box-shadow:0 5px 18px #0008;color:#e9f3dc;display:flex;flex-direction:column;gap:8px;max-height:calc(100dvh - 124px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
 .labPracticeMessage{font-size:clamp(12px,3.4vw,15px);line-height:1.35;font-weight:650}
 #labPracticeMotif[hidden]{display:none!important}
 #labPracticeMotif{margin-top:12px;border-top:1px solid #57784c;color:#dce9d1;line-height:1.5}
