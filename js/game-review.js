@@ -1,3 +1,4 @@
+import {inGameReview} from './app-navigation.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { cacheGet,cacheSet,getPositionEval,setPositionEval,simpleHash } from './analysis-store.js';
 import { buildTacticalVerificationPlan } from './review-tactics.js';
@@ -384,20 +385,22 @@ function renderGuide(ply,data){
   speakComment(ply,$('reviewGuideComment').textContent);
   if(autoPlaying)queueAutoPlay();
 }
-function renderCurrentMove(){const data=activeReview;if(!data)return;if(preparedPositions&&data.bestMoves!==preparedBestMoves){preparedReview=prepareGuideFrames(data,preparedPositions,preparedSans);preparedBestMoves=data.bestMoves;lastRenderedPly=-1}const ply=currentPly(),cp=data.evals?.[ply];if(cp==null||ply===lastRenderedPly)return;lastRenderedPly=ply;const score=scoreLabel(cp);$('engineScore').textContent=$('mobileScore').textContent=score;$('engineSource').textContent='Game Review';$('mobileSource').textContent='Game Review';setEvalBar(cp);renderGuide(ply,data);updateAutoPlayControls()}
+function renderCurrentMove(){if(!inGameReview())return;const data=activeReview;if(!data)return;if(preparedPositions&&data.bestMoves!==preparedBestMoves){preparedReview=prepareGuideFrames(data,preparedPositions,preparedSans);preparedBestMoves=data.bestMoves;lastRenderedPly=-1}const ply=currentPly(),cp=data.evals?.[ply];if(cp==null||ply===lastRenderedPly)return;lastRenderedPly=ply;const score=scoreLabel(cp);$('engineScore').textContent=$('mobileScore').textContent=score;$('engineSource').textContent='Game Review';$('mobileSource').textContent='Game Review';setEvalBar(cp);renderGuide(ply,data);updateAutoPlayControls()}
 function scheduleCurrentMove(){if(renderFrame)return;renderFrame=requestAnimationFrame(()=>{renderFrame=0;renderCurrentMove()})}
 
 function summaryHeadline(data){const diff=(Number(data.whiteAccuracy)||0)-(Number(data.blackAccuracy)||0),blunders=data.labels.filter(x=>x==='Blunder').length;if(blunders===0)return'A clean game with no major blunders. Review the strongest decisions move by move.';if(Math.abs(diff)>=15)return'One side played a much more accurate game. Review the key turning points and missed chances.';return'The game had important swings. Review the moves that changed the evaluation.'}
 function ensureSummaryScreen(){let el=$('reviewSummaryScreen');if(el)return el;el=document.createElement('section');el.id='reviewSummaryScreen';el.className='reviewSummaryScreen';el.hidden=true;el.innerHTML=`<div class="reviewSummaryInner"><div class="reviewSummaryTop"><h2>Game Review</h2><button id="reviewSummaryClose" class="reviewSummaryClose" type="button" aria-label="Close">×</button></div><div id="reviewHeadlineCard" class="reviewHeadlineCard"></div><div id="reviewSummaryGraph" class="reviewSummaryGraph"></div><div id="reviewSummaryPlayers" class="reviewSummaryPlayers"></div><div id="reviewBreakdown" class="reviewBreakdown"></div><button id="reviewStartBtn" class="reviewStartBtn" type="button">Start Review</button></div>`;document.body.appendChild(el);$('reviewSummaryClose').onclick=()=>el.hidden=true;$('reviewStartBtn').onclick=()=>startGuidedReview();return el}
 function showSummaryScreen(data,{force=false}={}){
+  if(!inGameReview())return;
   const key=reviewKey();if(!force&&summaryShownForKey===key)return;summaryShownForKey=key;
   const el=ensureSummaryScreen(),names=($('gameTitle')?.textContent||'White — Black').split(' — '),counts=countBySide(data);$('reviewHeadlineCard').textContent=summaryHeadline(data);$('reviewSummaryGraph').innerHTML=graphSvg(data.evals,data.losses);$('reviewSummaryPlayers').innerHTML=`<div class="reviewSummaryPlayer"><div class="name">${escapeHtml(names[0]||'White')}</div><div class="accuracy">${Number(data.whiteAccuracy).toFixed(1)}</div></div><div class="reviewSummaryPlayer"><div class="name">${escapeHtml(names[1]||'Black')}</div><div class="accuracy">${Number(data.blackAccuracy).toFixed(1)}</div></div>`;
   $('reviewBreakdown').innerHTML=LABELS.map(label=>`<div class="reviewBreakRow"><span class="label">${label}</span><span class="left">${counts.white[label]||0}</span><span class="reviewBreakIcon badge-${BADGE[label]}">${SYMBOL[label]}</span><span class="right">${counts.black[label]||0}</span></div>`).join('');el.hidden=false;
 }
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
-function startGuidedReview({automatic=false}={}){const el=$('reviewSummaryScreen');if(el)el.hidden=true;const generation=autoPlayGeneration,key=reviewKey();if(automatic)window.dispatchEvent(new CustomEvent('reviewFeedbackPlayback',{detail:{playing:true,interval:getAutoPlayMs()}}));$('start')?.click();setTimeout(()=>{if(generation!==autoPlayGeneration||key!==reviewKey()||!$('board')?.getClientRects().length||document.hidden)return;$('next')?.click();setTimeout(renderCurrentMove,0)},20)}
+function startGuidedReview({automatic=false}={}){if(!inGameReview())return;const el=$('reviewSummaryScreen');if(el)el.hidden=true;const generation=autoPlayGeneration,key=reviewKey();if(automatic)window.dispatchEvent(new CustomEvent('reviewFeedbackPlayback',{detail:{playing:true,interval:getAutoPlayMs()}}));$('start')?.click();setTimeout(()=>{if(generation!==autoPlayGeneration||key!==reviewKey()||!$('board')?.getClientRects().length||document.hidden)return;$('next')?.click();setTimeout(renderCurrentMove,0)},20)}
 
 function displayReview(data,{cached=false,showSummary=true,dispatchReady=true}={}){
+  if(!inGameReview())return false;
   const positions=buildPositions(),sans=moveSans();if(positions.length!==data.evals.length||sans.length!==data.labels.length)return false;
   spokenPly=-1;preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
   const trainable=(data.bestMoves||[]).filter((m,i)=>m&&data.moveVerified?.[i]&&(data.labels[i]==='Mistake'||data.labels[i]==='Blunder')).length,verified=data.moveVerified?.filter(Boolean).length||0;
@@ -412,9 +415,9 @@ async function restoreReview(){
   clearTimeout(restoreTimer);
   const generation=reviewToken;
   restoreTimer=setTimeout(async()=>{
-    const sans=moveSans();if(!sans.length)return;
+    const sans=moveSans();if(!sans.length||!inGameReview())return;
     const key=reviewKey(),data=await cacheGet('review',key);
-    if(generation!==reviewToken||key!==reviewKey())return;
+    if(generation!==reviewToken||key!==reviewKey()||!inGameReview())return;
     const positions=buildPositions();
     const complete=data?.version===REVIEW_VERSION&&reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&reviewDepthIsCurrent(data,getReviewDepthPreset());
     if(data?.version===REVIEW_VERSION)displayReview(data,{cached:true,showSummary:!complete,dispatchReady:!mobileReview()||complete});
@@ -459,7 +462,7 @@ let autoFlowKey='',autoFlowStartedKey='';
 function mobileReview(){return window.matchMedia('(max-width:800px)').matches}
 function closeDepthPrompt(){document.getElementById('reviewDepthPrompt')?.remove()}
 function showDepthPrompt(key){
-  if(!mobileReview()||key!==reviewKey()||document.getElementById('reviewDepthPrompt'))return;
+  if(!mobileReview()||!inGameReview()||key!==reviewKey()||document.getElementById('reviewDepthPrompt'))return;
   const overlay=document.createElement('div');overlay.id='reviewDepthPrompt';overlay.className='reviewDepthOverlay';
   overlay.innerHTML='<div class="reviewDepthDialog" role="dialog" aria-modal="true" aria-labelledby="reviewDepthTitle"><h2 id="reviewDepthTitle">Review this game</h2><p>Choose how deeply Stockfish analyses. Autoplay starts after verification.</p><label for="reviewOpenDepth">Review quality</label><select id="reviewOpenDepth" class="input"><option value="ultra">Ultra Fast · 4 / 6</option><option value="fast">Fast · 8 / 12</option><option value="balanced">Balanced · 12 / 16</option><option value="deep">Deep · 16 / 20</option></select><label class="reviewDepthRemember"><input id="reviewRememberAuto" type="checkbox"> Automatically review future games</label><div class="reviewDepthButtons"><button id="reviewDepthCancel" class="btn" type="button">Not now</button><button id="reviewDepthStart" class="btn primary" type="button">Start review</button></div></div>';
   document.body.appendChild(overlay);
@@ -475,7 +478,7 @@ function showDepthPrompt(key){
 }
 function handleAutoReviewCache(e){
   const {key,complete}=e.detail||{};
-  if(!mobileReview()||!key||key!==reviewKey())return;
+  if(!mobileReview()||!inGameReview()||!key||key!==reviewKey())return;
   if(autoFlowKey!==key+'|playing')autoFlowKey=key;
   if(complete)return;
   if(localStorage.getItem(AUTO_REVIEW_OPT_IN)==='true'){if(autoFlowStartedKey!==key){autoFlowStartedKey=key;$('runReview')?.click()}}
@@ -484,7 +487,7 @@ function handleAutoReviewCache(e){
 let reviewPlaybackStartedKey='';
 function handleVerifiedAutoReview(e){
   const key=e.detail?.key;
-  if(!mobileReview()||!key||key!==reviewKey()||document.hidden)return;
+  if(!mobileReview()||!inGameReview()||!key||key!==reviewKey()||document.hidden)return;
   closeDepthPrompt();autoFlowStartedKey=key;
   // The same game may generate repeated verification notifications.
   if(autoFlowKey===key+'|playing'||activeReview&&reviewPlaybackStartedKey===key)return;
@@ -498,5 +501,14 @@ function handleVerifiedAutoReview(e){
   },90);
 }
 function resetAutoReviewFlow(){autoFlowKey='';autoFlowStartedKey='';reviewPlaybackStartedKey='';closeDepthPrompt()}
-function init(){window.addEventListener('reviewAnalysisProgress',event=>{if(event.detail?.key!==reviewKey())return;localReviewRunning=['starting','positions','critical'].includes(event.detail.phase);$('runReview').disabled=running||localReviewRunning;if(event.detail.phase==='starting')stopAutoPlay();});window.addEventListener('cancelGameReview',cancelQuickReview);window.addEventListener('feedbackCleanup',cancelQuickReview);window.addEventListener('feedbackCleanup',stopAutoPlay);ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('reviewAutoPlaySpeedChanged',()=>{updateAutoPlayControls();if(autoPlaying&&!spokenPending)queueAutoPlay();});window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;activeReviewComplete=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
+function onScreenChanged(event){
+  if(event.detail.screen==='review'){restoreReview();return;}
+  if(event.detail.previous==='review')window.dispatchEvent(new Event('cancelGameReview'));
+  cancelQuickReview();stopAutoPlay();clearTimeout(restoreTimer);reviewToken++;
+  if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}
+  lastRenderedPly=-1;resetAutoReviewFlow();
+  const guide=$('reviewGuideCard');if(guide)guide.hidden=true;
+  const summary=$('reviewSummaryScreen');if(summary)summary.hidden=true;
+}
+function init(){window.addEventListener('appScreenChanged',onScreenChanged);window.addEventListener('reviewAnalysisProgress',event=>{if(event.detail?.key!==reviewKey())return;localReviewRunning=['starting','positions','critical'].includes(event.detail.phase);$('runReview').disabled=running||localReviewRunning;if(event.detail.phase==='starting')stopAutoPlay();});window.addEventListener('cancelGameReview',cancelQuickReview);window.addEventListener('feedbackCleanup',cancelQuickReview);window.addEventListener('feedbackCleanup',stopAutoPlay);ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('reviewAutoPlaySpeedChanged',()=>{updateAutoPlayControls();if(autoPlaying&&!spokenPending)queueAutoPlay();});window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;activeReviewComplete=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

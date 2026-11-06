@@ -61,6 +61,8 @@ test('Repeated verification cannot restart a review already playing',async()=>{
 test('Mobile bottom tabs reappear after review closes',async()=>{
  const css=await readFile('ux-shell.css','utf8');
  const app=await readFile('js/app.js','utf8');
- assert.ok(css.includes('body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav'));
- assert.ok(app.includes("document.querySelector('.homeTabs')?.style.removeProperty('display')"));
+ assert.ok(css.includes('html[data-chess-screen="review"] .homeTabs.modernNav'));
+ assert.ok(!css.includes('body:not(:has(#analysisView[style*="display: block"])) .homeTabs.modernNav'));
+ assert.ok(app.includes("showScreen('review')"));
+ assert.ok(app.includes("showScreen('games')"));
 });

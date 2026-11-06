@@ -90,7 +90,7 @@
 
 @media(max-width:800px){
   body.review-guided-active{padding-bottom:0!important}
-  body.review-guided-active .modernNav{display:none!important}
+
   body.review-guided-active #analysisView.reviewGuidedMode{padding-bottom:calc(78px + env(safe-area-inset-bottom))!important}
   body.review-guided-active #analysisView.reviewGuidedMode .analysisShell{padding-bottom:calc(80px + env(safe-area-inset-bottom))!important}
   body.review-guided-active #analysisView.reviewProMode .reviewGuideActions{
@@ -541,8 +541,8 @@
   #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewShowBest{grid-column:1!important;grid-row:2!important}
   #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewVoiceToggle{grid-column:2!important;grid-row:2!important}
   #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) #reviewPractice{grid-column:3!important;grid-row:2!important}
-  body:has(#analysisView .reviewDesktopLayout > #reviewGuideCard:not([hidden])) .modernNav{display:none!important}
-  body:has(#analysisView .reviewDesktopLayout > #reviewGuideCard:not([hidden])){padding-bottom:calc(110px + env(safe-area-inset-bottom))!important}
+
+  html[data-chess-screen="review"] body{padding-bottom:calc(110px + env(safe-area-inset-bottom))!important}
   #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])) .reviewGuideComment{
     font-size:13px!important;line-height:1.35!important;
   }
@@ -553,8 +553,8 @@
    view, move ribbon beneath it, compact bottom transport. Overrides legacy
    review styles without changing desktop. */
 @media(max-width:800px){
-  body:has(#analysisView #reviewGuideCard:not([hidden])) .modernNav{display:none!important}
-  body:has(#analysisView #reviewGuideCard:not([hidden])){padding-bottom:0!important}
+
+  html[data-chess-screen="review"] body{padding-bottom:0!important}
   #analysisView .reviewDesktopLayout:has(> #reviewGuideCard:not([hidden])){
     display:flex!important; flex-direction:column!important;
     gap:0!important; min-width:0!important;
