@@ -5,6 +5,7 @@ import { getLocalStockfish } from './local-stockfish.js';
 import { verifiedPracticeCandidates, recordTrainingAttempt } from './personal-training-core.js';
 import { classifyTacticalMotif } from './tactical-motifs.js';
 import { reliableReview } from './weakness-core.js';
+import {savePracticeAttempt} from './practice-history-store.js';
 
 const $ = id => document.getElementById(id);
 let generation = 0, practiceGeneration=0, exercises = [], trainingUser = '', activePractice = null;
@@ -51,10 +52,11 @@ export async function startExercise(exercise, button, {onStatus,signal}={}) {
     signal?.throwIfAborted();
     if (token !== generation || attempt!==practiceGeneration || user !== username() || $('homeView').hidden) return;
     if (!Number.isFinite(result.cp) || result.depth < 12 || result.best !== exercise.bestMove) throw new Error('A deeper search changed this recommendation. Review the source game again before practising it.');
-    activePractice = { id: exercise.id, user };
+    const run=globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+'-'+attempt;
+    activePractice = {id:exercise.id,user,run,lastAttempt:0,pool:['bullet','blitz','rapid','daily'].includes(exercise.pool)?exercise.pool:'unknown',theme:exercise.motif?.kind||(['mate','capture'].includes(exercise.theme)?exercise.theme:exercise.theme==='Missed checkmate'?'mate':exercise.theme==='Missed capture'?'capture':'alternative')};
     status('Solution checked with Stockfish at depth 12. Return here for another exercise.','ready');
     $('boardLabTab')?.click();
-    window.dispatchEvent(new CustomEvent('practiceMistake', { detail: { ...exercise, trainingId: exercise.id, trainingUser: user } }));
+    window.dispatchEvent(new CustomEvent('practiceMistake', { detail: { ...exercise, trainingId: exercise.id, trainingUser: user,trainingRun:run } }));
   } catch (error) {
     if (token === generation && attempt===practiceGeneration && user === username()&&!$('homeView').hidden) status(error.name==='AbortError'?'Practice check paused.':error.message || 'Could not verify the solution. Try again.','error');
   } finally { button.disabled = false; }
@@ -83,7 +85,7 @@ export async function findPersonalTraining(games) {
           const best = describeBest(exercise.fen, exercise.bestMove,completeReview&&positiveLoss);
           if (!best) continue;
           seen.add(exercise.id);
-          exercises.push({ ...exercise, bestSan: best.san, theme: best.theme,motif:best.motif, gameKey: row.key, opponent: row.opponent });
+          exercises.push({ ...exercise, bestSan: best.san, theme: best.theme,motif:best.motif,pool:row.pool, gameKey: row.key, opponent: row.opponent });
         }
       } catch { /* Invalid PGNs or old reviews cannot supply verified exercises. */ }
       if (index % 5 === 4) await new Promise(resolve => setTimeout(resolve, 0));
@@ -111,10 +113,16 @@ export async function findPersonalTraining(games) {
 }
 
 window.addEventListener('personalTrainingAttempt', event => {
-  const { trainingId, trainingUser: user, correct, revealed } = event.detail || {};
+  const { trainingId, trainingUser: user, correct, revealed,trainingRun,attemptNumber } = event.detail || {};
   if (!user || user !== username() || activePractice?.user !== user || activePractice.id !== trainingId) return;
+  if(trainingRun!==activePractice.run||!Number.isSafeInteger(attemptNumber)||attemptNumber<=activePractice.lastAttempt)return;
+  activePractice.lastAttempt=attemptNumber;
   const progress = readProgress(user);
   progress[trainingId] = recordTrainingAttempt(progress[trainingId], { correct: correct === true, revealed: revealed === true });
-  try { localStorage.setItem(progressKey(user), JSON.stringify(progress)); renderProgress(); }
+  try {
+    localStorage.setItem(progressKey(user), JSON.stringify(progress));renderProgress();
+    const saved=savePracticeAttempt(user,{id:trainingRun+':'+attemptNumber,position:trainingId,at:Date.now(),correct:correct===true,revealed:revealed===true,pool:activePractice.pool,theme:activePractice.theme});
+    if(!saved)$('homeTrainingProgress').textContent+=' Dated history could not be saved.';
+  }
   catch { $('homeTrainingProgress').textContent = 'Practice completed. Storage is full or unavailable, so this attempt could not be saved.'; }
 });

@@ -92,7 +92,7 @@ Validation: [WEEKLY-COACH-VALIDATION.md](docs/WEEKLY-COACH-VALIDATION.md). Next:
 
 ## P0: permanent review-navigation lifecycle fix
 
-Dedicated branch: `codex/review-navigation-and-tactics`, based on `36ca4f6`. Prioritised over new features; includes the already implemented tactical lessons in the same PR as requested.
+Merged through [PR #68](https://github.com/rk93/chess-analyser/pull/68) and [PR #69](https://github.com/rk93/chess-analyser/pull/69), now on `main` at `8dae26c`, including subsequent mobile coach-dock hit-target fixes. Original branch: `codex/review-navigation-and-tactics`, based on `36ca4f6`.
 
 | Acceptance | Implementation / evidence |
 | --- | --- |
@@ -104,7 +104,7 @@ Dedicated branch: `codex/review-navigation-and-tactics`, based on `36ca4f6`. Pri
 
 ## Verified tactical motifs increment
 
-Base: latest `main`, `36ca4f6` (weekly coach merged in PR #67). Dedicated branch: `codex/review-navigation-and-tactics`. Extends the existing Home evidence, weekly study plan and personal practice.
+Merged with the navigation increment through PRs #68 and #69. Original base: `36ca4f6` (weekly coach merged in PR #67). Extends the existing Home evidence, weekly study plan and personal practice.
 
 | Improvement | Acceptance criteria | Status |
 | --- | --- | --- |
@@ -114,14 +114,28 @@ Base: latest `main`, `36ca4f6` (weekly coach merged in PR #67). Dedicated branch
 | Useful lessons | Exact source games/positions and plain explanations; shared practice discovery and fresh depth-12 recheck; reveal/solve opens a collapsed motif lesson | Implemented; assistance/progress identifiers preserved; lessons reset on retry/navigation |
 | Performance and compatibility | No engine or network work on Home load; retain the existing 60-game explicit scans, cancellation, storage and offline shell | Complete: 200 unit tests and all 330 browser checks passed; mobile/desktop before/after screenshots inspected |
 
-Other fork types, relative pins, hanging-piece diagnoses, forced-gain lines, pawn structure and king safety remain unsupported. The legal geometry is verified; it does not prove the player's overall tactical strength or a forced game win. See `docs/TACTICAL-MOTIFS-VALIDATION.md` for delivery evidence. Next independently shippable priority: comparable training-improvement history; broader motifs need their own continuation tests.
+Other fork types, relative pins, hanging-piece diagnoses, forced-gain lines, pawn structure and king safety remain unsupported. The legal geometry is verified; it does not prove the player's overall tactical strength or a forced game win. See `docs/TACTICAL-MOTIFS-VALIDATION.md` for delivery evidence. Comparable practice history follows below; broader motifs need their own continuation tests.
+
+## Premium Practice Studio and dated progress increment
+
+Base: latest `main`, `8dae26c`. Dedicated branch: `codex/practice-studio`. Continues comparable training history and premium Home UX. Reuses the current training launcher, review evidence, navigation and feedback controller.
+
+| Improvement | Acceptance criteria | Status |
+| --- | --- | --- |
+| Premium Home practice section | Clear primary action, scoped design tokens, original SVG iconography, interactive 7/30-day chart, keyboard/touch controls of at least 44px, readable mobile and desktop layouts | Implemented with Lit 3.3.3; locally bundled, version-locked and included in the offline shell |
+| Dated practice evidence | Account-scoped, versioned attempts; separate reveals and unassisted solutions; distinct-position counts; event deduplication; preserve all existing lifetime totals | Implemented; no invented dates or migration of aggregate progress |
+| Comparable practice recall | First recorded try on the same five or more positions in disjoint periods, with complete dated coverage; explicitly separate recall from playing strength | Implemented; insufficient samples and partial coverage remain visible |
+| Changes in reviewed games | Existing exact Stockfish evidence, same-format trends with five eligible reviews in each 30-day period; actual progress, cancellation and errors from the shared bounded scan | Implemented; no new analysis on Home load and no causal claims about practice |
+| Safe, small framework adoption | Lit is a scoped component within the existing app; reproducible local build, BSD license, lockfile and build verification in CI; preserve navigation and the mobile lesson dock | Complete locally: 212 unit tests and 362 browser scenarios passed; all 32 Studio scenarios rechecked after fixture refinements; screenshots inspected; hosted checks still required |
+
+Validation, framework/build details and before/after screenshots: [PRACTICE-STUDIO-VALIDATION.md](docs/PRACTICE-STUDIO-VALIDATION.md). Hosted unit CI and mobile visual QA must pass before merge. Spaced practice scheduling, broader tactical diagnoses and additional verified milestones remain separate stages.
 
 ## Remaining priorities from the product transformation brief
 
 1. **P0 reliability:** maintain navigation and mobile review controls; investigate concrete regressions before adding features.
 2. **P1 discovery refinements:** additional profile learning links and cached-sample management (cache-first offline loading is covered in the Scout increment); reconsider real friend import only with verified official documentation and authorization support.
 3. **P2 intelligence:** build on the initial weakness framework with repertoire deviations, geometry-verified motifs, pawn-structure/king-safety evidence and reviewed opening-position associations. These need dedicated engine/board validation and must not be inferred from results.
-4. **P3 command-centre refinements:** comparable training-improvement history, useful practice continuity and additional verified milestones. The initial Pulse, personal insight, growth evidence and saved-review resume are covered by the current increment.
+4. **P3 command-centre refinements:** useful practice continuity, spaced revisits and additional verified milestones. Dated practice recall and separate reviewed-game trends are covered by Practice Studio; they do not establish that practice caused playing improvement. The initial Pulse, personal insight, growth evidence and saved-review resume are already covered.
 5. **P4 coherent screen improvements:** Games filtering/previews, guided review moments, Analysis Board sharing, Explorer attribution, educational puzzles, interactive analytics and public Top Player study links. Extend existing components rather than adding parallel implementations.
 
 These are later independently shippable stages, not completed capabilities of this increment. Each requires full regression checks, 360/393/430px and relevant desktop coverage, screenshot inspection, evidence/source disclosures and a review-ready PR. Do not merge while required checks are incomplete.
