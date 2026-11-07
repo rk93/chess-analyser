@@ -21,7 +21,7 @@ export function feedbackPulse(node,success=true){
 }
 export function playFeedback(type,options={}){return feedback.emit(type,options)}
 export function selectionFeedback(boardId){void playFeedback('selection',{context:boardId});}
-function controlFeedback(node,type='uiTap'){void playFeedback(node.closest?.('#settingsView')?'selection':type);}
+export function controlFeedback(node,type='uiTap'){void playFeedback(node.closest?.('#settingsView')?'selection':type);}
 export function markLegalTargets(boardId,moves=[]) {
   const targets=new Map(moves.map(move=>[move.to,!!move.captured]));
   $(boardId)?.querySelectorAll('[data-square]').forEach(square=>{square.classList.toggle('feedbackLegalTarget',targets.has(square.dataset.square)&&!targets.get(square.dataset.square));square.classList.toggle('feedbackLegalCapture',targets.get(square.dataset.square)===true);});

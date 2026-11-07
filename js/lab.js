@@ -38,7 +38,7 @@ function trainingFeedback(move){
  if(!practice||practice.attempted)return;
  practice.attempted=true;
  const played=move.from+move.to+(move.promotion||'');
- if(practice.trainingId)window.dispatchEvent(new CustomEvent('personalTrainingAttempt',{detail:{trainingId:practice.trainingId,trainingUser:practice.trainingUser,correct:played===practice.bestMove,revealed:!!practice.revealed}}));
+ if(practice.trainingId){practice.attemptNumber=(practice.attemptNumber||0)+1;window.dispatchEvent(new CustomEvent('personalTrainingAttempt',{detail:{trainingId:practice.trainingId,trainingUser:practice.trainingUser,trainingRun:practice.trainingRun,attemptNumber:practice.attemptNumber,correct:played===practice.bestMove,revealed:!!practice.revealed}}));}
  if(played===practice.bestMove){
   $('labSource').textContent='Pip Coach · solved ✓';
   $('labLine').textContent=`Excellent! ${move.san} matches the verified Stockfish recommendation. You found the stronger move!`;updatePracticeDock($('labLine').textContent);
