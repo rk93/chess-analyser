@@ -1,3 +1,4 @@
+import {mountPracticeStudio} from './practice-studio.js';
 import {showScreen} from './app-navigation.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { buildPlayerInsights } from './player-insights.js';
@@ -5,7 +6,7 @@ import { findPersonalTraining, invalidatePersonalTraining } from './personal-tra
 import { createHomeCommandCentre } from './home-command-centre.js';
 import { mountHomeWelcome } from './home-welcome.js';
 const $=id=>document.getElementById(id),glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
-let active=false,loaded=false,refreshId=0,loadedUser='',savedGames=[],command=null;
+let active=false,loaded=false,refreshId=0,loadedUser='',savedGames=[],command=null,studio=null;
 const escapeHtml=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const username=()=>String(localStorage.getItem('chess-username')||'').trim().toLowerCase();
 function miniBoard(pgn){
@@ -39,13 +40,15 @@ function create(){
  <button id="homeAnalyticsLink" class="homeAnalyticsLink" type="button" aria-label="View your full chess analytics"><span class="homeAnalyticsHeading">Your performance <span aria-hidden="true">↗</span></span><div id="homeMetrics" class="homeMetrics" aria-live="polite"><div><strong>—</strong><small>Games</small></div><div><strong>—</strong><small>Win rate</small></div><div><strong>—</strong><small>Latest rating</small></div></div><span class="homeAnalyticsFooter">View full analytics →</span></button>
  <section class="homeInsightCard"><div class="homeSectionTop"><h2>Your next step</h2><span>Pip's insight</span></div><p id="homeInsightText">Import your games to discover your next step.</p><button id="homeReviewSuggestion" class="homeTextButton" type="button" hidden>Review this game →</button></section>
  <section class="homeWeekCard" aria-labelledby="homeWeekTitle"><div class="homeSectionTop"><h2 id="homeWeekTitle">Your last 7 days</h2><span>Saved games</span></div><p id="homeWeekSummary" aria-live="polite">No games imported yet.</p><div id="homeWeeklyRatings" class="homeWeeklyRatings"></div><p class="homeDataNote">A rolling 7-day window ending now. Missing archives can make this report incomplete.</p></section>
- <section class="homeTrainingCard" aria-labelledby="homeTrainingTitle"><div class="homeSectionTop"><h2 id="homeTrainingTitle">Learn from your games</h2><span>Stockfish verified</span></div><p id="homeTrainingStatus" role="status"></p><button id="homeFindTraining" class="homeTextButton" type="button">Find my practice positions →</button><div id="homeTrainingList"></div><p id="homeTrainingProgress" class="homeDataNote"></p></section>
+ <section class="homeTrainingCard" aria-labelledby="homeTrainingTitle"><header class="studioHeader"><div><span class="studioEyebrow">YOUR PRACTICE STUDIO</span><h2 id="homeTrainingTitle">A little focus.<br>A clearer next move.</h2><p>Work on your own positions. Watch your practice take shape.</p></div><span class="studioMark" aria-hidden="true"><svg viewBox="0 0 48 48" fill="none"><path d="M11 39h26M15 33h18l-4-15H19l-4 15Zm3-20a6 6 0 1 1 12 0 6 6 0 0 1-12 0Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span></header><div class="studioActions"><button id="homeFindTraining" class="homeTextButton" type="button">Find my practice positions <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M7 17 17 7M7 7h10v10"/></svg></button><span>From your saved, verified mistakes</span></div><chess-practice-progress><p>Dated practice progress appears here after your next verified exercise.</p></chess-practice-progress><p id="homeTrainingStatus" role="status"></p><div id="homeTrainingList"></div><p id="homeTrainingProgress" class="homeDataNote"></p></section>
  <section class="homeRecentSection"><div class="homeSectionTop"><h2>Recent games</h2><button id="homeViewAllGames" type="button">All games →</button></div><div class="homeRecentScroller" id="homeRecentScroller" role="region" aria-label="Five most recent games, swipe horizontally" tabindex="0"><p class="homeEmpty">Your recent games will appear here after syncing.</p></div></section>
  <section class="homeDnaCard" aria-labelledby="homeDnaTitle"><div class="homeSectionTop"><h2 id="homeDnaTitle">Your Chess DNA</h2><label class="homePoolLabel">Time control<select id="homeTimeClass"><option value="all">All formats</option><option value="rapid">Rapid</option><option value="blitz">Blitz</option><option value="bullet">Bullet</option><option value="daily">Daily</option><option value="other">Other</option></select></label></div><p id="homeDnaScope" class="homeDataNote"></p><div id="homeColorResults" class="homeColorResults"></div><p id="homeStreak"></p><div id="homeRatingTrends"></div><h3>Opening intelligence</h3><div id="homeOpeningInsights"></div><p class="homeDataNote">Score = wins + half of draws. Openings are separated by colour and time control. Five completed games are needed per opening group; these are observations, not proof that an opening causes your results.</p></section>
  <section class="homeOpeningCard"><div class="homeSectionTop"><h2>Most played opening</h2><span>♟</span></div><strong id="homeOpeningName">Sync games to discover your openings</strong><p id="homeOpeningCount">Based on your saved games</p></section>
  <section class="homeDailyCard"><div class="homeSectionTop"><h2>Daily puzzle</h2><span>♟ A new challenge each day</span></div><div class="homeDailyBody"><span class="homeDailyIcon" aria-hidden="true">♞</span><div><strong>Find today's best move</strong><p>Practise your calculation with Pip.</p></div></div><button type="button" class="homePrimary" id="homeSolvePuzzle">Solve puzzle →</button></section>`;
  const library=$('libraryView');library?.parentNode?.insertBefore(view,library);
- command=createHomeCommandCentre(view,requestGame);
+ studio=mountPracticeStudio(view);studio.update(username());
+ command=createHomeCommandCentre(view,requestGame,studio);
+ view.querySelector('.homeContinue').after(view.querySelector('.homeTrainingCard'));
  mountHomeWelcome(view);
  $('homeRecentScroller').dataset.feedbackCarousel='';
  button.addEventListener('click',show);
@@ -60,7 +63,7 @@ function create(){
   if(tab)command.rememberPosition();
   if(tab&&tab.id!=='homeDashboardTab')hide();
  },true);
- const invalidate=()=>{loaded=false;refreshId++;command.reset();invalidatePersonalTraining();if(active)void refresh()};
+ const invalidate=()=>{loaded=false;refreshId++;studio.reset(username());command.reset();invalidatePersonalTraining();if(active)void refresh()};
  window.addEventListener('chessImportFinished',invalidate);
  window.addEventListener('chessGamesImported',invalidate);
  window.addEventListener('storage',e=>{if(e.key==='chess-username'||e.key===null)invalidate()});
@@ -101,7 +104,7 @@ function renderInsights(games,user){
  }).join('')||'<p class="homeDataNote">Import rated games to see rating trends. Each time control has its own rating.</p>';
  const entries=[['Strongest observed',dna.strongest],['Room to explore',dna.weakest]].filter(([,group],i,list)=>group&&(i===0||group!==list[0][1]));
  $('homeOpeningInsights').innerHTML=entries.map(([label,group])=>`<article class="homeOpeningInsight"><span>${label}</span><strong>${escapeHtml(group.name)}</strong><p>${group.white?'White':'Black'} · ${escapeHtml(title(group.pool))} · ${group.known} games · ${percent(group.score)} score</p><small>${group.wins}W / ${group.draws}D / ${group.losses}L</small></article>`).join('')||'<p class="homeDataNote">Play at least five completed games with the same opening, colour and time control to compare opening results.</p>';
- command.update(games,user);
+ studio.update(user);command.update(games,user);
 }
 async function refresh(){
  const id=++refreshId,scroller=$('homeRecentScroller'),user=username();

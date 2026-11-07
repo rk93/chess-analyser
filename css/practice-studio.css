@@ -1,0 +1,25 @@
+/* Practice Studio tokens are shared by the light-DOM shell and Lit island. */
+:root{--studio-font:ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;--studio-ink:#edf2e7;--studio-muted:#c2cab9;--studio-accent:#b4d58a;--studio-line:#a8ca772b;--studio-radius:22px;--studio-space:clamp(18px,3vw,28px)}
+#homeView .homeHero{padding:10px 0 18px;margin-bottom:22px;border-bottom:1px solid #c0cfaa16}
+#homeView .homeHero h1{font-family:var(--studio-font);font-weight:650;letter-spacing:-.04em;font-size:clamp(25px,5.6vw,36px)}
+#homeView .homeTrainingCard{position:relative;isolation:isolate;background:radial-gradient(ellipse at 100% 0,#6487431f,transparent 55%),linear-gradient(150deg,#29352a,#202820 80%);border:1px solid #a8ca773b;border-radius:var(--studio-radius);padding:var(--studio-space);margin:0 0 24px;box-shadow:0 16px 40px #0000001c;color:var(--studio-ink);font-family:var(--studio-font);overflow:hidden}
+.homeTrainingCard .studioHeader{display:flex;justify-content:space-between;gap:20px;margin-bottom:26px;align-items:flex-start}
+.studioEyebrow{font-size:10px;letter-spacing:.18em;color:var(--studio-accent);font-weight:700}
+.homeTrainingCard .studioHeader h2{font-size:clamp(26px,4.8vw,36px);font-weight:600;letter-spacing:-.045em;line-height:1.12;margin:11px 0;color:var(--studio-ink)}
+.studioHeader p{font-size:13px;line-height:1.6;color:var(--studio-muted);max-width:360px;margin:0}
+.studioMark{display:grid;place-items:center;width:66px;height:76px;flex:none;background:linear-gradient(145deg,#c4df9d18,#35482a18);color:#c4dfa0;border:1px solid #c4dfa026;border-radius:30px 30px 15px 15px;transform:rotate(8deg)}
+.studioMark svg{width:42px;height:42px}
+.studioActions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 24px;padding-bottom:20px;border-bottom:1px solid var(--studio-line)}
+.studioActions>span{font-size:11px;color:#afbea4}
+.homeTrainingCard #homeFindTraining{background:var(--studio-accent);border:1px solid #d0e8b04d;color:#203018;min-height:46px;padding:12px 17px;font-size:13px;font-weight:750;border-radius:11px;text-align:left;cursor:pointer}
+.homeTrainingCard #homeFindTraining svg{margin-left:20px;width:18px;height:18px;vertical-align:middle}.homeTrainingCard #homeFindTraining:disabled{opacity:.6;cursor:wait}
+.homeTrainingCard #homeTrainingStatus{font-size:12px;line-height:1.6;color:#becbb3;margin:16px 0 12px}
+.homeTrainingCard #homeTrainingList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.homeTrainingCard .homePracticeCard{margin:0;min-height:72px;padding:15px;background:#131f1444;border:1px solid #8eab7038;border-radius:12px;line-height:1.6;color:#e3ecd9;transition:background .15s,border-color .15s;font-weight:550}
+.homeTrainingCard .homePracticeCard:hover{background:#afcb7f15;border-color:#b4d58a77}.homeTrainingCard .homePracticeCard:focus-visible{outline:2px solid var(--studio-accent);outline-offset:2px}
+.homeTrainingCard #homeTrainingProgress{font-size:11px;color:#acbda2;line-height:1.7;margin:16px 0 0}
+chess-practice-progress:not(:defined)>p{padding:18px;border:1px dashed var(--studio-line);border-radius:12px;color:var(--studio-muted)}
+@media(min-width:801px){#homeView .homeTrainingCard{scroll-margin-block-start:108px}}
+@media(max-width:600px){.studioMark{width:49px;height:59px}.studioMark svg{width:32px;height:32px}.homeTrainingCard .studioHeader{gap:12px}.studioHeader p{font-size:12px}.homeTrainingCard #homeTrainingList{grid-template-columns:1fr}.studioActions{align-items:stretch;flex-direction:column}.homeTrainingCard #homeFindTraining{display:flex;justify-content:space-between;align-items:center}.studioActions>span{text-align:center;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.homeTrainingCard .homePracticeCard{transition:none}}
+:root[data-reduced-animations=true] .homeTrainingCard .homePracticeCard{transition:none}

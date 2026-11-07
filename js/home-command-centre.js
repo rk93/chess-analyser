@@ -9,7 +9,7 @@ const signed=value=>value===null?'More history needed':`${value>0?'+':''}${value
 const date=value=>Number.isFinite(value)?new Date(value*1000).toISOString().slice(0,10):'Date unavailable';
 const arrow='<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg>';
 
-export function createHomeCommandCentre(view,openGame) {
+export function createHomeCommandCentre(view,openGame,studio=null) {
   const $=id=>view.querySelector('#'+id);
   let user='',games=[],report=null,controller=null,generation=0,pulse=[],format='rapid',chartDays=30,chartPoints=[],showAll=false;
   view.querySelector('h1').id='homeViewHeading';
@@ -29,9 +29,9 @@ export function createHomeCommandCentre(view,openGame) {
   const milestones=document.createElement('section');milestones.className='homeMilestones';
   milestones.innerHTML='<div class="homeSectionTop"><h2>Your personal milestones</h2><span>Progress with perspective</span></div><div id="homeMilestoneList"></div><p class="homeDataNote">Bests refer to ratings in your saved games, separately for each format. Missing older games can change these records.</p>';
   recent.after(milestones);
-  const weekly=createWeeklyCoach(view,{openGame,checkReviews:options=>void checkReviews(options),cancelReviews:()=>{if(controller){cancel();$('homeWeaknessStatus').textContent='Review check paused. Your saved data is unchanged.';weekly.setBusy(false,'Review check paused. Your last completed evidence check is unchanged.');}}});
+  const weekly=createWeeklyCoach(view,{openGame,checkReviews:options=>void checkReviews(options),cancelReviews:()=>{if(controller){cancel();$('homeWeaknessStatus').textContent='Review check paused. Your saved data is unchanged.';weekly.setBusy(false,'Review check paused. Your last completed evidence check is unchanged.');studio?.setNotice('Review check paused. Your last completed evidence check is unchanged.');}}});
 
-  function cancel() { controller?.abort();controller=null;generation++;$('homeCheckWeaknesses').disabled=false;$('homeCancelWeaknesses').hidden=true;weekly.setBusy(false); }
+  function cancel() { controller?.abort();controller=null;generation++;$('homeCheckWeaknesses').disabled=false;$('homeCancelWeaknesses').hidden=true;weekly.setBusy(false);studio?.setBusy(false); }
   function reset() { cancel();weekly.reset();user='';games=[];report=null;pulse=[];showAll=false;for(const id of ['homeGrowthList','homePulsePools','homePulseChart','homeMilestoneList'])$(id).replaceChildren();$('homePulseReadout').textContent='Loading your saved observations…';$('homePulseDelta').textContent='';$('homeInsightText').textContent='Loading your saved games…';$('homeReviewSuggestion').hidden=true;$('homeShowAllWeaknesses').hidden=true;view.querySelectorAll('.homeVerifiedBadge').forEach(badge=>badge.remove());$('homePulseCursor').hidden=true;$('homeResumeReview').hidden=true;$('homeContinueOpening').hidden=true;$('homeWeaknessStatus').textContent='Engine evidence has not been checked. No new analysis runs here.'; }
   function resume() {
     try { const value=JSON.parse(localStorage.getItem('chess-home-review:'+user)||'null');return value&&games.some(game=>gameIdentity(game)===value.key)?value:null; }
@@ -70,16 +70,16 @@ export function createHomeCommandCentre(view,openGame) {
     const first=findings[0];
     if(first){$('homeInsightText').textContent=first.text;$('homeReviewSuggestion').hidden=false;$('homeReviewSuggestion').textContent='Review a supporting game';$('homeReviewSuggestion').onclick=()=>openGame(first.representatives[0].key,Math.max(0,(first.representatives[0].ply||1)-1));}
     else {const row=report?.rows.find(row=>row.result==='L')||report?.rows[0];$('homeInsightText').textContent=row?'Choose one decision from a recent saved game to study. No recurring pattern meets the evidence threshold yet.':'Import your games to discover personal patterns and a useful next step.';$('homeReviewSuggestion').hidden=!row;$('homeReviewSuggestion').textContent='Review a recent game';$('homeReviewSuggestion').onclick=()=>{if(row)openGame(row.key)};}
-    renderContinue();
+    renderContinue();studio?.setEvidence(user,report);
   }
   async function checkReviews({pool:focusPool=null,days=90}={}) {
     cancel();controller=new AbortController();const signal=controller.signal,token=generation,currentUser=user;
     const now=Date.now()/1000,selected=report.rows.filter(row=>(!focusPool||row.pool===focusPool)&&row.end>=now-days*86400);
-    weekly.setBusy(true,'Checking saved review evidence. No new engine analysis…');
+    weekly.setBusy(true,'Checking saved review evidence. No new engine analysis…');studio?.setBusy(true,'Reading saved reviews. No new engine analysis…');
     $('homeCheckWeaknesses').disabled=true;$('homeCancelWeaknesses').hidden=false;$('homeWeaknessStatus').textContent='Checking up to 60 recent saved reviews. No new engine analysis…';
     try {
       const {inspectWeaknessReviews}=await import('./weakness-reviews.js');signal.throwIfAborted();
-      const reviews=await inspectWeaknessReviews(selected,{signal,onProgress:(done,total)=>{if(token===generation){$('homeWeaknessStatus').textContent=`Checking saved reviews: ${done} / ${total}`;weekly.setBusy(true,`Checking saved reviews: ${done} / ${total}`);}}});
+      const reviews=await inspectWeaknessReviews(selected,{signal,onProgress:(done,total)=>{if(token===generation){$('homeWeaknessStatus').textContent=`Checking saved reviews: ${done} / ${total}`;weekly.setBusy(true,`Checking saved reviews: ${done} / ${total}`);studio?.setBusy(true,`Checking saved reviews: ${done} / ${total}`);}}});
       if(token!==generation||user!==currentUser)return;
       report=buildWeaknessReport(games,user,{reviews});renderFindings();
       weekly.setReviews(reviews);
@@ -87,8 +87,8 @@ export function createHomeCommandCentre(view,openGame) {
       const verified=new Set(reviews.filter(review=>review.facts).map(review=>review.row.key));
       view.querySelectorAll('.homeVerifiedBadge').forEach(badge=>badge.remove());
       view.querySelectorAll('.homeRecentCard').forEach(card=>{if(verified.has(card.dataset.gameKey)&&!card.querySelector('.homeVerifiedBadge'))card.insertAdjacentHTML('beforeend','<small class="homeVerifiedBadge">Verified review available</small>');});
-    } catch(error) {if(token===generation){$('homeWeaknessStatus').textContent=error.name==='AbortError'?'Review check paused. Your saved data is unchanged.':'Saved reviews could not be checked. Reconnect if the chess library is unavailable, then retry.';weekly.setBusy(false,$('homeWeaknessStatus').textContent);}}
-    finally {if(token===generation){controller=null;$('homeCheckWeaknesses').disabled=false;$('homeCancelWeaknesses').hidden=true;weekly.setBusy(false);}}
+    } catch(error) {if(token===generation){$('homeWeaknessStatus').textContent=error.name==='AbortError'?'Review check paused. Your saved data is unchanged.':'Saved reviews could not be checked. Reconnect if the chess library is unavailable, then retry.';weekly.setBusy(false,$('homeWeaknessStatus').textContent);studio?.setNotice($('homeWeaknessStatus').textContent);}}
+    finally {if(token===generation){controller=null;$('homeCheckWeaknesses').disabled=false;$('homeCancelWeaknesses').hidden=true;weekly.setBusy(false);studio?.setBusy(false);}}
   }
   section.addEventListener('click',event=>{
     const button=event.target.closest('button');if(!button)return;
@@ -108,7 +108,7 @@ export function createHomeCommandCentre(view,openGame) {
     else openGame(row.key,Math.max(0,(row.ply||1)-1));
   });
   $('homeCheckWeaknesses').addEventListener('click',()=>void checkReviews());
-  $('homeCancelWeaknesses').addEventListener('click',()=>{cancel();$('homeWeaknessStatus').textContent='Review check paused. Your saved data is unchanged.';weekly.setBusy(false,'Review check paused. Your last completed evidence check is unchanged.');});
+  $('homeCancelWeaknesses').addEventListener('click',()=>{cancel();$('homeWeaknessStatus').textContent='Review check paused. Your saved data is unchanged.';weekly.setBusy(false,'Review check paused. Your last completed evidence check is unchanged.');studio?.setNotice('Review check paused. Your last completed evidence check is unchanged.');});
   $('homeShowAllWeaknesses').addEventListener('click',()=>{showAll=!showAll;renderFindings();});
   $('homeResumeReview').addEventListener('click',()=>{const last=resume();if(last)openGame(last.key,last.ply);});
   $('homeContinuePractice').addEventListener('click',()=>{$('homeFindTraining').click();$('homeTrainingStatus').closest('section').scrollIntoView({block:'start'});});
