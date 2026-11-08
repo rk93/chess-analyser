@@ -62,6 +62,7 @@ function ensurePracticeCoachActions(){
  reveal.addEventListener('click',()=>{
   if(!practice)return;
   practice.revealed=true;
+  if(practice.trainingId)window.dispatchEvent(new CustomEvent('personalTrainingReveal',{detail:{trainingId:practice.trainingId,trainingUser:practice.trainingUser,trainingRun:practice.trainingRun}}));
   $('labSource').textContent='Pip Coach · best continuation';
   $('labLine').textContent=`Stockfish recommends ${practice.bestSan||practice.bestMove}. Reset the board to practise that move again.`;updatePracticeDock($('labLine').textContent);
   showPracticeMotif(true);
@@ -133,7 +134,7 @@ async function analyse(){
   }
 }
 function showTab(which){showScreen(which);if(which==='lab')render();if(which==='analytics')window.dispatchEvent(new CustomEvent('analyticsTabOpened'));if(which==='topPlayers')window.dispatchEvent(new CustomEvent('topPlayersTabOpened'))}
-function loadPractice(detail){if(!detail?.fen||!detail.bestMove)return;try{ensurePracticeCoachActions();$('labPracticeReveal').hidden=false;$('labPracticeCoachDock').hidden=false;practice={...detail,attempted:false};chess=new Chess(detail.fen);orientation=chess.turn()==='b'?'black':'white';selected=null;lastMove=null;resetHistory();showTab('lab');panel()?.classList.add('practiceActive');clearAnalysis();render();$('labSource').textContent='Training · from your game';$('labLine').textContent=practicePrompt()}catch(e){practice=null;$('labLine').textContent='Could not load training position: '+e.message}}
+function loadPractice(detail){if(!detail?.fen||!detail.bestMove)return;try{ensurePracticeCoachActions();$('labPracticeReveal').hidden=false;$('labPracticeCoachDock').hidden=false;practice={...detail,attempted:false};chess=new Chess(detail.fen);orientation=chess.turn()==='b'?'black':'white';selected=null;lastMove=null;resetHistory();showTab('lab');panel()?.classList.add('practiceActive');clearAnalysis();render();$('labSource').textContent='Training · from your game';$('labLine').textContent=practicePrompt();if(detail.resumeSaved===false){const warning='Resume couldn’t be saved. You can still practise in this tab.';$('labLine').textContent+=' '+warning;updatePracticeDock(warning)}}catch(e){practice=null;$('labLine').textContent='Could not load training position: '+e.message}}
 function leavePractice(){showPracticeMotif();practice=null;const reveal=$('labPracticeReveal');if(reveal)reveal.hidden=true;const dock=$('labPracticeCoachDock');if(dock)dock.hidden=true;panel()?.classList.remove('practiceActive')}
 function resetLab(){if(practice){chess=new Chess(practice.fen);practice.attempted=false;orientation=chess.turn()==='b'?'black':'white';selected=null;lastMove=null;resetHistory();clearAnalysis();render();$('labSource').textContent='Training · retry';$('labLine').textContent=practicePrompt();updatePracticeDock($('labLine').textContent);return}chess=new Chess();selected=null;lastMove=null;resetHistory();clearAnalysis();render()}
 function loadOpeningStudy(detail){

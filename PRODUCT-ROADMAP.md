@@ -118,7 +118,7 @@ Other fork types, relative pins, hanging-piece diagnoses, forced-gain lines, paw
 
 ## Premium Practice Studio and dated progress increment
 
-Base: latest `main`, `8dae26c`. Dedicated branch: `codex/practice-studio`. Continues comparable training history and premium Home UX. Reuses the current training launcher, review evidence, navigation and feedback controller.
+Merged in [PR #70](https://github.com/rk93/chess-analyser/pull/70), now on `main` at `01bfccd`. Original base: `8dae26c`; branch: `codex/practice-studio`. Continues comparable training history and premium Home UX.
 
 | Improvement | Acceptance criteria | Status |
 | --- | --- | --- |
@@ -128,14 +128,28 @@ Base: latest `main`, `8dae26c`. Dedicated branch: `codex/practice-studio`. Conti
 | Changes in reviewed games | Existing exact Stockfish evidence, same-format trends with five eligible reviews in each 30-day period; actual progress, cancellation and errors from the shared bounded scan | Implemented; no new analysis on Home load and no causal claims about practice |
 | Safe, small framework adoption | Lit is a scoped component within the existing app; reproducible local build, BSD license, lockfile and build verification in CI; preserve navigation and the mobile lesson dock | Complete locally: 212 unit tests and 362 browser scenarios passed; all 32 Studio scenarios rechecked after fixture refinements; screenshots inspected; hosted checks still required |
 
-Validation, framework/build details and before/after screenshots: [PRACTICE-STUDIO-VALIDATION.md](docs/PRACTICE-STUDIO-VALIDATION.md). Hosted unit CI and mobile visual QA must pass before merge. Spaced practice scheduling, broader tactical diagnoses and additional verified milestones remain separate stages.
+Validation, framework/build details and before/after screenshots: [PRACTICE-STUDIO-VALIDATION.md](docs/PRACTICE-STUDIO-VALIDATION.md). Broader tactical diagnoses and additional verified milestones remain separate stages. Spaced revisits follow below.
+
+## Personal Practice Plan increment
+
+Base: latest `main`, `01bfccd`. Dedicated branch: `codex/practice-plan`. Extends the existing Lit Studio and personal-training launcher, without a second puzzle or engine implementation.
+
+| Improvement | Acceptance criteria | Status |
+| --- | --- | --- |
+| Suggested revisits | Derive 1/3/7/14-day intervals from actual dated attempts; missed/revealed answers restart; early and same-day practice cannot extend a schedule; conservative retained-history behavior | Implemented; dates are study suggestions, not a playing-strength measure |
+| Practice continuity | One small account-scoped unfinished-position reference; fresh verification before resuming; reveal state survives reload; explicit dismissal; preserve history and lifetime totals | Implemented; malformed/future formats stay read-only; actual storage failures are visible |
+| Useful personal queue | Ready positions and next revisit in UTC, due positions first in the existing eight-card discovery list, progress/cancel/error states, mobile controls and desktop grouping | Implemented; existing 60-game scan and depth-12 check retained; no scan or engine on Home load |
+| Account isolation | Late saved-review reads cannot populate a new account's discovery list after cancellation or account changes | Reproduced on main: one foreign exercise; guarded after the async read: zero; permanent delayed-read regression passes across four viewports |
+| Delivery | Full unit and browser regression matrix, screenshots inspected, dedicated reviewable branch, hosted CI before merge | Complete locally: 229 unit tests and all 398 unique browser scenarios passed across recovered runs; 20 repeated cancellation checks passed; screenshots inspected; hosted checks still required |
+
+Validation, reproducible race evidence and screenshots: [PRACTICE-PLAN-VALIDATION.md](docs/PRACTICE-PLAN-VALIDATION.md). The current practice board verifies one recommended move. Multi-move solution trees, promotion choice and broader tactical diagnoses remain planned; this increment does not claim them.
 
 ## Remaining priorities from the product transformation brief
 
 1. **P0 reliability:** maintain navigation and mobile review controls; investigate concrete regressions before adding features.
 2. **P1 discovery refinements:** additional profile learning links and cached-sample management (cache-first offline loading is covered in the Scout increment); reconsider real friend import only with verified official documentation and authorization support.
 3. **P2 intelligence:** build on the initial weakness framework with repertoire deviations, geometry-verified motifs, pawn-structure/king-safety evidence and reviewed opening-position associations. These need dedicated engine/board validation and must not be inferred from results.
-4. **P3 command-centre refinements:** useful practice continuity, spaced revisits and additional verified milestones. Dated practice recall and separate reviewed-game trends are covered by Practice Studio; they do not establish that practice caused playing improvement. The initial Pulse, personal insight, growth evidence and saved-review resume are already covered.
+4. **P3 command-centre refinements:** additional verified milestones and selecting an instructive reviewed game. Practice continuity and initial spaced revisits are covered by Personal Practice Plan. Dated practice recall and separate reviewed-game trends do not establish that practice caused playing improvement.
 5. **P4 coherent screen improvements:** Games filtering/previews, guided review moments, Analysis Board sharing, Explorer attribution, educational puzzles, interactive analytics and public Top Player study links. Extend existing components rather than adding parallel implementations.
 
 These are later independently shippable stages, not completed capabilities of this increment. Each requires full regression checks, 360/393/430px and relevant desktop coverage, screenshot inspection, evidence/source disclosures and a review-ready PR. Do not merge while required checks are incomplete.
@@ -158,8 +172,8 @@ These are later independently shippable stages, not completed capabilities of th
 | Early-game mistake intelligence | Locate recurring weak decisions in an opening and show verified alternatives | Verified reviews associated with opening, side and exact position | P1 | Partial: phase patterns and exact source positions implemented; opening-specific position associations remain planned |
 | Weekly coach report with up to three concrete actions | A short, actionable practice plan | Recent verified-review coverage, recurring positions and local progress | P1 | Merged in PR #67: qualified engine/opening/coverage actions, source links, fresh practice checks and self-reported study marks |
 | Repeated tactical motif detection | Identify reliable forks, pins, hanging pieces and missed mates | Board geometry, legal continuations, engine verification and motif-specific regression positions | P1 | Checking knight forks and absolute pins implemented in this increment; other forks, relative pins and hanging-piece claims remain planned |
-| Training improvement over time | Show whether practice carries over into real games | Versioned attempt history, per-game review coverage and comparable periods | P1 | Planned: count assisted answers separately and account for differing game/review sample sizes |
-| Spaced personal puzzle training | Revisit difficult positions at useful intervals | Verified exercises and persistent per-player progress | P2 | Planned: accessible session queue, due dates, reveal/assist state and multi-move solution verification |
+| Training improvement over time | Compare practice recall and separate reviewed-game observations | Versioned attempt history, per-game review coverage and comparable periods | P1 | Practice Studio merged in PR #70: assistance separated, same-position first tries, comparable review denominators; no causal carryover claim |
+| Spaced personal puzzle training | Revisit difficult positions at useful intervals | Verified exercises and persistent per-player progress | P2 | Initial Personal Practice Plan implemented: suggested intervals, ready queue, unfinished-position resume and retained assistance; multi-move solution verification remains planned |
 | Performance by time of day | Find descriptive patterns without small-sample exaggeration | Explicit timezone and reliable timestamps; minimum samples | P2 | Planned: distinguish UTC time from local playing time and avoid causal claims |
 | Game-duration and clock insights | Understand elapsed duration and time-management observations | Explicit UTC start and actual end timestamps; reliable clock annotations with increment semantics for future move-time work | P2 | Partial: Scout elapsed-duration median and explicit timeout results implemented; per-move clock research remains |
 | Most instructive recent game | Find the best review target, beyond the latest loss | Verified evaluation swings, player identity and review availability | P2 | Planned: rank only analyzed games and make missing coverage visible |

@@ -2,7 +2,7 @@ import {mountPracticeStudio} from './practice-studio.js';
 import {showScreen} from './app-navigation.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
 import { buildPlayerInsights } from './player-insights.js';
-import { findPersonalTraining, invalidatePersonalTraining } from './personal-training.js';
+import { findPersonalTraining, invalidatePersonalTraining,startPlannedPractice } from './personal-training.js';
 import { createHomeCommandCentre } from './home-command-centre.js';
 import { mountHomeWelcome } from './home-welcome.js';
 const $=id=>document.getElementById(id),glyph={w:{p:'♙',n:'♘',b:'♗',r:'♖',q:'♕',k:'♔'},b:{p:'♟',n:'♞',b:'♝',r:'♜',q:'♛',k:'♚'}};
@@ -46,7 +46,7 @@ function create(){
  <section class="homeOpeningCard"><div class="homeSectionTop"><h2>Most played opening</h2><span>♟</span></div><strong id="homeOpeningName">Sync games to discover your openings</strong><p id="homeOpeningCount">Based on your saved games</p></section>
  <section class="homeDailyCard"><div class="homeSectionTop"><h2>Daily puzzle</h2><span>♟ A new challenge each day</span></div><div class="homeDailyBody"><span class="homeDailyIcon" aria-hidden="true">♞</span><div><strong>Find today's best move</strong><p>Practise your calculation with Pip.</p></div></div><button type="button" class="homePrimary" id="homeSolvePuzzle">Solve puzzle →</button></section>`;
  const library=$('libraryView');library?.parentNode?.insertBefore(view,library);
- studio=mountPracticeStudio(view);studio.update(username());
+ studio=mountPracticeStudio(view,{startPractice:(position,options)=>startPlannedPractice(savedGames,position,options)});studio.update(username());
  command=createHomeCommandCentre(view,requestGame,studio);
  view.querySelector('.homeContinue').after(view.querySelector('.homeTrainingCard'));
  mountHomeWelcome(view);
@@ -56,7 +56,7 @@ function create(){
  $('homeViewAllGames').addEventListener('click',()=>$('gamesTab')?.click());
  $('homeSolvePuzzle').addEventListener('click',()=>$('puzzlesTab')?.click());
  $('homeTimeClass').addEventListener('change',()=>renderInsights(savedGames,username()));
- $('homeFindTraining').addEventListener('click',()=>void findPersonalTraining(savedGames));
+ $('homeFindTraining').addEventListener('click',()=>{studio.cancelPlan();void findPersonalTraining(savedGames)});
  invalidatePersonalTraining();
  document.addEventListener('click',e=>{
   const tab=e.target.closest?.('.homeTabs .homeTab');
@@ -69,7 +69,7 @@ function create(){
  window.addEventListener('storage',e=>{if(e.key==='chess-username'||e.key===null)invalidate()});
  window.addEventListener('appScreenChanged',event=>{if(event.detail.screen!=='home')hide()});
  window.addEventListener('savedGameOpened',event=>{command.remember(event.detail?.key,event.detail?.ply);hide()});
- window.addEventListener('gameReviewUpdated',()=>{invalidatePersonalTraining();command.invalidateReviews()});
+ window.addEventListener('gameReviewUpdated',()=>{studio.cancelPlan();invalidatePersonalTraining();command.invalidateReviews()});
  window.addEventListener('requestChessSync',()=>{loaded=false});
  window.addEventListener('popstate',()=>command.rememberPosition());
 }
