@@ -1,0 +1,43 @@
+{
+  "date": "2026-11-10",
+  "unit_integration": {
+    "passed": 221,
+    "failed": 0,
+    "skipped": 0,
+    "versions": [
+      "Node 24.19.0",
+      "Node 20"
+    ]
+  },
+  "ui_bundle_check": "passed",
+  "browser": {
+    "expected": 450,
+    "passed": 450,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "flaky": 0,
+    "projects": {
+      "android-360": 118,
+      "android-393": 118,
+      "android-430": 118,
+      "desktop-players": 96
+    },
+    "duration_ms": 775308.0310000001
+  },
+  "targeted_lifecycle": {
+    "passed": 16,
+    "scenarios": [
+      "normal",
+      "six-second startup",
+      "unresponsive stop",
+      "worker crash on stop"
+    ]
+  },
+  "unchanged_baseline_repeats": 20,
+  "reproductions": [
+    "Six-second startup fails old five-second assertion",
+    "Post-ready worker error leaves stale readiness before fix"
+  ],
+  "hosted_ci": "separate GitHub gate; not established by local results"
+}

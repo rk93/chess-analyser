@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {auditFeedback,seedFeedbackReview} from './fixtures/feedback-fixtures.mjs';
-import {holdReviewEngine,seedPendingReview} from './fixtures/review-wait-fixtures.mjs';
+import {holdReviewEngine,seedPendingReview,reviewEngineState} from './fixtures/review-wait-fixtures.mjs';
 import {NAV_TABS,assertNavigationUsable,waitForReviewExit} from './fixtures/navigation-fixtures.mjs';
 
 // Data fixtures only: every transition uses a real saved-game click, app Back,
@@ -22,21 +22,26 @@ test('twenty cached review exits keep every tab visible, positioned and clickabl
   await page.locator('#homeDashboardTab').click();await page.screenshot({path:info.outputPath('after-ten-navigation-journeys.png'),animations:'disabled'});
 });
 
-test('review cancellation, native Stockfish completion, reopening and browser Back preserve navigation',async({page},info)=>{
-  test.setTimeout(120000);await auditFeedback(page,{sound:null});await holdReviewEngine(page,0);await page.goto('/');await seedPendingReview(page);
+for(const [scenario,engineOptions] of [['normal',{}],['six-second startup',{startupDelay:6000}],['unresponsive stop',{stopMode:'drop'}],['worker crash on stop',{stopMode:'crash'}]])test(`review cancellation, native Stockfish completion, reopening and browser Back preserve navigation (${scenario})`,async({page},info)=>{
+  test.setTimeout(120000);await auditFeedback(page,{sound:null});await holdReviewEngine(page,0,engineOptions);await page.goto('/');await seedPendingReview(page);
+  try{
   const open=async()=>{await page.locator('#gamesTab').click();await page.locator('.gameWithAvatar').click();await expect(page.locator('#analysisView')).toBeVisible();};
   const start=async()=>{if(page.viewportSize().width<=800){await expect(page.locator('#reviewDepthStart')).toBeVisible();await page.locator('#reviewOpenDepth').selectOption('fast');await page.locator('#reviewDepthStart').click();}else await page.locator('#runReview').click();};
-  await open();await start();await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.go)).toBeGreaterThan(0);
+  // Stockfish owns a ten-second startup deadline. Five seconds failed valid
+  // cold starts; include polling overhead, without extending verification.
+  await open();await start();await expect.poll(()=>reviewEngineState(page),{timeout:12000}).toMatchObject({started:true});
   await page.locator('#reviewWaitCancel').click();await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.stop)).toBeGreaterThan(0);
   await page.locator('#back').click();await waitForReviewExit(page);await page.screenshot({path:info.outputPath('after-cancelled-review.png'),animations:'disabled'});
   await page.evaluate(()=>{window.holdEngineAfter=Infinity});await open();await start();
-  await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.verified),{timeout:60000}).toBeGreaterThan(0);await expect(page.locator('#reviewStatus')).toContainText(/(?:Verified review ready|Stockfish Review v2 ready)/);
+  await expect.poll(()=>reviewEngineState(page),{timeout:60000}).toMatchObject({verified:true});await expect(page.locator('#reviewStatus')).toContainText(/(?:Verified review ready|Stockfish Review v2 ready)/);
+  if(engineOptions.stopMode)expect((await reviewEngineState(page)).audit).toMatchObject({workers:2,terminated:1});
   await page.goBack();await waitForReviewExit(page);await page.screenshot({path:info.outputPath('after-completed-review.png'),animations:'disabled'});
   await open();await expect(page.locator('#reviewGuideCard')).toBeVisible();await page.waitForTimeout(180);
   const cache=await page.evaluate(async()=>{const {cacheGet,simpleHash}=await import('/js/analysis-store.js');const d=await cacheGet('review',simpleHash('alpha 1400 — beta 1400|e4 e5 Nf3 Nc6 Bc4 Bc5'));return{version:d?.version,verified:d?.verifiedReviewVersion,stockfish:d?.localStockfishVersion,preset:d?.reviewDepthKey,base:d?.reviewBaseDepth,critical:d?.reviewCriticalDepth,depths:d?.localDepths,best:d?.bestMoves,exact:d?.positionExact,prompt:!!document.getElementById('reviewDepthPrompt')}});
   expect(cache.verified).toBe(1);expect(cache.stockfish).toBe(21);expect(cache.preset).toBe('fast');expect(cache.prompt).toBe(false);await info.attach('reopened-review-cache',{body:JSON.stringify(cache,null,2),contentType:'application/json'});
   await page.locator('#back').click({timeout:5000});await waitForReviewExit(page);
   await page.goForward();await expect(page.locator('#analysisView')).toBeVisible();await page.goBack();await waitForReviewExit(page);
+  }finally{if(!page.isClosed())await info.attach('review-engine-lifecycle',{body:JSON.stringify(await reviewEngineState(page),null,2),contentType:'application/json'});}
 });
 
 test('ten Home recent-game exits restore Home through app and browser Back without late dialogs',async({page},info)=>{

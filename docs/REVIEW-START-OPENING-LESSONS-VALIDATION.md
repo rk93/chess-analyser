@@ -41,7 +41,7 @@ All **216 unit/integration tests**, `npm run check:ui`, and **438 Playwright reg
 | Mobile Chromium, 430 × 800 | 115 |
 | Desktop Chromium, 1280 × 900 | 93 |
 
-[Sanitized test summary](screenshots/opening-lessons/test-results.json). GitHub's PR API returns `Forbidden`; native Git publishing is available. Hosted CI remains pending PR creation, and the branch must remain unmerged until those checks pass.
+[Initial local test summary](screenshots/opening-lessons/test-results.json). PR [#72](https://github.com/rk93/chess-analyser/pull/72) is open. Its first hosted Mobile visual QA run failed the cancellation/completion/reopening journey (437 passed, one failed). The correction and subsequent validation are recorded below; initial local results do not establish hosted CI success.
 
  Unit coverage plays every shipped catalogue PGN legally and checks endpoints, colour ownership, rejection of deviations, watch mode and search. Browser coverage uses real board moves and native Stockfish for continuation, plus cancellation, offline/error/retry, reduced motion, actual navigation hit tests and 360/393/430px and desktop captures. Physical Android audio/vibration and the precise reported gesture dependency are outside this emulated browser check.
 
@@ -62,3 +62,26 @@ The baseline is main `53121cd`; the current branch is tested with the same legal
 ![Opening lessons: existing board, selector, complete book path](screenshots/opening-lessons/opening-comparison-393.png)
 
 Mobile and desktop captures were inspected for horizontal overflow, complete board visibility in lesson mode, control placement and persistent navigation. The selector deliberately uses ellipsis for long names; the preview shows the selected complete name. Loading the catalogue does not alter the current board. Longer PGNs are expandable and scroll within their disclosure.
+
+## PR #72 CI follow-up
+
+The reported hosted run [42911754375](https://github.com/rk93/chess-analyser/actions/runs/42911754375) failed the same journey at two different assertions: first-search startup within five seconds, then verified completion within sixty seconds on retry. Public workflow pages confirm the failed run. The environment denies the GitHub API domain, and detailed logs/artifacts require authentication; the exact worker state on that hosted retry is therefore unconfirmed. The unchanged journey passed twenty repeated local runs before this correction.
+
+A controlled six-second worker-script load reproduces the five-second assertion failure while the application's ten-second startup deadline has not expired. The startup assertion now allows that existing deadline plus polling overhead (twelve seconds). The sixty-second verified-completion assertion is unchanged. A separate unit reproduction confirms that an error **after** `readyok` terminates the worker but leaves the old readiness promise resolved. The next `ready()` previously returned that stale success instead of creating a worker. This is a confirmed recovery defect, not proof that the hosted retry encountered a worker crash.
+
+Worker failures now invalidate readiness and reject an active search promptly. A stopped search normally drains `bestmove` before the queue advances; if it fails to drain within two seconds, its worker is terminated and the next queued request creates a fresh one. A thirty-second search timeout also retires its worker. Search listeners capture the worker identity, and late results from a retired worker cannot complete another position. Review depths, move legality, stored analysis schemas and successful review calculations are unchanged. Service-worker shell version is v98 so returning clients receive the corrected engine controller.
+
+Permanent tests exercise runtime `error`/`messageerror`, normal stop draining, a missing stop response, timeout recovery and stale results. The browser journey runs four ways at every viewport: normal, a six-second UCI startup delay, an unresponsive stop, and a crash on stop. The fault cases still use native Stockfish for the reopened review and require complete, exact, correctly versioned cached analysis, then actual app/browser Back and Forward transitions with usable navigation. They assert that a failed worker is replaced once. Every attempt attaches bounded command timing, worker/error counts, progress phases, status text and cache evidence for future CI diagnosis.
+
+Final follow-up: **221 unit/integration tests** pass on Node 24.19.0 and Node 20; the UI bundle check passes. All **450 browser regression checks** pass in 775 seconds: 118 each at 360px, 393px and 430px, and 96 on desktop. The report matches the full test manifest with no missing tests, skips, retries, flaky results or failures. The separate 16-case targeted lifecycle run also passes. [Sanitized follow-up results](screenshots/opening-lessons/ci-follow-up-tests.json). Hosted workflows remain a separate merge gate.
+
+The before image is the deliberately delayed startup that fails the old five-second assertion; it is not a capture from GitHub's runner. The after images show the real Games screen after cancellation and after verified completion/browser Back, including recovery from an injected worker crash. All four viewport captures were inspected, with navigation visible and the existing hit-test assertions passing.
+
+| Viewport | After cancellation | After verified completion and browser Back |
+| --- | --- | --- |
+| 360px | [Capture](screenshots/opening-lessons/ci-after-cancelled-360.png) | [Capture](screenshots/opening-lessons/ci-after-completed-360.png) |
+| 393px | [Capture](screenshots/opening-lessons/ci-after-cancelled-393.png) | [Capture](screenshots/opening-lessons/ci-after-completed-393.png) |
+| 430px | [Capture](screenshots/opening-lessons/ci-after-cancelled-430.png) | [Capture](screenshots/opening-lessons/ci-after-completed-430.png) |
+| 1280px | [Capture](screenshots/opening-lessons/ci-after-cancelled-1280.png) | [Capture](screenshots/opening-lessons/ci-after-completed-1280.png) |
+
+[Controlled startup failure before the assertion correction, 393px](screenshots/opening-lessons/ci-slow-start-before-393.png).

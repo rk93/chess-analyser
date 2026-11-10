@@ -1,12 +1,24 @@
 import {seedFeedbackReview} from './feedback-fixtures.mjs';
-export async function holdReviewEngine(page,after=2){
-  await page.addInitScript(after=>{
-    const Native=window.Worker;window.reviewEngineAudit={go:0,stop:0,progress:[],verified:0};window.holdEngineAfter=after;window.releaseHeldSearch=null;
+export async function holdReviewEngine(page,after=2,{startupDelay=0,stopMode='drain'}={}){
+  await page.addInitScript(({after,startupDelay,stopMode})=>{
+    const Native=window.Worker;window.reviewEngineAudit={go:0,stop:0,progress:[],verified:0,workers:0,terminated:0,ready:0,bestmove:0,errors:[],commands:[]};window.holdEngineAfter=after;window.releaseHeldSearch=null;window.reviewEngineStopMode=stopMode;
     addEventListener('reviewAnalysisProgress',event=>reviewEngineAudit.progress.push(event.detail));
     addEventListener('gameReviewVerified',event=>{if(event.detail?.cached===false)reviewEngineAudit.verified++;});
     window.Worker=class extends Native{
-      constructor(url,...args){super(url,...args);this.isReviewEngine=String(url).includes('stockfish');}
+      constructor(url,...args){
+        super(url,...args);this.isReviewEngine=String(url).includes('stockfish');
+        if(this.isReviewEngine){
+          reviewEngineAudit.workers++;
+          this.addEventListener('message',event=>{if(event.data==='readyok')reviewEngineAudit.ready++;if(String(event.data).startsWith('bestmove '))reviewEngineAudit.bestmove++;});
+          for(const type of ['error','messageerror'])this.addEventListener(type,event=>reviewEngineAudit.errors.push({type,message:event.message,time:performance.now()}));
+        }
+      }
+      terminate(){if(this.isReviewEngine)reviewEngineAudit.terminated++;return super.terminate();}
       postMessage(message,...args){
+        if(this.isReviewEngine){
+          if(reviewEngineAudit.commands.length<200)reviewEngineAudit.commands.push({message:String(message),time:performance.now()});
+          if(message==='uci'&&startupDelay){setTimeout(()=>super.postMessage(message,...args),startupDelay);return;}
+        }
         if(this.isReviewEngine&&String(message).startsWith('go ')){
           reviewEngineAudit.go++;
           if(reviewEngineAudit.go>window.holdEngineAfter){
@@ -15,13 +27,21 @@ export async function holdReviewEngine(page,after=2){
         }
         if(this.isReviewEngine&&message==='stop'){
           reviewEngineAudit.stop++;
+          if(window.reviewEngineStopMode==='crash'){
+            this.dispatchEvent(new ErrorEvent('error',{message:'Simulated Stockfish worker crash'}));return;
+          }
+          // Simulate a worker that never emits the cancelled search's bestmove.
+          if(window.reviewEngineStopMode==='drop'){this.heldSearch=null;return;}
           // Let the real engine drain the held search when cancellation requests stop.
           if(this.heldSearch){const held=this.heldSearch;this.heldSearch=null;super.postMessage(held[0],...held[1]);}
         }
         return super.postMessage(message,...args);
       }
     };
-  },after);
+  },{after,startupDelay,stopMode});
+}
+export async function reviewEngineState(page){
+  return page.evaluate(()=>({started:reviewEngineAudit.go>0,verified:reviewEngineAudit.verified>0,phase:document.getElementById('reviewWaitPanel')?.dataset.phase,status:document.getElementById('reviewStatus')?.textContent,audit:reviewEngineAudit}));
 }
 export async function seedPendingReview(page){
   await seedFeedbackReview(page);
