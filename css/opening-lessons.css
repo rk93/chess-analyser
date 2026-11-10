@@ -1,0 +1,45 @@
+/* The existing Analysis Board owns the board and navigation. */
+.openingLessons{margin:16px 0;border:1px solid #596a48;border-radius:14px;background:#272c23;min-width:0}
+.openingLessons>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px;min-height:52px;color:#d3e8bb;font-size:14px;font-weight:750;cursor:pointer;list-style:none}
+.openingLessons[open]{padding:0 14px 14px}
+.openingLessons[open]>summary{padding-inline:0;border-bottom:1px solid #46513a;margin-bottom:12px}
+.openingIntro{font-size:13px;color:#c5ccbc;line-height:1.5;margin:10px 0 14px}
+.openingLessons label{display:flex;flex-direction:column;gap:6px;font-size:12px;color:#c8d3bb;min-width:0;margin:12px 0}
+.openingLessons :is(select,input){width:100%;min-width:0;max-width:100%;min-height:46px;border:1px solid #5b6e48;border-radius:9px;background:#20251c;color:#f2f5eb;padding:9px;font:inherit;font-size:14px;text-overflow:ellipsis}
+.openingLessons select option{max-width:100%}
+.openingPreview{background:#1f251c;border-left:3px solid #9fc577;border-radius:8px;padding:12px;margin:14px 0;overflow-wrap:anywhere}
+.openingPreview strong{font-size:14px;line-height:1.5;color:#e2eacf}
+.openingPreview p{font-size:13px;color:#b7ce9f;line-height:1.7;margin:8px 0;font-variant-numeric:tabular-nums}
+.openingPreview small,.openingNote,.openingAttribution{font-size:11px;color:#b5c2a8;line-height:1.6}
+.openingAttribution{display:inline-flex;align-items:center;min-height:44px;color:#b6d493;overflow-wrap:anywhere}
+.openingActions,.openingDockActions{display:flex;gap:8px;flex-wrap:wrap}
+.openingActions button,.openingDockActions button{min-height:44px;cursor:pointer;font-size:12px}
+.openingDock{padding:12px;border:1px solid #647d4b;border-radius:12px;background:#2c3825;margin-bottom:10px}
+.openingDockTitle{display:flex;flex-direction:column;gap:5px;min-width:0;margin-bottom:10px}
+.openingDockTitle strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}
+.openingDockTitle small{font-size:12px;color:#c5d4b5;line-height:1.5}
+.openingDockActions button{flex:1;min-width:50px;padding:8px;font-weight:650;background:#38472f;box-shadow:none;border:1px solid #677e50}
+#labOpeningContinue{flex:1 0 100%;background:#81b64c;color:#172510}
+#labOpeningDock[hidden],#labOpeningLessons [hidden],#labOpeningDock [hidden]{display:none!important}
+#labOpeningLessons :is(input,select,button,a,summary):focus-visible,#labOpeningDock button:focus-visible{outline:3px solid #b0d380;outline-offset:2px}
+.labBoardColumn{scroll-margin-top:110px}
+@media(max-width:800px){.labBoardColumn{scroll-margin-top:12px}.openingDock{border-radius:0;margin:0;padding:10px 12px}.openingDockTitle{margin-bottom:7px}.openingDockTitle strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}.openingDockActions{gap:6px}.openingLessons{margin:16px 0}}
+
+.openingSetup{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px}
+.openingSelectors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.openingLessons>summary svg{width:18px;height:18px;flex:none}
+.openingLessons[open]>summary svg{transform:rotate(180deg)}
+.openingPreview small{display:block;margin-top:6px}
+.openingMoves>summary,.openingAbout>summary{display:flex;align-items:center;min-height:44px;color:#c0d8a6;font-size:12px;cursor:pointer;list-style:none}
+.openingMoves>summary:after,.openingAbout>summary:after{content:'+';margin-left:auto;font-size:18px}
+.openingMoves[open]>summary:after,.openingAbout[open]>summary:after{content:'−'}
+.openingMoves p{max-height:120px;overflow-y:auto;overscroll-behavior-y:contain}
+.openingAbout{margin-top:12px;border-top:1px solid #46513a}
+@media(min-width:801px){
+ .labBoardColumn:has(#labOpeningDock:not([hidden])) .labBoardWrap{max-width:min(100%,calc(100dvh - 240px));margin-inline:auto}
+ .openingDock{display:flex;align-items:center;gap:12px}
+ .openingDockTitle{flex:1;min-width:0;margin:0}
+ .openingDockTitle strong{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+ .openingDockActions{max-width:60%;justify-content:flex-end}
+ .openingDockActions button,#labOpeningContinue{flex:initial;min-width:52px}
+}

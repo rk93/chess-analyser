@@ -7,7 +7,7 @@ test('Analysis Board uses local Stockfish as primary engine',async()=>{
   const src=await readFile('js/lab.js','utf8');
   assert.match(src,/getLocalStockfish/);
   assert.match(src,/Starting local Stockfish/);
-  assert.match(src,/engine\.analyse\(fen,\{depth:16,multipv:3,clearHash:true\}\)/);
+  assert.match(src,/engine\.analyse\(fen,\{depth:16,multipv:3,clearHash:true,signal\}\)/);
   assert.doesNotMatch(src,/chess-api\.com\/v1/);
 });
 
@@ -33,7 +33,7 @@ test('local Stockfish startup has timeout and resets failed ready promise',async
 
 test('Analysis Board uses only local Stockfish and reports a failed analysis',async()=>{
   const src=await readFile('js/lab.js','utf8');
-  assert.match(src,/const data=await stockfish\(fen\)/);
+  assert.match(src,/const data=await stockfish\(fen,signal\)/);
   assert.match(src,/Could not analyse:/);
   assert.doesNotMatch(src,/if\(mode==='cloud'\)/);
   const html=await readFile('index.html','utf8');

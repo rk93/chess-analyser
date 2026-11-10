@@ -190,7 +190,7 @@ function buildReview(engineData,ctx,prior,config){
   return enrichDisplay(prior,ctx);
 }
 
-async function deepCorrect(detail){
+export async function deepCorrect(detail){
   const prior=detail?.data;if(!prior?.evals?.length)return;
   const config=getReviewDepthPreset();
   const ctx=build(),originalKey=reviewKey();if(detail?.key&&detail.key!==originalKey)return;if(ctx.positions.length!==prior.evals.length)return;
@@ -228,6 +228,6 @@ async function deepCorrect(detail){
   }finally{if(activeAudit===audit)activeAudit=null}
 }
 
-window.addEventListener('gameReviewReady',e=>{deepCorrect(e.detail).catch(()=>{})});
+window.addEventListener('gameReviewReady',e=>{if(!e.detail?.verificationComplete)deepCorrect(e.detail).catch(()=>{})});
 window.addEventListener('cancelGameReview',cancelAudit);
 window.addEventListener('feedbackCleanup',cancelAudit);

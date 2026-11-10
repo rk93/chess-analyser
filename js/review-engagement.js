@@ -6,7 +6,7 @@ function currentKey(){const moves=[...document.querySelectorAll('#moves .move')]
 function init(){
   const view=$('analysisView');if(!view||$('reviewWaitPanel'))return;
   const panel=document.createElement('section');panel.id='reviewWaitPanel';panel.className='reviewWaitPanel';panel.hidden=true;panel.setAttribute('aria-labelledby','reviewWaitTitle');
-  panel.innerHTML='<div class="reviewWaitHeading"><span class="coachAvatar coachThinking reviewWaitPip" aria-hidden="true"></span><div><span class="homeEyebrow">Pip is finding your next lesson</span><h2 id="reviewWaitTitle"></h2></div></div><p id="reviewWaitCount" role="status"></p><progress id="reviewWaitProgress" max="100" aria-label="Current analysis phase"></progress><p class="reviewWaitPhaseNote">Progress is for this phase. Deeper checks follow the first pass.</p><div class="reviewWaitStudy"><span>While you wait · general study tip</span><p id="reviewWaitTip"></p><button id="reviewWaitNextTip" class="btn" type="button">Another tip</button></div><div class="reviewWaitActions"><button id="reviewWaitCancel" class="btn" type="button">Stop review</button><button id="reviewWaitRetry" class="btn primary" type="button" hidden>Retry review</button><button id="reviewWaitPreview" class="btn" type="button" hidden>Explore preview</button></div>';
+  panel.innerHTML='<div class="reviewWaitHeading"><span class="coachAvatar coachThinking reviewWaitPip" aria-hidden="true"></span><div><span class="homeEyebrow">Pip is finding your next lesson</span><h2 id="reviewWaitTitle"></h2></div></div><p id="reviewWaitCount" role="status"></p><progress id="reviewWaitProgress" max="100" aria-label="Current analysis phase"></progress><p class="reviewWaitPhaseNote">Progress is for this phase. Deeper checks follow the first pass.</p><div class="reviewWaitStudy"><span>While you wait · general study tip</span><p id="reviewWaitTip"></p><button id="reviewWaitNextTip" class="btn" type="button">Another tip</button></div><div class="reviewWaitActions"><button id="reviewWaitCancel" class="btn" type="button">Stop review</button><button id="reviewWaitRetry" class="btn primary" type="button" hidden>Retry review</button><button id="reviewWaitPreview" class="btn" type="button" hidden>Explore game</button></div>';
   view.querySelector('.topbar').after(panel);
   let state=reviewProgressState(),key=null,tip=0,run=0,local=false;
   function place(){
@@ -32,7 +32,7 @@ function init(){
   $('reviewWaitPreview').onclick=reset;
   window.addEventListener('resize',()=>{if(!panel.hidden)place();},{passive:true});
   window.addEventListener('gameReviewRunning',event=>{
-    if(event.detail?.running){key=currentKey();local=false;render({phase:'preview'});void playFeedback('reviewStart',{context:'analysisView',id:'review-start:'+ ++run});}
+    if(event.detail?.running){key=currentKey();local=false;render({phase:'starting'});void playFeedback('reviewStart',{context:'analysisView',id:'review-start:'+ ++run});}
     else if(key===currentKey()&&!local&&state.busy&&$('reviewStatus')?.textContent.startsWith('Game Review failed'))render({phase:'error'});
   });
   window.addEventListener('reviewAnalysisProgress',event=>{

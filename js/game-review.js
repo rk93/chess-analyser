@@ -1,7 +1,6 @@
 import {inGameReview} from './app-navigation.js';
 import { Chess } from 'https://cdn.jsdelivr.net/npm/chess.js@1.4.0/+esm';
-import { cacheGet,cacheSet,getPositionEval,setPositionEval,simpleHash } from './analysis-store.js';
-import { buildTacticalVerificationPlan } from './review-tactics.js';
+import { cacheGet,simpleHash } from './analysis-store.js';
 import { displayLineFor } from './review-display.js';
 import { reviewCoverage } from './review-coverage.js';
 import {getReviewDepthPreset,reviewDepthIsCurrent,REVIEW_DEPTH_SETTING} from './review-depth.js';
@@ -9,12 +8,7 @@ import {getAutoPlayMs} from './review-playback-settings.js';
 import './review-engagement.js';
 
 const $=id=>document.getElementById(id);
-const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const REVIEW_VERSION=7;
-const MAX_FRESH_CLOUD=36;
-const CLOUD_CONCURRENCY=4;
-const LIVE_FALLBACK_LIMIT=4;
-const TACTICAL_VERIFY_LIMIT=16;
 let localReviewRunning=false,activeReviewComplete=false;
 let running=false,reviewToken=0,restoreTimer=null,activeReview=null,summaryShownForKey='';
 let preparedReview=null,preparedPositions=null,preparedSans=null,preparedBestMoves=null,renderFrame=0,lastRenderedPly=-1;
@@ -33,72 +27,11 @@ function moveEls(){return [...document.querySelectorAll('#moves .move')]}
 function moveSans(){return moveEls().map(e=>e.childNodes[0]?.textContent?.trim()||e.textContent.trim())}
 function currentPly(){const els=moveEls(),i=els.findIndex(e=>e.classList.contains('active'));return i<0?0:i+1}
 function buildPositions(){const c=new Chess(),out=[{fen:c.fen(),ply:0}];for(const san of moveSans()){try{c.move(san);out.push({fen:c.fen(),ply:out.length})}catch{return []}}return out}
-function playedUcis(){const c=new Chess(),out=[];for(const san of moveSans()){try{const m=c.move(san);out.push(m.from+m.to+(m.promotion||''))}catch{out.push('')}}return out}
-function cpFromPv(pv){if(pv?.mate!==undefined&&pv?.mate!==null&&Number(pv.mate)!==0)return Number(pv.mate)>0?10000:-10000;return Number(pv?.cp)||0}
-function firstMove(moves){const u=String(moves||'').trim().split(/\s+/)[0];return /^[a-h][1-8][a-h][1-8][qrbn]?$/.test(u)?u:''}
 function sanForUci(fen,uci){if(!uci)return'';try{const c=new Chess(fen),m=c.move({from:uci.slice(0,2),to:uci.slice(2,4),promotion:uci[4]||undefined});return m?.san||uci}catch{return uci}}
 function reviewKey(){return simpleHash(`${$('gameTitle')?.textContent||''}|${moveSans().join(' ')}`)}
-function canonical(data){return data?.pvs?.length?data:null}
+
 function signalRunning(value){window.dispatchEvent(new CustomEvent('gameReviewRunning',{detail:{running:value}}))}
-function cancelQuickReview(){if(!running)return;reviewToken++;running=false;signalRunning(false);$('runReview').disabled=false;$('runReview').textContent='Review game';$('reviewStatus').textContent='Review stopped. You can retry when ready.';}
-async function fetchTimeout(url,options={},ms=2400){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),ms);try{return await fetch(url,{...options,signal:controller.signal})}finally{clearTimeout(timer)}}
-
-async function cloudEval(fen,{network=true}={}){
-  let data=canonical(await getPositionEval('cloud',fen));
-  if(!data&&network){
-    const r=await fetchTimeout(`https://lichess.org/api/cloud-eval?fen=${encodeURIComponent(fen)}&multiPv=3&variant=standard`,{headers:{Accept:'application/json'}},2200);
-    if(r.status===404)return null;
-    if(r.status===429)throw Object.assign(new Error('Cloud rate limited'),{rateLimited:true});
-    if(!r.ok)throw new Error(`Cloud ${r.status}`);
-    const j=await r.json();
-    if(!j.pvs?.length)return null;
-    data={source:'Lichess cloud',depth:j.depth||0,pvs:j.pvs.slice(0,3)};
-    await setPositionEval('cloud',fen,data);
-  }
-  if(!data)return null;
-  const pv=data.pvs[0];
-  return{cp:cpFromPv(pv),best:firstMove(pv.moves),depth:data.depth||0,source:'cloud'};
-}
-async function liveEval(fen){
-  let data=canonical(await getPositionEval('live',fen));
-  if(!data){
-    const r=await fetchTimeout('https://chess-api.com/v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fen,depth:12,variants:1,maxThinkingTime:110})},4200);
-    if(!r.ok)throw new Error(`Live ${r.status}`);
-    const j=await r.json(),best=j.move||j.lan||'',cont=Array.isArray(j.continuationArr)?j.continuationArr.filter(Boolean):[],moves=[best,...cont.filter((m,i)=>!(i===0&&m===best))].filter(Boolean).join(' '),cp=j.eval!=null?Math.round(Number(j.eval)*100):Number(j.centipawns)||0;
-    data={source:'Stockfish live',depth:j.depth||12,pvs:[{cp,mate:j.mate,moves}]};
-    await setPositionEval('live',fen,data);
-  }
-  const pv=data.pvs[0];
-  return{cp:cpFromPv(pv),best:firstMove(pv.moves),depth:data.depth||12,source:'live'};
-}
-async function deepLiveEval(fen){
-  let data=canonical(await getPositionEval('review-deep',fen));
-  if(!data){
-    const r=await fetchTimeout('https://chess-api.com/v1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fen,depth:16,variants:1,maxThinkingTime:350})},6500);
-    if(!r.ok)throw new Error(`Deep live ${r.status}`);
-    const j=await r.json(),best=j.move||j.lan||'',cont=Array.isArray(j.continuationArr)?j.continuationArr.filter(Boolean):[],moves=[best,...cont.filter((m,i)=>!(i===0&&m===best))].filter(Boolean).join(' '),cp=j.eval!=null?Math.round(Number(j.eval)*100):Number(j.centipawns)||0;
-    data={source:'Stockfish tactical',depth:j.depth||16,pvs:[{cp,mate:j.mate,moves}]};
-    await setPositionEval('review-deep',fen,data);
-  }
-  const pv=data.pvs[0];
-  return{cp:cpFromPv(pv),best:firstMove(pv.moves),depth:data.depth||16,source:'deep-live'};
-}
-
-function winProb(cp){const pawns=Math.max(-10,Math.min(10,cp/100));return 1/(1+Math.exp(-1.25*pawns))}
-function moveLoss(before,after,ply){const wb=winProb(before),wa=winProb(after);return Math.max(0,ply%2===1?wb-wa:wa-wb)}
-function basicClassify(loss){if(loss<=.004)return'Best';if(loss<=.014)return'Excellent';if(loss<=.04)return'Good';if(loss<=.09)return'Inaccuracy';if(loss<=.18)return'Mistake';return'Blunder'}
-function moverGainCp(before,after,ply){return ply%2===1?after-before:before-after}
-function classifyMove({loss,ply,before,after,played,best,verified}){
-  const base=basicClassify(loss);
-  if(!verified)return base;
-  const matched=!!best&&played===best,gain=moverGainCp(before,after,ply);
-  if(ply<=10&&loss<=.04)return'Book';
-  if(matched&&loss<=.004&&gain>=150)return'Brilliant';
-  if(matched&&loss<=.008&&gain>=70)return'Great';
-  return base;
-}
-function accuracy(losses){if(!losses.length)return 100;const scores=losses.map(l=>100*Math.exp(-4.2*l));return Math.round(Math.max(0,Math.min(100,scores.reduce((a,b)=>a+b,0)/scores.length))*10)/10}
-function interpolate(evals){for(let i=0;i<evals.length;i++){if(evals[i]!=null)continue;let a=i-1,b=i+1;while(a>=0&&evals[a]==null)a--;while(b<evals.length&&evals[b]==null)b++;if(a>=0&&b<evals.length)evals[i]=Math.round(evals[a]+(evals[b]-evals[a])*(i-a)/(b-a));else if(a>=0)evals[i]=evals[a];else if(b<evals.length)evals[i]=evals[b];else evals[i]=0}}
+function cancelActiveReview(){if(!running)return;reviewToken++;running=false;signalRunning(false);$('runReview').disabled=false;$('runReview').textContent='Review game';$('reviewStatus').textContent='Review stopped. You can retry when ready.';}
 
 function clearTags(){document.querySelectorAll('#moves .moveTag,#moves .practiceMove').forEach(e=>e.remove())}
 function launchPractice(e,detail){e?.preventDefault?.();e?.stopPropagation?.();window.dispatchEvent(new CustomEvent('practiceMistake',{detail}))}
@@ -399,7 +332,7 @@ function showSummaryScreen(data,{force=false}={}){
 function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function startGuidedReview({automatic=false}={}){if(!inGameReview())return;const el=$('reviewSummaryScreen');if(el)el.hidden=true;const generation=autoPlayGeneration,key=reviewKey();if(automatic)window.dispatchEvent(new CustomEvent('reviewFeedbackPlayback',{detail:{playing:true,interval:getAutoPlayMs()}}));$('start')?.click();setTimeout(()=>{if(generation!==autoPlayGeneration||key!==reviewKey()||!$('board')?.getClientRects().length||document.hidden)return;$('next')?.click();setTimeout(renderCurrentMove,0)},20)}
 
-function displayReview(data,{cached=false,showSummary=true,dispatchReady=true}={}){
+function displayReview(data,{cached=false,showSummary=true,dispatchReady=true,verificationComplete=false}={}){
   if(!inGameReview())return false;
   const positions=buildPositions(),sans=moveSans();if(positions.length!==data.evals.length||sans.length!==data.labels.length)return false;
   spokenPly=-1;preparedPositions=positions;preparedSans=sans;preparedBestMoves=data.bestMoves;preparedReview=prepareGuideFrames(data,positions,sans);lastRenderedPly=-1;activeReview=data;document.querySelector('.reviewPanel')?.classList.add('reviewReady');$('whiteAccuracy').textContent=Number(data.whiteAccuracy).toFixed(1);$('blackAccuracy').textContent=Number(data.blackAccuracy).toFixed(1);$('accuracyCards').hidden=false;renderTags(data,positions,sans);renderSummary(data.labels);renderGraph(data.evals,data.losses);
@@ -409,7 +342,7 @@ function displayReview(data,{cached=false,showSummary=true,dispatchReady=true}={
   $('reviewStatus').textContent=coverage.complete
     ?`Verified review ready · all ${sans.length} moves analysed · ${trainable} practice positions.`
     :`Preview only — ${coverage.missing.length} position(s) still need Stockfish verification. Review is not complete.`;
-  $('runReview').textContent=coverage.complete?'Review summary':'Review preview';$('runReview').disabled=false;renderCurrentMove();if(showSummary&&coverage.complete)showSummaryScreen(data);if(dispatchReady)window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data}}));return true;
+  $('runReview').textContent=coverage.complete?'Review summary':'Review preview';$('runReview').disabled=false;renderCurrentMove();if(showSummary&&coverage.complete)showSummaryScreen(data);if(dispatchReady)window.dispatchEvent(new CustomEvent('gameReviewReady',{detail:{key:reviewKey(),data,verificationComplete}}));return true;
 }
 async function restoreReview(){
   clearTimeout(restoreTimer);
@@ -424,39 +357,31 @@ async function restoreReview(){
     window.dispatchEvent(new CustomEvent('gameReviewCacheChecked',{detail:{key,complete:!!complete,hasReview:!!data}}));
   },120);
 }
-function sampleIndexes(total,max){if(total<=max)return Array.from({length:total},(_,i)=>i);const set=new Set([0,total-1]);for(let n=0;n<max;n++)set.add(Math.round(n*(total-1)/(max-1)));return [...set].sort((a,b)=>a-b)}
-async function fillCached(positions,evals,bestMoves,positionExact){for(let i=0;i<positions.length;i++){const e=await cloudEval(positions[i].fen,{network:false});if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}if(i%24===23)await sleep(0)}}
-async function runCloudPass(positions,evals,bestMoves,positionExact,token){await fillCached(positions,evals,bestMoves,positionExact);const candidates=sampleIndexes(positions.length,MAX_FRESH_CLOUD).filter(i=>evals[i]==null);let next=0,done=0,stop=false;async function worker(){while(!stop){const n=next++;if(n>=candidates.length||token!==reviewToken)return;const i=candidates[n];try{const e=await cloudEval(positions[i].fen);if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}}catch(e){if(e?.rateLimited)stop=true}if(token!==reviewToken)return;done++;$('reviewStatus').textContent=`Quick review ${Math.min(done,candidates.length)}/${candidates.length}…`;if(done%8===0)await sleep(30)}}await Promise.all(Array.from({length:Math.min(CLOUD_CONCURRENCY,candidates.length||1)},worker))}
-function missingFallbackIndexes(evals){const missing=[];for(let i=0;i<evals.length;i++)if(evals[i]==null)missing.push(i);if(missing.length<=LIVE_FALLBACK_LIMIT)return missing;const out=[];for(let n=0;n<LIVE_FALLBACK_LIMIT;n++)out.push(missing[Math.round(n*(missing.length-1)/(LIVE_FALLBACK_LIMIT-1))]);return [...new Set(out)]}
-async function runTacticalVerification(positions,sans,evals,bestMoves,positionExact,token){
-  const provisional=evals.slice();interpolate(provisional);
-  const plan=buildTacticalVerificationPlan({positions,sans,evals:provisional,positionExact,legalMoves:fen=>new Chess(fen).moves({verbose:true})});
-  const candidates=plan.filter(x=>!positionExact[x.index]).slice(0,TACTICAL_VERIFY_LIMIT);
-  for(let n=0;n<candidates.length;n++){
-    if(token!==reviewToken)return{plan,verified:0};
-    const {index,reason}=candidates[n];$('reviewStatus').textContent=`Tactical verification ${n+1}/${candidates.length} · ${reason}…`;
-    try{const e=await deepLiveEval(positions[index].fen);if(e){evals[index]=e.cp;bestMoves[index]=e.best||'';positionExact[index]=true}}catch{}
-    if(n<candidates.length-1)await sleep(35);
-  }
-  return{plan,verified:candidates.length};
-}
 async function runReview(){
   if(running||localReviewRunning)return;
   if(activeReview){const coverage=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()})));if(coverage.complete&&reviewDepthIsCurrent(activeReview,getReviewDepthPreset())){showSummaryScreen(activeReview,{force:true});return}activeReview=null}
   const positions=buildPositions(),sans=moveSans();if(positions.length<2){$('reviewStatus').textContent='Open a game with moves before running Game Review.';return}
-  const key=reviewKey(),requestedToken=reviewToken,saved=await cacheGet('review',key);if(requestedToken!==reviewToken||key!==reviewKey())return;if(saved?.version===REVIEW_VERSION&&reviewDepthIsCurrent(saved,getReviewDepthPreset())&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:false}))return;
-  running=true;activeReview=null;signalRunning(true);const token=++reviewToken,btn=$('runReview');btn.disabled=true;btn.textContent='Reviewing…';clearTags();$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;const evals=new Array(positions.length).fill(null),bestMoves=new Array(positions.length).fill(''),positionExact=new Array(positions.length).fill(false);
+  // Own the run before awaiting storage. A second click must not start another
+  // preview or verification job while the first request is being prepared.
+  const key=reviewKey(),token=++reviewToken,btn=$('runReview');
+  running=true;activeReview=null;btn.disabled=true;btn.textContent='Reviewing…';signalRunning(true);
+  clearTags();$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;
   try{
-    await runCloudPass(positions,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
-    const fallback=missingFallbackIndexes(evals);for(let n=0;n<fallback.length;n++){if(token!==reviewToken)return;const i=fallback[n];$('reviewStatus').textContent=`Finishing quick review ${n+1}/${fallback.length}…`;try{const e=await liveEval(positions[i].fen);if(e){evals[i]=e.cp;bestMoves[i]=e.best||'';positionExact[i]=true}}catch{}if(n<fallback.length-1)await sleep(35)}
-    const tactical=await runTacticalVerification(positions,sans,evals,bestMoves,positionExact,token);if(token!==reviewToken)return;
-    const exactCount=positionExact.filter(Boolean).length;if(exactCount<2)throw new Error('not enough engine positions were available; try again shortly');
-    interpolate(evals);const ucis=playedUcis(),losses=[],labels=[],whiteLoss=[],blackLoss=[],moveVerified=[];
-    for(let ply=1;ply<evals.length;ply++){const loss=moveLoss(evals[ply-1],evals[ply],ply),verified=!!positionExact[ply-1]&&!!positionExact[ply];losses.push(loss);moveVerified.push(verified);labels.push(classifyMove({loss,ply,before:evals[ply-1],after:evals[ply],played:ucis[ply-1],best:bestMoves[ply-1],verified}));(ply%2?whiteLoss:blackLoss).push(loss)}
-    const data={version:REVIEW_VERSION,evals,losses,labels,bestMoves,positionExact,moveVerified,tacticalPlan:tactical.plan.map(x=>({index:x.index,reason:x.reason})),whiteAccuracy:accuracy(whiteLoss),blackAccuracy:accuracy(blackLoss),updated:Date.now()};await cacheSet('review',key,data);if(token!==reviewToken)return;displayReview(data,{showSummary:true});
-  }catch(e){if(token===reviewToken)$('reviewStatus').textContent='Game Review failed: '+(e?.name==='AbortError'?'engine request timed out':e.message)}finally{if(token===reviewToken){running=false;signalRunning(false);btn.disabled=localReviewRunning;if(!activeReview)btn.textContent='Review game'}}
+    const saved=await cacheGet('review',key);
+    if(token!==reviewToken||key!==reviewKey()||!inGameReview())return;
+    if(saved?.version===REVIEW_VERSION&&reviewDepthIsCurrent(saved,getReviewDepthPreset())&&reviewCoverage(saved,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete&&displayReview(saved,{cached:true,showSummary:false}))return;
+    // Start the existing authoritative local verifier directly. Public preview
+    // requests must never hold a local review behind their network timeouts.
+    const data={version:REVIEW_VERSION,evals:Array(positions.length).fill(null),labels:Array(sans.length).fill('Good'),bestMoves:Array(positions.length).fill(''),positionExact:Array(positions.length).fill(false),moveVerified:Array(sans.length).fill(false)};
+    const {deepCorrect}=await import('./review-corrections.js');
+    if(token!==reviewToken||key!==reviewKey()||!inGameReview())return;
+    await deepCorrect({key,data});
+    if(token!==reviewToken||key!==reviewKey()||!inGameReview())return;
+    if(reviewCoverage(data,positions.map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete)displayReview(data,{showSummary:!mobileReview(),verificationComplete:true});
+  }catch(e){if(token===reviewToken)$('reviewStatus').textContent='Game Review failed: '+e.message}
+  finally{if(token===reviewToken){running=false;signalRunning(false);btn.disabled=localReviewRunning;if(!activeReview)btn.textContent='Review game'}}
 }
-function resetReviewUI(){resetAutoReviewFlow();stopAutoPlay();reviewToken++;if(running)signalRunning(false);running=false;localReviewRunning=false;activeReviewComplete=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run one quick review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
+function resetReviewUI(){resetAutoReviewFlow();stopAutoPlay();reviewToken++;if(running)signalRunning(false);running=false;localReviewRunning=false;activeReviewComplete=false;activeReview=null;spokenPly=-1;if('speechSynthesis' in window)window.speechSynthesis.cancel();preparedReview=null;preparedPositions=null;preparedSans=null;preparedBestMoves=null;lastRenderedPly=-1;if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}summaryShownForKey='';clearTags();clearBoardBadge();document.querySelector('.reviewPanel')?.classList.remove('reviewReady');$('reviewSummary').innerHTML='';$('accuracyCards').hidden=true;$('reviewGraph').hidden=true;$('reviewStatus').textContent='Run a local Stockfish review to see accuracy, move classifications and guided feedback.';$('runReview').textContent='Review game';$('engineScore').textContent='—';$('mobileScore').textContent='—';$('engineSource').textContent='Run Game Review';$('mobileSource').textContent='Game Review';$('bestLine').textContent='Run Game Review once to load move feedback.';$('mobileLine').textContent='Run Game Review to load move feedback.';$('analysisArrows').innerHTML='';const guide=$('reviewGuideCard');if(guide)guide.hidden=true;const screen=$('reviewSummaryScreen');if(screen)screen.hidden=true;restoreReview()}
 const AUTO_REVIEW_OPT_IN='chess-auto-review-future-games';
 let autoFlowKey='',autoFlowStartedKey='';
 function mobileReview(){return window.matchMedia('(max-width:800px)').matches}
@@ -504,11 +429,11 @@ function resetAutoReviewFlow(){autoFlowKey='';autoFlowStartedKey='';reviewPlayba
 function onScreenChanged(event){
   if(event.detail.screen==='review'){restoreReview();return;}
   if(event.detail.previous==='review')window.dispatchEvent(new Event('cancelGameReview'));
-  cancelQuickReview();stopAutoPlay();clearTimeout(restoreTimer);reviewToken++;
+  cancelActiveReview();stopAutoPlay();clearTimeout(restoreTimer);reviewToken++;
   if(renderFrame){cancelAnimationFrame(renderFrame);renderFrame=0}
   lastRenderedPly=-1;resetAutoReviewFlow();
   const guide=$('reviewGuideCard');if(guide)guide.hidden=true;
   const summary=$('reviewSummaryScreen');if(summary)summary.hidden=true;
 }
-function init(){window.addEventListener('appScreenChanged',onScreenChanged);window.addEventListener('reviewAnalysisProgress',event=>{if(event.detail?.key!==reviewKey())return;localReviewRunning=['starting','positions','critical'].includes(event.detail.phase);$('runReview').disabled=running||localReviewRunning;if(event.detail.phase==='starting')stopAutoPlay();});window.addEventListener('cancelGameReview',cancelQuickReview);window.addEventListener('feedbackCleanup',cancelQuickReview);window.addEventListener('feedbackCleanup',stopAutoPlay);ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('reviewAutoPlaySpeedChanged',()=>{updateAutoPlayControls();if(autoPlaying&&!spokenPending)queueAutoPlay();});window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;activeReviewComplete=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
+function init(){window.addEventListener('appScreenChanged',onScreenChanged);window.addEventListener('reviewAnalysisProgress',event=>{if(event.detail?.key!==reviewKey())return;localReviewRunning=['starting','positions','critical'].includes(event.detail.phase);$('runReview').disabled=running||localReviewRunning;if(event.detail.phase==='starting')stopAutoPlay();});window.addEventListener('cancelGameReview',cancelActiveReview);window.addEventListener('feedbackCleanup',cancelActiveReview);window.addEventListener('feedbackCleanup',stopAutoPlay);ensureStyles();ensureGuideCard();window.addEventListener('gameReviewCacheChecked',handleAutoReviewCache);window.addEventListener('gameReviewVerified',handleVerifiedAutoReview);window.addEventListener('reviewAutoPlaySpeedChanged',()=>{updateAutoPlayControls();if(autoPlaying&&!spokenPending)queueAutoPlay();});window.addEventListener('resize',positionReviewCard,{passive:true});const desktop=$('analyse'),mobile=$('analyseMobile');if(desktop)desktop.hidden=true;if(mobile)mobile.hidden=true;const b=$('runReview');if(b)b.addEventListener('click',runReview);['start','prev','next','end','resetVariation'].forEach(id=>$(id)?.addEventListener('click',()=>{scheduleCurrentMove();}));$('moves')?.addEventListener('click',e=>{if(e.target.closest('.move'))scheduleCurrentMove()});window.addEventListener('reviewNavigation',scheduleCurrentMove);document.addEventListener('visibilitychange',()=>{if(document.hidden)stopAutoPlay()});$('back')?.addEventListener('click',stopAutoPlay);window.addEventListener('gameReviewUpdated',e=>{if(!activeReview||!e.detail?.data)return;activeReview=e.detail.data;activeReviewComplete=reviewCoverage(activeReview,buildPositions().map(p=>({terminal:new Chess(p.fen).isGameOver()}))).complete;preparedBestMoves=null;lastRenderedPly=-1;scheduleCurrentMove()});const title=$('gameTitle');if(title)new MutationObserver(resetReviewUI).observe(title,{childList:true,characterData:true,subtree:true});resetReviewUI()}
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

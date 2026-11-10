@@ -27,7 +27,7 @@ test('welcome works with reduced motion and unavailable audio or haptic hardware
 });
 test('Home rating slider has throttled haptics and separately opt-in audio without background ticks',async({page})=>{
   await auditFeedback(page,{sound:'off'});await seedHomeCommandCentre(page);await page.locator('[data-pulse-format="rapid"]').click();const slider=page.locator('#homePulseCursor');
-  await slider.focus();const before=await page.evaluate(()=>feedbackAudit.vibrations.length);await slider.press('ArrowLeft');
+  await slider.focus();await page.waitForTimeout(130);const before=await page.evaluate(()=>feedbackAudit.vibrations.length);await slider.press('ArrowLeft');
   await expect(page.locator('#homePulseReadout')).toContainText('observation');expect(await page.evaluate(()=>feedbackAudit.vibrations.length)).toBeGreaterThan(before);expect(await sounds(page)).toBe(0);
   await page.evaluate(()=>{localStorage.setItem('chess-analyser-pref:sound','on');localStorage.setItem('chess-analyser-pref:uiSounds','on');window.dispatchEvent(new CustomEvent('chessPreference',{detail:{key:'sound',value:'on'}}));});
   await page.waitForTimeout(130);await slider.press('ArrowLeft');await expect.poll(()=>sounds(page)).toBe(1);
@@ -57,7 +57,7 @@ test('real review progress, study tips, engine stop, retry and completion form o
   await page.emulateMedia({reducedMotion:'reduce'});await expect(page.locator('html')).toHaveAttribute('data-reduced-animations','true');
   await expect(page.locator('#reviewWaitCount')).toHaveText('2 / 7 positions analysed · depth 8');expect(await page.evaluate(()=>reviewEngineAudit.stop)).toBe(0);
   await page.locator('#reviewWaitCancel').click();await expect(page.locator('#reviewWaitTitle')).toHaveText('Review stopped');
-  await expect(page.locator('#reviewGuideMove')).toHaveText('Review preview');
+  await expect(page.locator('#accuracyCards')).toBeHidden();await expect(page.locator('#moves .moveTag')).toHaveCount(0);
   await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.stop)).toBe(1);await page.waitForTimeout(200);expect(await page.evaluate(()=>reviewEngineAudit.verified)).toBe(0);
   await page.evaluate(()=>window.holdEngineAfter=Infinity);await page.locator('#reviewWaitRetry').click();
   await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.verified),{timeout:30000}).toBe(1);await expect(page.locator('#reviewWaitPanel')).toBeHidden();

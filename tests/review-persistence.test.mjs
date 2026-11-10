@@ -5,7 +5,7 @@ const review=await readFile('js/game-review.js','utf8');
 const verifier=await readFile('js/review-corrections.js','utf8');
 test('restoration rechecks game identity and generation after IndexedDB await',()=>{
   assert.match(review,/generation!==reviewToken\|\|key!==reviewKey\(\)/);
-  assert.match(review,/requestedToken!==reviewToken\|\|key!==reviewKey\(\)/);
+  assert.match(review,/token!==reviewToken\|\|key!==reviewKey\(\)/);
 });
 test('cached completed reviews report readiness without reopening summary',()=>{
   assert.match(review,/gameReviewCacheChecked/);
