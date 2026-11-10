@@ -1,11 +1,11 @@
 import {test,expect} from '@playwright/test';
 import {seedFeedbackReview} from './fixtures/feedback-fixtures.mjs';
-import {holdReviewEngine,startPendingReview} from './fixtures/review-wait-fixtures.mjs';
+import {holdReviewEngine,startPendingReview,waitForReviewEngineStart} from './fixtures/review-wait-fixtures.mjs';
 
 test.describe('fresh review startup',()=>{
  test.use({serviceWorkers:'block'});
- test('local review starts without extra taps even when public preview requests never resolve',async({page},info)=>{
-  await holdReviewEngine(page,2);await page.goto('/');await seedFeedbackReview(page);
+ for(const startupDelay of [0,9000])test(`local review starts without extra taps even when public preview requests never resolve (${startupDelay?'nine-second startup':'normal'})`,async({page},info)=>{
+  await holdReviewEngine(page,2,{startupDelay});await page.goto('/');await seedFeedbackReview(page);
   await page.evaluate(async()=>{
    const {cacheSet,simpleHash}=await import('/js/analysis-store.js');await cacheSet('review',simpleHash('alpha 1400 — beta 1400|e4 e5 Nf3 Nc6 Bc4 Bc5'),null);
   });
@@ -13,6 +13,7 @@ test.describe('fresh review startup',()=>{
   for(const pattern of ['https://lichess.org/api/cloud-eval**','https://chess-api.com/**'])await page.route(pattern,async route=>{requests.push(route.request().url());await gate;await route.abort().catch(()=>{});});
   try{
    await startPendingReview(page);
+   await waitForReviewEngineStart(page);
    await expect(page.locator('#reviewWaitCount')).toContainText('2 / 7 positions analysed',{timeout:8000});
    expect(requests).toHaveLength(0);
    await page.screenshot({path:info.outputPath('review-starts-without-tip.png'),animations:'disabled'});

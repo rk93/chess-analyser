@@ -32,14 +32,14 @@ Each picker shows at most 100 matching paths to bound mobile DOM work. Search co
 
 ## Validation
 
-All **216 unit/integration tests**, `npm run check:ui`, and **438 Playwright regression tests** pass. Final reports were checked against the complete test-list manifest: no omitted tests, failures, skipped tests, retries or flaky results. Eight additional viewport checks passed after tightening automatic-playback and terminal-line assertions.
+Latest local validation passes **221 unit/integration tests**, `npm run check:ui`, and **454 Playwright checks** on Node 22/Chromium 141, with no missing tests, failures, skips, retries or flaky results. The original 216-unit/438-browser baseline and subsequent CI investigations are historical evidence; hosted validation and remaining uncertainty are recorded below. See [latest cross-browser results](screenshots/opening-lessons/ci-cross-browser-tests.json).
 
 | Project | Passed |
 | --- | ---: |
-| Mobile Chromium, 360 × 800 | 115 |
-| Mobile Chromium, 393 × 800 | 115 |
-| Mobile Chromium, 430 × 800 | 115 |
-| Desktop Chromium, 1280 × 900 | 93 |
+| Mobile Chromium, 360 × 800 | 119 |
+| Mobile Chromium, 393 × 800 | 119 |
+| Mobile Chromium, 430 × 800 | 119 |
+| Desktop Chromium, 1280 × 900 | 97 |
 
 [Initial local test summary](screenshots/opening-lessons/test-results.json). PR [#72](https://github.com/rk93/chess-analyser/pull/72) is open. Its first hosted Mobile visual QA run failed the cancellation/completion/reopening journey (437 passed, one failed). The correction and subsequent validation are recorded below; initial local results do not establish hosted CI success.
 
@@ -88,3 +88,24 @@ The before image is the deliberately delayed startup that fails the old five-sec
 
 
 The first follow-up hosted attempt on `f9e819e` passed [Tests](https://github.com/rk93/chess-analyser/actions/runs/42919677416) but failed [Mobile visual QA](https://github.com/rk93/chess-analyser/actions/runs/42919677465). Its public annotation only reports exit code 1, and the authenticated failure logs remain inaccessible in this environment. This does **not** establish that the original hosted failure is resolved. Playwright's standard GitHub reporter is enabled alongside the existing list/HTML reports when `GITHUB_ACTIONS` is set, so subsequent failed assertions are exposed as workflow annotations. The suite, assertions, timeouts and retries are unchanged by this diagnostic configuration. The PR must remain gated on both hosted workflows.
+
+
+## Shared startup contract and hosted diagnostics
+
+The diagnostic hosted run on `313af4f` returned successful workflow statuses but reported **449 passed and one flaky test**: desktop unresponsive-stop recovery timed out waiting for native verification on its first attempt, then passed on retry. It was deliberately left unmerged. The annotation identifies the assertion but the matcher omitted the extra phase/worker fields; the authenticated detailed artifact remains unavailable. The exact trigger of that hosted timeout is still unconfirmed. Twenty-four further desktop repetitions on Node 22/Chromium 141 passed without retries. Verification failures now print the phase, status, visibility, document time origin, hold threshold, button state, bounded UCI commands and lifecycle events directly in the assertion, in addition to attaching the JSON. A green workflow with a flaky test is insufficient for this delivery.
+
+A further deterministic startup reproduction holds the initial UCI request for nine seconds: the fresh-review test's old eight-second combined startup/progress assertion fails, although the application's ten-second startup deadline remains valid. The engine now exports its unchanged ten-second deadline, and a shared test helper uses that deadline plus two seconds for polling. The navigation, opening-continuation and weekly-practice startup checks use the helper while retaining their engine-call count assertions. The fresh-review test separates startup from the **unchanged eight-second two-position analysis assertion**. It runs both normal and nine-second starts at every viewport, still holding public preview requests open and requiring zero preview requests and actual native progress without a tip interaction. The sixty-second complete-verification deadline is unchanged.
+
+Final local cross-browser validation: **221 unit/integration tests on Node 20**, the UI bundle check, and **454 browser checks on Node 22/Chromium 141** pass. There are 119 checks at each mobile width and 97 on desktop; the report matches the full manifest with no skipped, retried, flaky or failed tests. The full run took 634 seconds. Additional runs passed 96 original lifecycle/startup repetitions on Node 22/Chromium 154, eight normal/nine-second checks on Chromium 141, and 24 desktop unresponsive-stop repetitions. The last diagnostic-only refinement expands failure messages without changing their predicates or deadlines. [Sanitized cross-browser results](screenshots/opening-lessons/ci-cross-browser-tests.json).
+
+The local Chromium 141 binary is the separately installed Sparticuz 141.0.7390.0 package; hosted Playwright uses 141.0.7390.37 (revision 1194). This matches the major version, not the exact CI build. No browser package or application dependency was added to the repository. The previous full Chromium 154 run and its 450-case results remain recorded above. Hosted CI on the published final head remains a separate gate and must finish cleanly before merge.
+
+The nine-second before image shows the old assertion expiring while startup remains valid. After images show two **actually analysed** positions on the same legal PGN and initial tip; the third native search is held only to keep captures stable. All four were inspected. No progress, routing class or UI visibility is manually set.
+
+| Controlled nine-second startup | Capture |
+| --- | --- |
+| Old combined eight-second assertion, 393px | [Before](screenshots/opening-lessons/ci-nine-second-before-393.png) |
+| Separate startup/progress assertions, 360px | [After](screenshots/opening-lessons/ci-nine-second-after-360.png) |
+| Separate startup/progress assertions, 393px | [After](screenshots/opening-lessons/ci-nine-second-after-393.png) |
+| Separate startup/progress assertions, 430px | [After](screenshots/opening-lessons/ci-nine-second-after-430.png) |
+| Separate startup/progress assertions, desktop | [After](screenshots/opening-lessons/ci-nine-second-after-1280.png) |

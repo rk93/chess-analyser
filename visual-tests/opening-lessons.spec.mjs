@@ -4,7 +4,7 @@ import {Chess} from 'chess.js';
 import {compileOpening} from '../js/opening-lesson-core.js';
 import {assertNavigationUsable} from './fixtures/navigation-fixtures.mjs';
 import {auditFeedback,boardMove} from './fixtures/feedback-fixtures.mjs';
-import {holdReviewEngine} from './fixtures/review-wait-fixtures.mjs';
+import {holdReviewEngine,waitForReviewEngineStart} from './fixtures/review-wait-fixtures.mjs';
 const data=JSON.parse(await readFile(new URL('../data/openings/catalog.json',import.meta.url),'utf8'));
 const entry=name=>data.entries.find(item=>item.name===name),italian=entry('Italian Game: Giuoco Piano'),gambit=entry("King's Gambit Accepted");
 async function init(page){
@@ -72,7 +72,7 @@ test('pause, resume, restart and exit cancel scheduled moves without losing boar
 
 test('leaving a pending engine continuation stops it and cannot play a late move after returning',async({page})=>{
  await holdReviewEngine(page,0);await init(page);const short=entry('Amar Opening');await select(page,short);await page.locator('#labOpeningPractise').click();await boardMove(page,'g1','h3');
- await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.go)).toBe(1);const before=await fen(page);await page.locator('#homeDashboardTab').click();await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.stop)).toBe(1);
+ await waitForReviewEngineStart(page);expect(await page.evaluate(()=>reviewEngineAudit.go)).toBe(1);const before=await fen(page);await page.locator('#homeDashboardTab').click();await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.stop)).toBe(1);
  await page.locator('#boardLabTab').click();await page.waitForTimeout(450);expect(await fen(page)).toBe(before);await expect(page.locator('#labOpeningDock')).toBeHidden();await assertNavigationUsable(page);
 });
 

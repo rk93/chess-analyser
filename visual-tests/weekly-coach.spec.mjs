@@ -1,7 +1,7 @@
 import {openHomeTopic} from './fixtures/home-sections.mjs';
 import {test,expect} from '@playwright/test';
 import {seedWeeklyCoach,seedWeeklyReviews,weeklyGames} from './fixtures/weekly-coach-fixtures.mjs';
-import {holdReviewEngine} from './fixtures/review-wait-fixtures.mjs';
+import {holdReviewEngine,waitForReviewEngineStart} from './fixtures/review-wait-fixtures.mjs';
 
 test('weekly plan is local, format-specific and useful before any review evidence is checked',async({page},info)=>{
   const workers=[],errors=[];page.on('worker',worker=>workers.push(worker));page.on('pageerror',error=>errors.push(error.message));await seedWeeklyCoach(page);
@@ -46,7 +46,7 @@ test('weekly practice revalidates the actual saved mate with Stockfish and uses 
 test('cancelled weekly practice cannot open later, and the existing practice search remains usable',async({page})=>{
   await holdReviewEngine(page,0);await seedWeeklyCoach(page);await seedWeeklyReviews(page);await page.locator('#weeklyCoachCheck').click();
   const action=page.locator('#weeklyCoachActions article').filter({hasText:'Find the missed mate'});await action.locator('[data-coach-go]').click();await expect(page.locator('#weeklyPracticeCancel')).toBeVisible();
-  await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.go)).toBe(1);await openHomeTopic(page,'training');await page.locator('#homeFindTraining').click();
+  await waitForReviewEngineStart(page);expect(await page.evaluate(()=>reviewEngineAudit.go)).toBe(1);await openHomeTopic(page,'training');await page.locator('#homeFindTraining').click();
   await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.stop)).toBe(1);await expect(page.locator('#homeFindTraining')).toBeEnabled();await expect(page.locator('#weeklyCoachStatus')).toContainText('paused');
   await page.waitForTimeout(200);await expect(page.locator('#homeView')).toBeVisible();await expect(page.locator('#boardLabView')).toBeHidden();
 });

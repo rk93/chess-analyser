@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {auditFeedback,seedFeedbackReview} from './fixtures/feedback-fixtures.mjs';
-import {holdReviewEngine,seedPendingReview,reviewEngineState} from './fixtures/review-wait-fixtures.mjs';
+import {holdReviewEngine,seedPendingReview,reviewEngineState,waitForReviewEngineStart} from './fixtures/review-wait-fixtures.mjs';
 import {NAV_TABS,assertNavigationUsable,waitForReviewExit} from './fixtures/navigation-fixtures.mjs';
 
 // Data fixtures only: every transition uses a real saved-game click, app Back,
@@ -29,11 +29,11 @@ for(const [scenario,engineOptions] of [['normal',{}],['six-second startup',{star
   const start=async()=>{if(page.viewportSize().width<=800){await expect(page.locator('#reviewDepthStart')).toBeVisible();await page.locator('#reviewOpenDepth').selectOption('fast');await page.locator('#reviewDepthStart').click();}else await page.locator('#runReview').click();};
   // Stockfish owns a ten-second startup deadline. Five seconds failed valid
   // cold starts; include polling overhead, without extending verification.
-  await open();await start();await expect.poll(()=>reviewEngineState(page),{timeout:12000}).toMatchObject({started:true});
+  await open();await start();await waitForReviewEngineStart(page);
   await page.locator('#reviewWaitCancel').click();await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.stop)).toBeGreaterThan(0);
   await page.locator('#back').click();await waitForReviewExit(page);await page.screenshot({path:info.outputPath('after-cancelled-review.png'),animations:'disabled'});
   await page.evaluate(()=>{window.holdEngineAfter=Infinity});await open();await start();
-  await expect.poll(()=>reviewEngineState(page),{timeout:60000}).toMatchObject({verified:true});await expect(page.locator('#reviewStatus')).toContainText(/(?:Verified review ready|Stockfish Review v2 ready)/);
+  await expect.poll(async()=>{const state=await reviewEngineState(page);return state.verified?'verified':JSON.stringify(state);},{timeout:60000}).toBe('verified');await expect(page.locator('#reviewStatus')).toContainText(/(?:Verified review ready|Stockfish Review v2 ready)/);
   if(engineOptions.stopMode)expect((await reviewEngineState(page)).audit).toMatchObject({workers:2,terminated:1});
   await page.goBack();await waitForReviewExit(page);await page.screenshot({path:info.outputPath('after-completed-review.png'),animations:'disabled'});
   await open();await expect(page.locator('#reviewGuideCard')).toBeVisible();await page.waitForTimeout(180);

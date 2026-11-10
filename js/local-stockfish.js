@@ -1,4 +1,5 @@
 let singleton=null;
+export const STOCKFISH_STARTUP_TIMEOUT_MS=10000;
 
 function parseInfo(line,state,turn){
   if(!line.startsWith('info '))return;
@@ -51,7 +52,7 @@ class LocalStockfish{
         // Keep failure handling after readyok: a crashed worker is not ready.
         worker.addEventListener('error',fail,{once:true});
         worker.addEventListener('messageerror',fail,{once:true});
-        timer=setTimeout(()=>fail(new Error('Local Stockfish startup timed out')),10000);
+        timer=setTimeout(()=>fail(new Error('Local Stockfish startup timed out')),STOCKFISH_STARTUP_TIMEOUT_MS);
         worker.postMessage('uci');
       }catch(e){fail(e)}
     });
