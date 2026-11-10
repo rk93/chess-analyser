@@ -107,9 +107,13 @@ test('optional UI taps work across routes and switching them off restores quiet 
 });
 test('navigation cancels a pending puzzle reply and returning resumes it silently',async({page})=>{
   await auditFeedback(page);await page.route('https://lichess.org/api/puzzle/batch/**',route=>route.fulfill({status:200,contentType:'application/json',body:JSON.stringify({puzzles:[{game:{pgn:'1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5'},puzzle:{id:'reply-test',initialPly:2,solution:['g1f3','b8c6','f1c4'],rating:1100}}]})}));
-  await page.goto('/');await page.locator('#puzzlesTab').click();await expect(page.locator('#puzzleStatus')).toContainText('Your move');await boardMove(page,'g1','f3','puzzleBoard');await expect.poll(()=>count(page)).toBe(1);
-  await page.locator('#homeDashboardTab').click();const before=await count(page);await page.waitForTimeout(400);expect(await count(page)).toBe(before);await expect(page.locator('#puzzleBoard [data-square="b8"] .piece')).toHaveCount(1);
-  await page.locator('#puzzlesTab').click();await expect(page.locator('#puzzleBoard [data-square="c6"] .piece')).toHaveCount(1);expect(await count(page)).toBe(before);
+  await page.goto('/');await page.locator('#puzzlesTab').click();await expect(page.locator('#puzzleStatus')).toContainText('Your move');
+  // Keep the 280ms reply pending until the real navigation click; runner load
+  // must not turn this cancellation test into an already-completed-reply test.
+  const anchor=new Date();await page.clock.install({time:anchor});await page.clock.pauseAt(new Date(anchor.getTime()+1000));
+  await boardMove(page,'g1','f3','puzzleBoard');await expect.poll(()=>count(page)).toBe(1);await expect(page.locator('#puzzleBoard [data-square="b8"] .piece')).toHaveCount(1);
+  await page.locator('#homeDashboardTab').click();const before=await count(page);await page.clock.runFor(1000);expect(await count(page)).toBe(before);await expect(page.locator('#puzzleBoard [data-square="b8"] .piece')).toHaveCount(1);
+  await page.locator('#puzzlesTab').click();await page.clock.runFor(300);await expect(page.locator('#puzzleBoard [data-square="c6"] .piece')).toHaveCount(1);expect(await count(page)).toBe(before);
   await boardMove(page,'f1','c4','puzzleBoard');await expect(page.locator('#puzzleSolvedOverlay')).toBeVisible();await expect.poll(()=>count(page)).toBe(before+1);
 });
 test('illegal attempts keep the position intact and haptics can be disabled independently',async({page},info)=>{

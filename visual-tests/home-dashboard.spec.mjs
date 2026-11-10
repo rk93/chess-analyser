@@ -1,3 +1,4 @@
+import {openHomeTopic} from './fixtures/home-sections.mjs';
 import {test,expect} from '@playwright/test';
 const pgn='[Event "Rapid"]\n[Site "Chess.com"]\n[Opening "Italian Game"]\n\n1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 1-0';
 test('Home shows five horizontally swipeable real chess game boards and a Games library',async({page},testInfo)=>{
@@ -29,6 +30,7 @@ test('Home shows five horizontally swipeable real chess game boards and a Games 
 test('Home daily puzzle launches existing puzzles screen without network work on Home',async({page})=>{
  await page.goto('/');
  await expect(page.locator('#homeView')).toBeVisible();
+ await openHomeTopic(page,'training');
  await page.locator('#homeSolvePuzzle').click();
  await expect(page.locator('#puzzlesView')).toBeVisible();
  await expect(page.locator('#homeView')).toBeHidden();

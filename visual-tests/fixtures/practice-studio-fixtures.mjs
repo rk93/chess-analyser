@@ -1,3 +1,4 @@
+import {openHomeTopic} from './home-sections.mjs';
 import {seedHomeCommandCentre} from './home-command-fixtures.mjs';
 export async function seedPracticeStudio(page,{rich=true,legacy=true}={}){
   await seedHomeCommandCentre(page);
@@ -20,7 +21,7 @@ export async function seedPracticeStudio(page,{rich=true,legacy=true}={}){
       localStorage.setItem('chess-personal-training:alpha',JSON.stringify(progress));
     }
   },{rich,legacy});
-  await page.reload();await page.locator('#homeMetrics strong').first().filter({hasText:'80'}).waitFor();
+  await page.reload();await page.locator('#homeMetrics strong').first().filter({hasText:'80'}).waitFor({state:'attached'});await openHomeTopic(page,'training');
 }
 
 export async function seedComparableReviews(page){

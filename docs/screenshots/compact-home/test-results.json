@@ -1,0 +1,51 @@
+{
+  "baseCommit": "01bfccd",
+  "unitAndIntegration": {
+    "passed": 212,
+    "failed": 0
+  },
+  "uiBundleCheck": "passed",
+  "browser": {
+    "passed": 390,
+    "failed": 0,
+    "flaky": 0,
+    "skipped": 0,
+    "projects": [
+      {
+        "project": "android-360",
+        "passed": 103,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0,
+        "durationSeconds": 166.5
+      },
+      {
+        "project": "android-393",
+        "passed": 103,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0,
+        "durationSeconds": 160.8
+      },
+      {
+        "project": "android-430",
+        "passed": 103,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0,
+        "durationSeconds": 165.2
+      },
+      {
+        "project": "desktop-players",
+        "passed": 81,
+        "failed": 0,
+        "flaky": 0,
+        "skipped": 0,
+        "durationSeconds": 150.2
+      }
+    ]
+  },
+  "extraPuzzleTimingRuns": 12,
+  "hostedCi": "pending PR creation; GitHub API returns Forbidden",
+  "deviceLimit": "Chromium touch emulation; no physical Android device"
+}

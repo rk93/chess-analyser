@@ -1,3 +1,4 @@
+import {openHomeTopic} from './fixtures/home-sections.mjs';
 import {test,expect} from '@playwright/test';
 import {seedWeeklyCoach,seedWeeklyReviews,weeklyGames} from './fixtures/weekly-coach-fixtures.mjs';
 import {holdReviewEngine} from './fixtures/review-wait-fixtures.mjs';
@@ -18,7 +19,7 @@ test('shared saved-review scan creates three sourced actions and study marks sur
   await expect(actions.nth(1)).toContainText('Explore Italian Game');await expect(actions.nth(2)).toContainText('Complete one game review');expect(workers).toHaveLength(0);
   const study=actions.nth(1).locator('input[type=checkbox]');await study.check();await expect(study).toBeChecked();await expect(page.locator('#weeklyCoach')).toContainText('Playing improvement needs further games');
   await page.locator('.homeWeekCard').scrollIntoViewIfNeeded();await page.screenshot({path:info.outputPath('weekly-coach-after.png'),animations:'disabled'});
-  await page.reload();await expect(page.locator('#weeklyCoachActions').getByText('Explore Italian Game')).toBeVisible();await expect(page.locator('#weeklyCoachActions article').filter({hasText:'Explore Italian Game'}).locator('input')).toBeChecked();
+  await page.reload();await openHomeTopic(page,'coach');await expect(page.locator('#weeklyCoachActions').getByText('Explore Italian Game')).toBeVisible();await expect(page.locator('#weeklyCoachActions article').filter({hasText:'Explore Italian Game'}).locator('input')).toBeChecked();
   await expect(page.locator('#weeklyCoach')).not.toContainText('Saved Stockfish evidence');
 });
 test('partial, shallow and malformed cached reviews remain unavailable rather than clean games',async({page})=>{
@@ -45,7 +46,7 @@ test('weekly practice revalidates the actual saved mate with Stockfish and uses 
 test('cancelled weekly practice cannot open later, and the existing practice search remains usable',async({page})=>{
   await holdReviewEngine(page,0);await seedWeeklyCoach(page);await seedWeeklyReviews(page);await page.locator('#weeklyCoachCheck').click();
   const action=page.locator('#weeklyCoachActions article').filter({hasText:'Find the missed mate'});await action.locator('[data-coach-go]').click();await expect(page.locator('#weeklyPracticeCancel')).toBeVisible();
-  await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.go)).toBe(1);await page.locator('#homeFindTraining').click();
+  await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.go)).toBe(1);await openHomeTopic(page,'training');await page.locator('#homeFindTraining').click();
   await expect.poll(()=>page.evaluate(()=>reviewEngineAudit.stop)).toBe(1);await expect(page.locator('#homeFindTraining')).toBeEnabled();await expect(page.locator('#weeklyCoachStatus')).toContainText('paused');
   await page.waitForTimeout(200);await expect(page.locator('#homeView')).toBeVisible();await expect(page.locator('#boardLabView')).toBeHidden();
 });

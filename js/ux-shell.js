@@ -45,15 +45,16 @@ function installInAppBack(){
   if(!history.state?.chessNav)history.replaceState({...(history.state||{}),chessNav:true,screen:'homeDashboardTab'},'');
  }
  ensureHomeState();
- function navTo(target){
+ function navTo(target,homeSection){
   if(target==='analysis'){showScreen('review');return}
   $(target)?.click();
+  if(target==='homeDashboardTab')window.dispatchEvent(new CustomEvent('restoreHomeSection',{detail:homeSection||null}));
  }
  document.addEventListener('click',event=>{
-  const back=event.target.closest?.('#back');
+  const back=event.target.closest?.('#back,#homeStatsBack');
   if(!back||restoring)return;
-  const screen=back.id==='back'?'analysis':'explorerTab';
-  if(history.state?.chessNav&&history.state.screen===screen&&history.length>1){
+  const screen=back.id==='back'?'analysis':'homeDashboardTab';
+  if(history.state?.chessNav&&history.state.screen===screen&&(back.id!=='homeStatsBack'||history.state.homeSection)&&history.length>1){
    event.preventDefault();event.stopImmediatePropagation();history.back();
   }
  },true);
@@ -62,8 +63,15 @@ function installInAppBack(){
   const tab=event.target.closest?.('.homeTabs .homeTab');
   if(!tab||!routeIds.includes(tab.id)||restoring)return;
   const screen=tab.id;
-  if(history.state?.screen!==screen)history.pushState({chessNav:true,screen},'');
+  if(history.state?.screen!==screen||history.state?.homeSection)history.pushState({chessNav:true,screen},'');
  },true);
+ // A rating opens one focused destination. Topic/format changes replace that
+ // entry, so Android Back goes straight back to the compact Home screen.
+ window.addEventListener('homeSectionChanged',event=>{
+  if(restoring)return;
+  const state={chessNav:true,screen:'homeDashboardTab',...(event.detail?{homeSection:event.detail}:{})};
+  if(history.state?.homeSection)history.replaceState(state,'');else if(event.detail)history.pushState(state,'');
+ });
  // Entering a saved game's analysis is a separate in-app destination.
  window.addEventListener('savedGameOpened',()=>{
   if(!restoring&&history.state?.screen!=='analysis')history.pushState({chessNav:true,screen:'analysis'},'');
@@ -71,7 +79,7 @@ function installInAppBack(){
  window.addEventListener('popstate',event=>{
   const screen=event.state?.chessNav?event.state.screen:'homeDashboardTab';
   restoring=true;
-  try{navTo(screen||'homeDashboardTab')}finally{requestAnimationFrame(()=>{restoring=false})}
+  try{navTo(screen||'homeDashboardTab',event.state?.homeSection)}finally{requestAnimationFrame(()=>{restoring=false})}
  });
  // Ensure Back on a destination visited directly (without a previous entry)
  // returns home instead of navigating outside the installed app.

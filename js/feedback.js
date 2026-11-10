@@ -99,7 +99,7 @@ function init(){
     const card=node.firstElementChild,step=(card?.getBoundingClientRect().width||0)+(parseFloat(getComputedStyle(node).columnGap)||0);
     if(step>0&&Math.round(from/step)!==Math.round(node.scrollLeft/step)&&node.getClientRects().length)void playFeedback('uiTick');
   },true);
-  for(const event of ['popstate','requestOpenSettingsPage','requestOpenSavedGame'])window.addEventListener(event,cleanup);
+  for(const event of ['popstate','homeSectionChanged','requestOpenSettingsPage','requestOpenSavedGame'])window.addEventListener(event,cleanup);
   document.addEventListener('visibilitychange',()=>{if(document.hidden)cleanup();});
   window.addEventListener('pagehide',()=>{cleanup();feedback.dispose();});
   window.addEventListener('chessPreference',event=>{if(['sound','soundVolume','soundTheme','haptics','uiSounds','reducedAnimations'].includes(event.detail?.key)){feedback.stop();syncSettings();}});

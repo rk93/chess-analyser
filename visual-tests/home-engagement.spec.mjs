@@ -1,3 +1,4 @@
+import {openHomeTopic} from './fixtures/home-sections.mjs';
 import {test,expect} from '@playwright/test';
 import {auditFeedback} from './fixtures/feedback-fixtures.mjs';
 import {seedHomeCommandCentre} from './fixtures/home-command-fixtures.mjs';
@@ -25,7 +26,7 @@ test('welcome works with reduced motion and unavailable audio or haptic hardware
   expect(await page.evaluate(()=>feedbackAudit.animations.length)).toBe(0);await page.locator('#gamesTab').click();await expect(page.locator('#libraryView')).toBeVisible();
 });
 test('Home rating slider has throttled haptics and separately opt-in audio without background ticks',async({page})=>{
-  await auditFeedback(page,{sound:'off'});await seedHomeCommandCentre(page);const slider=page.locator('#homePulseCursor');
+  await auditFeedback(page,{sound:'off'});await seedHomeCommandCentre(page);await page.locator('[data-pulse-format="rapid"]').click();const slider=page.locator('#homePulseCursor');
   await slider.focus();const before=await page.evaluate(()=>feedbackAudit.vibrations.length);await slider.press('ArrowLeft');
   await expect(page.locator('#homePulseReadout')).toContainText('observation');expect(await page.evaluate(()=>feedbackAudit.vibrations.length)).toBeGreaterThan(before);expect(await sounds(page)).toBe(0);
   await page.evaluate(()=>{localStorage.setItem('chess-analyser-pref:sound','on');localStorage.setItem('chess-analyser-pref:uiSounds','on');window.dispatchEvent(new CustomEvent('chessPreference',{detail:{key:'sound',value:'on'}}));});

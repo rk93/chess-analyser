@@ -1,3 +1,4 @@
+import {openHomeTopic} from './fixtures/home-sections.mjs';
 import {test,expect} from '@playwright/test';
 import {seedPracticeStudio,seedComparableReviews} from './fixtures/practice-studio-fixtures.mjs';
 import {seedTacticalMotifs} from './fixtures/tactical-motif-fixtures.mjs';
@@ -35,15 +36,15 @@ test('reviewed-game changes use existing bounded evidence and do not imply pract
 
 test('native Stockfish practice records one retry and assisted solve, ignores replays and survives reload',async({page})=>{
   test.setTimeout(60000);await page.addInitScript(()=>{window.practiceAudit=[];addEventListener('personalTrainingAttempt',event=>practiceAudit.push(structuredClone(event.detail)))});
-  await seedTacticalMotifs(page,{realEngine:true});await page.locator('#weeklyCoachCheck').click();await page.locator('#weeklyCoachActions article').filter({hasText:'Practise a checking knight fork'}).locator('[data-coach-go]').click();
+  await seedTacticalMotifs(page,{realEngine:true});await openHomeTopic(page,'coach');await page.locator('#weeklyCoachCheck').click();await page.locator('#weeklyCoachActions article').filter({hasText:'Practise a checking knight fork'}).locator('[data-coach-go]').click();
   await expect(page.locator('#boardLabView')).toBeVisible();await page.locator('#labBoard [data-square="c4"]').click();await page.locator('#labBoard [data-square="b6"]').click();await expect(page.locator('#labSource')).toContainText('try again');
   await page.locator('#labPracticeRetry').click();await page.locator('#labPracticeReveal').click();await page.locator('#labBoard [data-square="c4"]').click();await page.locator('#labBoard [data-square="d6"]').click();await expect(page.locator('#labSource')).toContainText('solved');
   await page.evaluate(()=>dispatchEvent(new CustomEvent('personalTrainingAttempt',{detail:practiceAudit.at(-1)})));
   const state=await page.evaluate(()=>({log:JSON.parse(localStorage.getItem('chess-practice-history:alpha')),progress:Object.values(JSON.parse(localStorage.getItem('chess-personal-training:alpha')))}));
   expect(state.log.events).toHaveLength(2);expect(state.log.events.map(event=>event.correct)).toEqual([false,true]);expect(state.log.events[1].revealed).toBe(true);expect(state.log.events[1].theme).toBe('knight-fork');expect(state.log.events[1].pool).toBe('rapid');expect(state.progress[0].attempts).toBe(2);
-  await page.locator('#homeDashboardTab').click();await expect(widget(page).locator('.metric strong')).toHaveText(['1','0','1']);await page.reload();await expect(widget(page).locator('.chartHeading')).toContainText('2 tries');
+  await page.locator('#homeDashboardTab').click();await openHomeTopic(page,'training');await expect(widget(page).locator('.metric strong')).toHaveText(['1','0','1']);await page.reload();await openHomeTopic(page,'training');await expect(widget(page).locator('.chartHeading')).toContainText('2 tries');
   await page.evaluate(()=>{const original=Storage.prototype.setItem;Storage.prototype.setItem=function(key,value){if(key.startsWith('chess-practice-history:'))throw new DOMException('Full','QuotaExceededError');return original.call(this,key,value)}});
-  await page.locator('#homeFindTraining').click();await page.locator('.homePracticeCard').filter({hasText:'Checking knight fork'}).click();await expect(page.locator('#boardLabView')).toBeVisible();await page.locator('#labBoard [data-square="c4"]').click();await page.locator('#labBoard [data-square="d6"]').click();await page.locator('#homeDashboardTab').click();
+  await openHomeTopic(page,'training');await page.locator('#homeFindTraining').click();await page.locator('.homePracticeCard').filter({hasText:'Checking knight fork'}).click();await expect(page.locator('#boardLabView')).toBeVisible();await page.locator('#labBoard [data-square="c4"]').click();await page.locator('#labBoard [data-square="d6"]').click();await page.locator('#homeDashboardTab').click();await openHomeTopic(page,'training');
   await expect(page.locator('#homeTrainingProgress')).toContainText('Dated history could not be saved');expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('chess-practice-history:alpha')).events.length)).toBe(2);await expect(page.locator('#homeMetrics strong').first()).toHaveText('7');
 });
 
@@ -58,7 +59,7 @@ test('account isolation, future storage formats, offline charts and reduced moti
 
 test('shadow controls respect existing UI sound preferences without duplicate feedback or practice events',async({page})=>{
   await auditFeedback(page);await seedPracticeStudio(page);await widget(page).getByRole('button',{name:'30d',exact:true}).click();expect(await page.evaluate(()=>feedbackAudit.contexts)).toBe(0);
-  await page.locator('#settingsNav').click();await page.locator('#uiSoundMode').check();await page.locator('#homeDashboardTab').click();const before=await page.evaluate(()=>feedbackAudit.starts.length);
+  await page.locator('#settingsNav').click();await page.locator('#uiSoundMode').check();await page.locator('#homeDashboardTab').click();await openHomeTopic(page,'training');const before=await page.evaluate(()=>feedbackAudit.starts.length);
   await widget(page).getByRole('button',{name:'7d',exact:true}).click();await expect.poll(()=>page.evaluate(()=>feedbackAudit.starts.length)).toBe(before+1);
   expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('chess-practice-history:alpha')).events.length)).toBe(13);
 });
@@ -74,7 +75,7 @@ test.describe('shared lazy review scan',()=>{
     await seedPracticeStudio(page);await page.route('**/js/weakness-reviews.js',route=>route.abort('failed'));
     await widget(page).getByRole('button',{name:'Reviewed games',exact:true}).click();await widget(page).getByRole('button',{name:'Check saved reviews'}).click();
     await expect(widget(page).locator('[role=status]')).toContainText('Saved reviews could not be checked');await expect(widget(page).getByRole('button',{name:'Check saved reviews'})).toBeEnabled();await expect(page.locator('#homeTrainingProgress')).toContainText('7 positions solved');
-    await page.unroute('**/js/weakness-reviews.js');await page.reload();await widget(page).getByRole('button',{name:'Reviewed games',exact:true}).click();await widget(page).getByRole('button',{name:'Check saved reviews'}).click();
+    await page.unroute('**/js/weakness-reviews.js');await page.reload();await openHomeTopic(page,'training');await widget(page).getByRole('button',{name:'Reviewed games',exact:true}).click();await widget(page).getByRole('button',{name:'Check saved reviews'}).click();
     await expect(widget(page).locator('.evidenceFooter')).toContainText('0 eligible / 60 checked');await expect(widget(page).locator('[role=status]')).not.toContainText('could not be checked');
   });
 });
