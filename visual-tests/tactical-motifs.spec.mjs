@@ -1,10 +1,11 @@
+import {openHomeTopic} from './fixtures/home-sections.mjs';
 import {test,expect} from '@playwright/test';
 import {seedTacticalMotifs,FORK_FEN} from './fixtures/tactical-motif-fixtures.mjs';
 
 test('complete saved reviews create sourced fork and pin patterns without starting an engine',async({page},info)=>{
   await seedTacticalMotifs(page);const workers=[],errors=[];page.on('worker',worker=>workers.push(worker));page.on('pageerror',error=>errors.push(error.message));
   await expect(page.locator('#homeGrowthList')).not.toContainText('Checking knight forks');
-  await page.locator('#homeCheckWeaknesses').click();await expect(page.locator('#homeWeaknessStatus')).toContainText('7 eligible saved Stockfish reviews / 7 games checked');
+  await openHomeTopic(page,'growth');await page.locator('#homeCheckWeaknesses').click();await expect(page.locator('#homeWeaknessStatus')).toContainText('7 eligible saved Stockfish reviews / 7 games checked');
   const fork=page.locator('.homeGrowthCard').filter({hasText:'Checking knight forks to practise'}),pin=page.locator('.homeGrowthCard').filter({hasText:'Absolute pins to practise'});
   await expect(fork).toContainText('3 supporting / 7 eligible games');await expect(pin).toContainText('3 supporting / 7 eligible games');
   await expect(page.locator('#weeklyCoachActions')).toContainText('Practise a checking knight fork');
@@ -18,7 +19,7 @@ test('complete saved reviews create sourced fork and pin patterns without starti
 });
 
 test('an ineligible review cannot complete the three-game minimum and stale evidence clears on account change',async({page})=>{
-  await seedTacticalMotifs(page,{invalidFork:true});await page.locator('#homeCheckWeaknesses').click();
+  await seedTacticalMotifs(page,{invalidFork:true});await openHomeTopic(page,'growth');await page.locator('#homeCheckWeaknesses').click();
   await expect(page.locator('#homeWeaknessStatus')).toContainText('6 eligible saved Stockfish reviews / 7 games checked');await expect(page.locator('#homeGrowthList')).not.toContainText('Checking knight forks to practise');
   await expect(page.locator('#homeGrowthList')).toContainText('Absolute pins to practise');
   await page.evaluate(()=>{localStorage.setItem('chess-username','stranger');window.dispatchEvent(new Event('chessImportFinished'))});
@@ -26,15 +27,15 @@ test('an ineligible review cannot complete the three-game minimum and stale evid
 });
 
 test('practice discovery requires complete engine metadata and positive loss before adding a named motif',async({page})=>{
-  await seedTacticalMotifs(page,{partial:true});await page.locator('#homeFindTraining').click();await expect(page.locator('#homeFindTraining')).toBeEnabled();
+  await seedTacticalMotifs(page,{partial:true});await openHomeTopic(page,'training');await page.locator('#homeFindTraining').click();await expect(page.locator('#homeFindTraining')).toBeEnabled();
   await expect(page.locator('#homeTrainingList')).not.toContainText('Checking knight fork');await expect(page.locator('#homeTrainingList')).toContainText('Absolute pin');
-  await seedTacticalMotifs(page,{nonImproving:true});await page.locator('#homeFindTraining').click();await expect(page.locator('#homeFindTraining')).toBeEnabled();
+  await seedTacticalMotifs(page,{nonImproving:true});await openHomeTopic(page,'training');await page.locator('#homeFindTraining').click();await expect(page.locator('#homeFindTraining')).toBeEnabled();
   await expect(page.locator('#homeTrainingList')).not.toContainText('Checking knight fork');await expect(page.locator('#homeTrainingList')).toContainText('Absolute pin');
 });
 
 test('actual Stockfish fork exercise solves, explains its legal geometry and preserves assisted progress',async({page},info)=>{
   test.setTimeout(60000);const data=await seedTacticalMotifs(page,{realEngine:true});expect(data.bestMoves[0]).toBe('c4d6');expect(data.evals[0]).toBeGreaterThan(data.evals[1]);
-  await page.locator('#weeklyCoachCheck').click();const exercise=page.locator('#weeklyCoachActions article').filter({hasText:'Practise a checking knight fork'});await expect(exercise).toHaveCount(1);await exercise.locator('[data-coach-go]').click();
+  await openHomeTopic(page,'coach');await page.locator('#weeklyCoachCheck').click();const exercise=page.locator('#weeklyCoachActions article').filter({hasText:'Practise a checking knight fork'});await expect(exercise).toHaveCount(1);await exercise.locator('[data-coach-go]').click();
   await expect(page.locator('#boardLabView')).toBeVisible({timeout:20000});await expect(page.locator('#labPracticeMotif')).toBeHidden();
   await page.locator('#labPracticeReveal').click();await expect(page.locator('#labPracticeCoachDock #labPracticeMotif')).toBeVisible();await page.locator('#labPracticeMotif summary').click();await expect(page.locator('#labPracticeMotif p')).toContainText('queen on c8');
   await page.locator('#labPracticeRetry').click();await expect(page.locator('#labPracticeMotif')).toBeHidden();
@@ -46,8 +47,8 @@ test('actual Stockfish fork exercise solves, explains its legal geometry and pre
 });
 
 test('cached motif checks work offline with reduced motion and source review navigation stays usable',async({page})=>{
-  await page.emulateMedia({reducedMotion:'reduce'});await seedTacticalMotifs(page);await page.locator('#homeCheckWeaknesses').click();
-  await page.context().setOffline(true);await page.locator('#homeCheckWeaknesses').click();const fork=page.locator('.homeGrowthCard').filter({hasText:'Checking knight forks to practise'});await expect(fork).toContainText('3 supporting');
+  await page.emulateMedia({reducedMotion:'reduce'});await seedTacticalMotifs(page);await openHomeTopic(page,'growth');await page.locator('#homeCheckWeaknesses').click();
+  await page.context().setOffline(true);await openHomeTopic(page,'growth');await page.locator('#homeCheckWeaknesses').click();const fork=page.locator('.homeGrowthCard').filter({hasText:'Checking knight forks to practise'});await expect(fork).toContainText('3 supporting');
   await page.context().setOffline(false);await fork.locator('summary').click();
   await page.evaluate(()=>{const dismiss=()=>document.getElementById('reviewDepthCancel')?.click();new MutationObserver(dismiss).observe(document.body,{childList:true,subtree:true});dismiss()});
   await fork.locator('[data-evidence-game]').first().click();await expect(page.locator('#analysisView')).toBeVisible();await expect(page.locator('#gameTitle')).toContainText('motif-source-');

@@ -33,5 +33,5 @@ export async function seedTacticalMotifs(page,{realEngine=false,invalidFork=fals
     await new Promise(resolve=>{const tx=db.transaction('games','readwrite');for(const game of games)tx.objectStore('games').put(game);tx.oncomplete=resolve});db.close();
     return forkData;
   },{fork:FORK_FEN,pin:PIN_FEN,realEngine,invalidFork,partial,nonImproving});
-  await page.reload();await page.locator('#homeMetrics strong').first().filter({hasText:'7'}).waitFor();return audit;
+  await page.reload();await page.locator('#homeMetrics strong').first().filter({hasText:'7'}).waitFor({state:'attached'});return audit;
 }

@@ -1,3 +1,4 @@
+import {openHomeTopic} from './home-sections.mjs';
 import {mockPublicPlayers} from './comparison-fixtures.mjs';
 const DAY=86400;
 export function weeklyGames(){
@@ -20,7 +21,7 @@ export async function seedWeeklyCoach(page){
     const db=await new Promise(resolve=>{const request=indexedDB.open('rk93-chess-analyser',1);request.onsuccess=()=>resolve(request.result)});
     await new Promise(resolve=>{const tx=db.transaction('games','readwrite');for(const game of games)tx.objectStore('games').put(game);tx.oncomplete=resolve});db.close();
   },weeklyGames());
-  await page.reload();await page.locator('#weeklyCoachActions article').first().waitFor();
+  await page.reload();await openHomeTopic(page,'coach');await page.locator('#weeklyCoachActions article').first().waitFor();
 }
 export async function seedWeeklyReviews(page,{realEngine=false,invalid=false}={}){
   await page.evaluate(async({realEngine,invalid})=>{

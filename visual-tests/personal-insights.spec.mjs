@@ -1,3 +1,4 @@
+import {openHomeTopic} from './fixtures/home-sections.mjs';
 import { test, expect } from '@playwright/test';
 
 async function seed(page) {
@@ -39,7 +40,7 @@ test('personal Home shows truthful weekly, colour, opening and separate rating-p
   await expect(page.locator('#homeInsightText')).toContainText('Italian Game');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('personal-home-mobile.png'), fullPage: true });
-  await page.locator('#homeTimeClass').selectOption('blitz');
+  await openHomeTopic(page,'openings');await page.locator('#homeTimeClass').selectOption('blitz');
   await expect(page.locator('#homeDnaScope')).toContainText('2 saved standard-chess games · Blitz');
   await expect(page.locator('#homeOpeningInsights')).toContainText('at least five');
   await expect(page.locator('#homeRatingTrends')).not.toContainText('Rapid');
@@ -78,7 +79,7 @@ test('account switching and import events refresh Home without leaking previous 
 test('personal dashboard is readable on desktop with no horizontal overflow', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1280, height: 900 });
   await seed(page);
-  await expect(page.locator('#homeDnaTitle')).toBeVisible();
+  await openHomeTopic(page,'openings');await expect(page.locator('#homeDnaTitle')).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 2)).toBe(true);
   await page.screenshot({ path: testInfo.outputPath('personal-home-desktop.png'), fullPage: true });
 });
@@ -104,7 +105,7 @@ test('personal training checks a saved solution with real Stockfish and persists
     return result.best;
   });
   await expect(page.locator('#homeMetrics strong').first()).toHaveText('17');
-  await page.locator('#homeFindTraining').click();
+  await openHomeTopic(page,'training');await page.locator('#homeFindTraining').click();
   await expect(page.locator('#homeTrainingList .homePracticeCard')).toHaveCount(1);
   await expect(page.locator('#homeTrainingStatus')).toContainText('1 distinct verified practice position');
   await page.locator('#homeTrainingList').scrollIntoViewIfNeeded();
@@ -132,7 +133,7 @@ test('personal training checks a saved solution with real Stockfish and persists
 
 test('unreviewed games cannot create personal training exercises', async ({ page }) => {
   await seed(page);
-  await page.locator('#homeFindTraining').click();
+  await openHomeTopic(page,'training');await page.locator('#homeFindTraining').click();
   await expect(page.locator('#homeTrainingStatus')).toContainText('0 distinct verified practice positions');
   await expect(page.locator('#homeTrainingList .homePracticeCard')).toHaveCount(0);
   await expect(page.locator('#homeTrainingStatus')).toContainText('Run a complete Game Review');

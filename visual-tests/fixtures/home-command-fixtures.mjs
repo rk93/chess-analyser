@@ -17,7 +17,7 @@ export async function seedHomeCommandCentre(page) {
     const db=await new Promise(resolve=>{const r=indexedDB.open('rk93-chess-analyser',1);r.onsuccess=()=>resolve(r.result)});
     await new Promise(resolve=>{const tx=db.transaction('games','readwrite');for(const game of games)tx.objectStore('games').put(game);tx.oncomplete=resolve});db.close();
   },homeCommandGames());
-  await page.reload();await page.locator('#homeMetrics strong').first().filter({hasText:'80'}).waitFor();
+  await page.reload();await page.locator('#homeMetrics strong').first().filter({hasText:'80'}).waitFor({state:'attached'});
 }
 export async function seedHomeEngineReviews(page,{realEngine=false}={}) {
   await page.evaluate(async realEngine=>{
