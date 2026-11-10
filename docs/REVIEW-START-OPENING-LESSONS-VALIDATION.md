@@ -85,3 +85,6 @@ The before image is the deliberately delayed startup that fails the old five-sec
 | 1280px | [Capture](screenshots/opening-lessons/ci-after-cancelled-1280.png) | [Capture](screenshots/opening-lessons/ci-after-completed-1280.png) |
 
 [Controlled startup failure before the assertion correction, 393px](screenshots/opening-lessons/ci-slow-start-before-393.png).
+
+
+The first follow-up hosted attempt on `f9e819e` passed [Tests](https://github.com/rk93/chess-analyser/actions/runs/42919677416) but failed [Mobile visual QA](https://github.com/rk93/chess-analyser/actions/runs/42919677465). Its public annotation only reports exit code 1, and the authenticated failure logs remain inaccessible in this environment. This does **not** establish that the original hosted failure is resolved. Playwright's standard GitHub reporter is enabled alongside the existing list/HTML reports when `GITHUB_ACTIONS` is set, so subsequent failed assertions are exposed as workflow annotations. The suite, assertions, timeouts and retries are unchanged by this diagnostic configuration. The PR must remain gated on both hosted workflows.
