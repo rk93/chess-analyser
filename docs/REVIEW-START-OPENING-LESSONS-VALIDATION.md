@@ -32,14 +32,14 @@ Each picker shows at most 100 matching paths to bound mobile DOM work. Search co
 
 ## Validation
 
-Latest local validation passes **221 unit/integration tests**, `npm run check:ui`, and **458 Playwright checks** on Node 22/Chromium 141, with no missing tests, failures, skips, retries or flaky results. The original 216-unit/438-browser baseline and subsequent CI investigations are historical evidence; hosted validation and remaining uncertainty are recorded below. See [latest lifecycle results](screenshots/opening-lessons/ci-lifecycle-tests.json).
+Latest local validation passes **221 unit/integration tests**, `npm run check:ui`, and **462 Playwright checks** on Node 22/Chromium 141, with no missing tests, failures, skips, retries or flaky results. The original 216-unit/438-browser baseline and subsequent CI investigations are historical evidence; hosted validation and remaining uncertainty are recorded below. See [latest press and lifecycle results](screenshots/opening-lessons/ci-press-tests.json).
 
 | Project | Passed |
 | --- | ---: |
-| Mobile Chromium, 360 × 800 | 120 |
-| Mobile Chromium, 393 × 800 | 120 |
-| Mobile Chromium, 430 × 800 | 120 |
-| Desktop Chromium, 1280 × 900 | 98 |
+| Mobile Chromium, 360 × 800 | 121 |
+| Mobile Chromium, 393 × 800 | 121 |
+| Mobile Chromium, 430 × 800 | 121 |
+| Desktop Chromium, 1280 × 900 | 99 |
 
 [Initial local test summary](screenshots/opening-lessons/test-results.json). PR [#72](https://github.com/rk93/chess-analyser/pull/72) is open. Its first hosted Mobile visual QA run failed the cancellation/completion/reopening journey (437 passed, one failed). The correction and subsequent validation are recorded below; initial local results do not establish hosted CI success.
 
@@ -131,3 +131,24 @@ A permanent integration test uses the actual game-card click and app lifecycle e
 After the lifecycle fix, **221 unit/integration tests**, the UI bundle check and **458 browser checks** pass on Node 22/Chromium 141 (120 per mobile width, 98 desktop) in 636 seconds. The final report matches the complete manifest with no failures, skipped tests, retries or flaky results. Twenty-four additional desktop unresponsive-stop journeys also pass after this fix. The current navigation captures after verified completion were inspected at all four widths. [Final local lifecycle results](screenshots/opening-lessons/ci-lifecycle-tests.json).
 
 The preceding hosted attempt on `10758c6` returned workflow success with **452 passed and two flaky tests** and was also deliberately not merged. The public state for its desktop nine-second startup case contains zero workers, requests, native progress and errors, and no `gameReviewRunning` event: no engine job began. Another desktop waiting-flow case retained an empty progress caption. These observations rule out a slow active engine for those attempts, but do not establish the exact click-delivery sequence. The independently reproduced title-reset race above is fixed; the published final head still requires a clean hosted run before merge.
+
+
+## Confirmed lost pointer press
+
+The next hosted attempt on `a3edf5f` completed with 457 passed and one flaky desktop reopening case, and was deliberately not merged. Its diagnostic state showed that the first search stopped correctly (`go: 1`, `stop: 1`, one real `bestmove`), but no second `gameReviewRunning` event or engine request followed reopening. The worker was idle, the page was visible and the button was enabled. This narrowed the remaining failure to the start action, rather than a slow active search.
+
+A direct pointer reproduction found another asynchronous writer: `auto-analysis.js` scheduled an instruction rewrite 180 ms after a library game-card click. Replacing the short engine instruction with a longer sentence increased the panel height and moved the Review button **19.59375 px** during a press. A valid press five pixels below the original button's top released over a `DIV`, outside the moved button; no click reached Review and no engine job began. The permanent desktop regression fails on that hit test before the fix. [Measured before/after state](screenshots/opening-lessons/ci-press-state.json).
+
+The redundant delayed UI rewrite and its unused instruction function are removed. The existing `savedGameOpened` lifecycle now invokes the existing position-announcement path; Game Review owns the UI reset. Move navigation and position notifications remain, using the actual current ply. No CSS override, button-wait workaround, engine calculation change or extra runtime delay is introduced. This also prevents the old callback overwriting the engine instructions after a quick completed review. The service-worker shell is v100; IndexedDB and preferences remain unchanged.
+
+The regression uses the actual game-card pointer click and the actual Start control. It holds desktop mouse input, or real Chromium touch input on each mobile depth dialog, while Playwright's clock advances the opening callbacks by 240 ms. Reduced motion isolates content reflow from intentional press animation. It checks `elementFromPoint` at the original valid press point, releases there, resumes the clock and requires two actual native Stockfish positions. It changes no routing class, button position or progress value. All four controls remain under the release point after the fix, and 24 further repetitions pass without retries.
+
+Final local validation after the stable-control fix: **221 unit/integration tests**, the UI bundle check and **462 browser checks** (121 at each mobile width, 99 desktop) pass. The full report matches the manifest with no missing tests, failures, skips, retries or flaky results, in 621 seconds. The 24 additional mouse/touch press repetitions also pass. All before/after press captures were inspected. The local browser build differs from CI as documented above; the published final head still requires a clean hosted report before merge. [Final local results](screenshots/opening-lessons/ci-press-tests.json).
+
+| Start-control press | Capture |
+| --- | --- |
+| Lost release before the fix, desktop | [Before](screenshots/opening-lessons/ci-press-before-1280.png) |
+| Stable touch release and native progress, 360px | [After](screenshots/opening-lessons/ci-press-after-360.png) |
+| Stable touch release and native progress, 393px | [After](screenshots/opening-lessons/ci-press-after-393.png) |
+| Stable touch release and native progress, 430px | [After](screenshots/opening-lessons/ci-press-after-430.png) |
+| Stable mouse release and native progress, desktop | [After](screenshots/opening-lessons/ci-press-after-1280.png) |

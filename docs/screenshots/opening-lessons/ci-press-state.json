@@ -1,0 +1,175 @@
+{
+  "before": {
+    "before": {
+      "x": 1063.359375,
+      "y": 434.59375,
+      "width": 135.640625,
+      "height": 44
+    },
+    "after": {
+      "x": 1063.359375,
+      "y": 454.1875,
+      "width": 135.640625,
+      "height": 44
+    },
+    "point": {
+      "x": 1131.1796875,
+      "y": 439.59375
+    },
+    "lineBefore": "Run Game Review once to load move feedback.",
+    "lineAfter": "Run Game Review once, then use Next / Previous to browse the completed review instantly.",
+    "releaseTarget": {
+      "tag": "DIV",
+      "id": ""
+    },
+    "state": {
+      "started": false,
+      "verified": false,
+      "status": "Run a local Stockfish review to see accuracy, move classifications and guided feedback.",
+      "visibility": "visible",
+      "timeOrigin": 1794356791883,
+      "holdAfter": "0",
+      "button": {
+        "text": "Review game",
+        "disabled": false
+      },
+      "audit": {
+        "go": 0,
+        "stop": 0,
+        "progress": [],
+        "verified": 0,
+        "workers": 0,
+        "terminated": 0,
+        "ready": 0,
+        "bestmove": 0,
+        "errors": [],
+        "commands": [],
+        "events": [
+          {
+            "type": "appScreenChanged",
+            "time": 207.29999999701977,
+            "screen": "home",
+            "previous": "games"
+          },
+          {
+            "type": "feedbackCleanup",
+            "time": 460.29999999701977
+          },
+          {
+            "type": "appScreenChanged",
+            "time": 462.5,
+            "screen": "games",
+            "previous": "home"
+          },
+          {
+            "type": "appScreenChanged",
+            "time": 1000,
+            "screen": "review",
+            "previous": "games"
+          },
+          {
+            "type": "savedGameOpened",
+            "time": 1000,
+            "key": "feedback-review"
+          },
+          {
+            "type": "cancelGameReview",
+            "time": 1000
+          },
+          {
+            "type": "gameReviewCacheChecked",
+            "time": 1120,
+            "key": "1lgrqhv",
+            "complete": false
+          }
+        ]
+      }
+    }
+  },
+  "after": [
+    {
+      "project": "android-360",
+      "id": "reviewDepthStart",
+      "before": {
+        "x": 185,
+        "y": 502.578125,
+        "width": 139,
+        "height": 48
+      },
+      "after": {
+        "x": 185,
+        "y": 502.578125,
+        "width": 139,
+        "height": 48
+      },
+      "point": {
+        "x": 254.5,
+        "y": 507.578125
+      },
+      "target": "reviewDepthStart"
+    },
+    {
+      "project": "android-393",
+      "id": "reviewDepthStart",
+      "before": {
+        "x": 201.5,
+        "y": 491.390625,
+        "width": 155.5,
+        "height": 48
+      },
+      "after": {
+        "x": 201.5,
+        "y": 491.390625,
+        "width": 155.5,
+        "height": 48
+      },
+      "point": {
+        "x": 279.25,
+        "y": 496.390625
+      },
+      "target": "reviewDepthStart"
+    },
+    {
+      "project": "android-430",
+      "id": "reviewDepthStart",
+      "before": {
+        "x": 220,
+        "y": 491.390625,
+        "width": 174,
+        "height": 48
+      },
+      "after": {
+        "x": 220,
+        "y": 491.390625,
+        "width": 174,
+        "height": 48
+      },
+      "point": {
+        "x": 307,
+        "y": 496.390625
+      },
+      "target": "reviewDepthStart"
+    },
+    {
+      "project": "desktop-players",
+      "id": "runReview",
+      "before": {
+        "x": 1063.359375,
+        "y": 434.59375,
+        "width": 135.640625,
+        "height": 44
+      },
+      "after": {
+        "x": 1063.359375,
+        "y": 434.59375,
+        "width": 135.640625,
+        "height": 44
+      },
+      "point": {
+        "x": 1131.1796875,
+        "y": 439.59375
+      },
+      "target": "runReview"
+    }
+  ]
+}

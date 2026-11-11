@@ -32,6 +32,24 @@ test.describe('fresh review startup',()=>{
   await expect(page.locator('#reviewDepthPrompt')).toHaveCount(0);await expect(page.locator('#runReview')).toBeDisabled();
   await page.screenshot({path:info.outputPath('immediate-game-open-review.png'),animations:'disabled'});
  });
+ test('a review-start press stays on its control while game-open callbacks settle',async({page},info)=>{
+  await holdReviewEngine(page,2);await page.goto('/');await seedFeedbackReview(page);
+  await page.evaluate(async()=>{const {cacheSet,simpleHash}=await import('/js/analysis-store.js');await cacheSet('review',simpleHash('alpha 1400 — beta 1400|e4 e5 Nf3 Nc6 Bc4 Bc5'),null);});
+  await page.locator('#gamesTab').click();await page.emulateMedia({reducedMotion:'reduce'});
+  const time=new Date();await page.clock.install({time});await page.clock.pauseAt(new Date(time.getTime()+1000));
+  const game=await page.locator('.gameWithAvatar').boundingBox();await page.mouse.click(game.x+game.width/2,game.y+game.height/2);await page.clock.runFor(16);
+  const mobile=page.viewportSize().width<=800,id=mobile?'reviewDepthStart':'runReview';if(mobile)await page.clock.runFor(120);
+  const control=page.locator('#'+id);await expect(control).toBeVisible();const before=await control.boundingBox(),point={x:before.x+before.width/2,y:before.y+5};
+  const touch=mobile?await page.context().newCDPSession(page):null;
+  if(touch)await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[point]});else{await page.mouse.move(point.x,point.y);await page.mouse.down();}
+  await page.clock.runFor(240);
+  const after=await control.boundingBox(),target=await page.evaluate(point=>document.elementFromPoint(point.x,point.y)?.closest('button')?.id||'',point);
+  if(touch){await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});await touch.detach();}else await page.mouse.up();
+  await info.attach('review-start-press',{body:JSON.stringify({id,before,after,point,target},null,2),contentType:'application/json'});
+  expect(target,JSON.stringify({before,after,point})).toBe(id);await page.clock.resume();
+  await waitForReviewEngineStart(page);await expect(page.locator('#reviewWaitCount')).toContainText('2 / 7 positions analysed',{timeout:8000});
+  await page.screenshot({path:info.outputPath('stable-review-start-press.png'),animations:'disabled'});
+ });
  test('a cold native review completes and starts playback without a tip click',async({page},info)=>{
   test.setTimeout(60000);await page.addInitScript(()=>{window.nativeReadyNotices=0;addEventListener('gameReviewReady',e=>{if(e.detail?.verificationComplete)nativeReadyNotices++;});});await holdReviewEngine(page,Number.MAX_SAFE_INTEGER);await page.goto('/');await seedFeedbackReview(page);
   await page.evaluate(async()=>{const {cacheSet,simpleHash}=await import('/js/analysis-store.js');await cacheSet('review',simpleHash('alpha 1400 — beta 1400|e4 e5 Nf3 Nc6 Bc4 Bc5'),null);});

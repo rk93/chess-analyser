@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-11",
+  "unit_integration": {
+    "passed": 221,
+    "failed": 0,
+    "runtime": "Node 20"
+  },
+  "ui_bundle_check": "passed",
+  "browser": {
+    "passed": 462,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "flaky": 0,
+    "projects": {
+      "android-360": 121,
+      "android-393": 121,
+      "android-430": 121,
+      "desktop-players": 99
+    },
+    "duration_ms": 620731.823,
+    "runtime": "Node 22",
+    "browser": "Chromium 141.0.7390.0, external Sparticuz package",
+    "ci_browser": "141.0.7390.37; same major, different build"
+  },
+  "additional_press_repetitions": {
+    "passed": 24,
+    "failed": 0,
+    "retries": 0,
+    "flaky": 0,
+    "input": "Desktop mouse; mobile real CDP touch input"
+  },
+  "service_worker_cache": "v100",
+  "before": "Delayed 180ms instruction rewrite moved Review button19.59375px; valid held press released outside it, zero review requests",
+  "after": "Release remains on the start control and native Stockfish analyses two positions, at all four viewports",
+  "hosted_ci": "Final published head must separately pass without flaky tests before merge"
+}
