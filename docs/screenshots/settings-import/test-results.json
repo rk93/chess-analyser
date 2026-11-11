@@ -1,0 +1,33 @@
+{
+  "date": "2026-11-11",
+  "base": "3142de1aa75ebc894d5a2023409811ecc6bc0d32",
+  "unit_integration": {
+    "passed": 234,
+    "failed": 0,
+    "skipped": 0,
+    "runtime": "Node 20.20.2"
+  },
+  "ui_bundle_check": "passed",
+  "browser": {
+    "passed": 494,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "flaky": 0,
+    "manifest_matches": true,
+    "projects": {
+      "android-360": 129,
+      "android-393": 129,
+      "android-430": 129,
+      "desktop-players": 107
+    },
+    "duration_ms": 678339.156,
+    "runtime": "Node 22.23.4 / Chromium 141.0.7390.0",
+    "hosted_browser": "Chromium 141.0.7390.37; separate CI gate"
+  },
+  "new_browser_cases": 32,
+  "new_unit_cases": 13,
+  "screenshots": "Before and after Settings and study library inspected at 360/393/430px and desktop",
+  "public_api_validation": "Official Lichess OpenAPI source checked; network integration uses controlled public-API responses. Live direct API access is blocked by environment policy.",
+  "hosted_ci": "Required before merge; not established by local checks"
+}

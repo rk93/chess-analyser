@@ -1,5 +1,13 @@
 # Chess Analyser product roadmap
 
+## Settings: public game imports and recovery sync
+
+Branch `codex/settings-game-import-sync`, from latest main `3142de1` (PR #72 merged). Add public Lichess game imports and other-player study collections to Settings, with an independent personal Chess.com sync control. Consolidate the competing automatic/legacy importers into one cancellable controller, preserve the existing personal IndexedDB schema and review engine, and refresh dependent views without a page reload.
+
+Acceptance: official anonymous Lichess NDJSON export; finished standard games only; streamed 300-game batches; accurate result/time-control normalization; separate study storage so matching usernames and ratings cannot contaminate personal analytics; existing cards/filtering/native Stockfish Review; saved collection sync, older-history cursor and confirmed removal; at most 12 study players/2,000 games per player; sequential Chess.com archive imports bounded to 12 months per action; manual freshness bypass, automatic 24-hour guard; cancellation, partial retry, deduplication, rate-limit and offline guidance; complete unit/browser regression and inspected 360/393/430px plus desktop captures. Hosted CI remains a merge gate. [Validation and API evidence](docs/SETTINGS-IMPORT-VALIDATION.md).
+
+Implemented and locally validated: 234 unit/integration tests, the UI build check and all 494 browser checks pass with no skips, retries or flaky results. Twelve before/after and study-library captures were inspected across all four widths. Public API integration is tested with controlled responses against the official documented contract; direct live imports and physical-device smoke testing remain unverified. Lichess games are separate study collections in this increment; the personal Home remains scoped to Chess.com. Hosted CI is required before merging.
+
 Home should answer: **How am I doing? Where am I struggling? What should I do next?**
 
 Prefer complete, tested increments. Public game results describe outcomes; tactical advice requires verified engine evidence. Never infer a playing style or a causal weakness from win rate alone. All personal features must filter the selected account, preserve stored games and separate rating pools.

@@ -19,6 +19,14 @@ A free, browser-based chess analysis and game-review app.
 - Compare two players using saved games or a bounded, cached sample of public Chess.com archives
 - Works well on desktop and mobile and can be installed as a PWA
 
+## Import and sync in Settings
+
+Use **Settings → Your game library** to sync your personal Chess.com account independently of Home. Manual sync checks the latest two active monthly archives and newly discovered months; automatic checks retain their 24-hour freshness guard. **All history** imports up to 12 additional months per action, with completed batches preserved after cancellation or failure. Imports add missing games without duplicates and refresh the app without a page reload.
+
+**Import a public player** supports Chess.com and Lichess, including your own Lichess username. Public study collections have their own storage and never change your personal Chess.com account, Home statistics or ratings. Open a collection to filter its games and use the existing Game Review. Classical and correspondence are labelled separately. Each collection has Sync latest, Load older games and a confirmed Remove collection action.
+
+Lichess uses its documented anonymous game export, streamed in batches of up to 300 finished standard-chess games. No password, access token or Explorer connection is required. Up to 12 study collections and 2,000 saved games per collection are retained on this device. Study data remains separate from Friends & Players comparison samples. Public APIs may delay publishing games or limit requests; the Settings tips explain cancellation, retry, storage limits and offline access. Importing itself does not run Stockfish.
+
 ## Game Review
 
 Game Review analyses every position locally with Stockfish and compares the change in winning chances after each move.
