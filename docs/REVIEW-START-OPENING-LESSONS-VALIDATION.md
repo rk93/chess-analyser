@@ -32,14 +32,14 @@ Each picker shows at most 100 matching paths to bound mobile DOM work. Search co
 
 ## Validation
 
-Latest local validation passes **221 unit/integration tests**, `npm run check:ui`, and **454 Playwright checks** on Node 22/Chromium 141, with no missing tests, failures, skips, retries or flaky results. The original 216-unit/438-browser baseline and subsequent CI investigations are historical evidence; hosted validation and remaining uncertainty are recorded below. See [latest cross-browser results](screenshots/opening-lessons/ci-cross-browser-tests.json).
+Latest local validation passes **221 unit/integration tests**, `npm run check:ui`, and **458 Playwright checks** on Node 22/Chromium 141, with no missing tests, failures, skips, retries or flaky results. The original 216-unit/438-browser baseline and subsequent CI investigations are historical evidence; hosted validation and remaining uncertainty are recorded below. See [latest lifecycle results](screenshots/opening-lessons/ci-lifecycle-tests.json).
 
 | Project | Passed |
 | --- | ---: |
-| Mobile Chromium, 360 × 800 | 119 |
-| Mobile Chromium, 393 × 800 | 119 |
-| Mobile Chromium, 430 × 800 | 119 |
-| Desktop Chromium, 1280 × 900 | 97 |
+| Mobile Chromium, 360 × 800 | 120 |
+| Mobile Chromium, 393 × 800 | 120 |
+| Mobile Chromium, 430 × 800 | 120 |
+| Desktop Chromium, 1280 × 900 | 98 |
 
 [Initial local test summary](screenshots/opening-lessons/test-results.json). PR [#72](https://github.com/rk93/chess-analyser/pull/72) is open. Its first hosted Mobile visual QA run failed the cancellation/completion/reopening journey (437 passed, one failed). The correction and subsequent validation are recorded below; initial local results do not establish hosted CI success.
 
@@ -109,3 +109,25 @@ The nine-second before image shows the old assertion expiring while startup rema
 | Separate startup/progress assertions, 393px | [After](screenshots/opening-lessons/ci-nine-second-after-393.png) |
 | Separate startup/progress assertions, 430px | [After](screenshots/opening-lessons/ci-nine-second-after-430.png) |
 | Separate startup/progress assertions, desktop | [After](screenshots/opening-lessons/ci-nine-second-after-1280.png) |
+
+
+## Confirmed review lifecycle race
+
+A separate deterministic reproduction found a product defect beyond the test deadlines. The core review controller reset its token and UI in an asynchronous `MutationObserver` on the game title. Opening a real saved-game card and immediately invoking the existing Review button from the app's `savedGameOpened` event started a run, then that queued title reset invalidated its token before the storage await resumed. No worker was created. The UI remained “Getting Stockfish ready,” with its Review button disabled and reset to “Review game.” The captured event sequence records `gameReviewRunning: true`, then `false` roughly nine milliseconds later, with zero workers, UCI requests or native progress. [Baseline state](screenshots/opening-lessons/ci-immediate-start-before-state.json).
+
+The core reset now runs synchronously from the existing game-open event, after the app has installed the title and moves. It cancels the previous game's audit, resets the new game's UI and explicitly enables its Review button. The asynchronous title observer no longer owns job state. Initial setup, cache-restore generation guards and the existing verifier remain in place. No additional engine or preview pipeline is introduced. The service-worker shell is v99; analysis schemas and preferences are unchanged.
+
+A permanent integration test uses the actual game-card click and app lifecycle event, then the existing button handler. It changes no routing class or progress value. The baseline fails with the stuck state above. After the fix, all four viewport checks reach two actual native positions without a tip tap; the complete regression also checks that no depth prompt interrupts this start and the button is disabled only while actual work runs. The third native search is held for a stable capture. All before/after captures were inspected. This establishes the immediate-start race; the precise trigger of the earlier hosted unresponsive-stop timeout remains unconfirmed unless its diagnostic state matches it.
+
+| Immediate game-open start | Capture |
+| --- | --- |
+| Before lifecycle fix, desktop | [Stuck](screenshots/opening-lessons/ci-immediate-start-before-1280.png) |
+| After, 360px | [Native progress](screenshots/opening-lessons/ci-immediate-start-after-360.png) |
+| After, 393px | [Native progress](screenshots/opening-lessons/ci-immediate-start-after-393.png) |
+| After, 430px | [Native progress](screenshots/opening-lessons/ci-immediate-start-after-430.png) |
+| After, desktop | [Native progress](screenshots/opening-lessons/ci-immediate-start-after-1280.png) |
+
+
+After the lifecycle fix, **221 unit/integration tests**, the UI bundle check and **458 browser checks** pass on Node 22/Chromium 141 (120 per mobile width, 98 desktop) in 636 seconds. The final report matches the complete manifest with no failures, skipped tests, retries or flaky results. Twenty-four additional desktop unresponsive-stop journeys also pass after this fix. The current navigation captures after verified completion were inspected at all four widths. [Final local lifecycle results](screenshots/opening-lessons/ci-lifecycle-tests.json).
+
+The preceding hosted attempt on `10758c6` returned workflow success with **452 passed and two flaky tests** and was also deliberately not merged. The public state for its desktop nine-second startup case contains zero workers, requests, native progress and errors, and no `gameReviewRunning` event: no engine job began. Another desktop waiting-flow case retained an empty progress caption. These observations rule out a slow active engine for those attempts, but do not establish the exact click-delivery sequence. The independently reproduced title-reset race above is fixed; the published final head still requires a clean hosted run before merge.

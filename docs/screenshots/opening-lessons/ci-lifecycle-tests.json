@@ -1,0 +1,35 @@
+{
+  "date": "2026-11-11",
+  "unit_integration": {
+    "passed": 221,
+    "failed": 0,
+    "runtime": "Node 20"
+  },
+  "ui_bundle_check": "passed",
+  "browser": {
+    "passed": 458,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "flaky": 0,
+    "projects": {
+      "android-360": 120,
+      "android-393": 120,
+      "android-430": 120,
+      "desktop-players": 98
+    },
+    "duration_ms": 636339.398,
+    "runtime": "Node 22",
+    "browser": "Chromium 141.0.7390.0, external Sparticuz package",
+    "ci_browser": "141.0.7390.37; same major, different build"
+  },
+  "lifecycle_reproduction": {
+    "before": "Immediate saved-game open/start invalidates run; zero native workers or go commands, stuck busy UI",
+    "after": "All four viewport cases pass; full regression includes no-modal and busy-button assertions"
+  },
+  "service_worker_cache": "v99",
+  "hosted_ci": "Separate gate; latest final head must pass without flaky tests",
+  "additional_checks": {
+    "post_lifecycle_desktop_unresponsive_stop_repetitions": 24
+  }
+}

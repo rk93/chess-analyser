@@ -1,0 +1,70 @@
+{
+  "started": false,
+  "verified": false,
+  "phase": "starting",
+  "status": "Run a local Stockfish review to see accuracy, move classifications and guided feedback.",
+  "visibility": "visible",
+  "timeOrigin": 1794354540656.8,
+  "holdAfter": "2",
+  "button": {
+    "text": "Review game",
+    "disabled": true
+  },
+  "audit": {
+    "go": 0,
+    "stop": 0,
+    "progress": [],
+    "verified": 0,
+    "workers": 0,
+    "terminated": 0,
+    "ready": 0,
+    "bestmove": 0,
+    "errors": [],
+    "commands": [],
+    "events": [
+      {
+        "type": "appScreenChanged",
+        "time": 44.19999998807907,
+        "screen": "home",
+        "previous": "games"
+      },
+      {
+        "type": "feedbackCleanup",
+        "time": 204.29999999701977
+      },
+      {
+        "type": "appScreenChanged",
+        "time": 206.09999999403954,
+        "screen": "games",
+        "previous": "home"
+      },
+      {
+        "type": "appScreenChanged",
+        "time": 283.29999999701977,
+        "screen": "review",
+        "previous": "games"
+      },
+      {
+        "type": "savedGameOpened",
+        "time": 285.79999999701977,
+        "key": "feedback-review"
+      },
+      {
+        "type": "gameReviewRunning",
+        "time": 288.09999999403954,
+        "running": true
+      },
+      {
+        "type": "gameReviewRunning",
+        "time": 297.5,
+        "running": false
+      },
+      {
+        "type": "gameReviewCacheChecked",
+        "time": 419,
+        "key": "1lgrqhv",
+        "complete": false
+      }
+    ]
+  }
+}

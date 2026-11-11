@@ -19,6 +19,19 @@ test.describe('fresh review startup',()=>{
    await page.screenshot({path:info.outputPath('review-starts-without-tip.png'),animations:'disabled'});
   }finally{release();}
  });
+ test('a game-open action can start review immediately without a later title reset invalidating it',async({page},info)=>{
+  await holdReviewEngine(page,2);await page.goto('/');await seedFeedbackReview(page);
+  await page.evaluate(async()=>{
+   const {cacheSet,simpleHash}=await import('/js/analysis-store.js');await cacheSet('review',simpleHash('alpha 1400 — beta 1400|e4 e5 Nf3 Nc6 Bc4 Bc5'),null);
+   // Exercise the app's real game-open lifecycle, as an immediate start action
+   // would: the game card and existing Review button still own every change.
+   addEventListener('savedGameOpened',()=>document.getElementById('runReview').click(),{once:true});
+  });
+  await page.locator('#gamesTab').click();await page.locator('.gameWithAvatar').click();
+  await waitForReviewEngineStart(page);await expect(page.locator('#reviewWaitCount')).toContainText('2 / 7 positions analysed',{timeout:8000});
+  await expect(page.locator('#reviewDepthPrompt')).toHaveCount(0);await expect(page.locator('#runReview')).toBeDisabled();
+  await page.screenshot({path:info.outputPath('immediate-game-open-review.png'),animations:'disabled'});
+ });
  test('a cold native review completes and starts playback without a tip click',async({page},info)=>{
   test.setTimeout(60000);await page.addInitScript(()=>{window.nativeReadyNotices=0;addEventListener('gameReviewReady',e=>{if(e.detail?.verificationComplete)nativeReadyNotices++;});});await holdReviewEngine(page,Number.MAX_SAFE_INTEGER);await page.goto('/');await seedFeedbackReview(page);
   await page.evaluate(async()=>{const {cacheSet,simpleHash}=await import('/js/analysis-store.js');await cacheSet('review',simpleHash('alpha 1400 — beta 1400|e4 e5 Nf3 Nc6 Bc4 Bc5'),null);});
