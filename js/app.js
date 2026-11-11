@@ -1,3 +1,4 @@
+import {syncPersonal} from './game-import.js';
 import {showScreen} from './app-navigation.js';
 import { getLocalStockfish } from './local-stockfish.js';
 import { gameIdentity } from './player-insights.js';
@@ -19,63 +20,13 @@ let selectedGame=null, mainMoves=[], currentChess=new Chess(), currentPly=0, ori
 const evalCache=new Map();
 queueMicrotask(()=>{const e=$('enginePieceIcon');if(e)e.innerHTML=pieceSvg('b','n')});
 function openDB(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,DB_VERSION);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains(STORE)){const s=db.createObjectStore(STORE,{keyPath:'_key'});s.createIndex('end_time','end_time')}};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
-async function putGames(games){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readwrite'),s=tx.objectStore(STORE);for(const g of games){g._key=g.url||`${g.end_time}-${g.white?.username}-${g.black?.username}`;s.put(g)}tx.oncomplete=()=>{db.close();resolve()};tx.onerror=()=>{db.close();reject(tx.error)}})}
 async function allGames(){const db=await openDB();return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),r=tx.objectStore(STORE).getAll();r.onsuccess=()=>{db.close();resolve(r.result.sort((a,b)=>(b.end_time||0)-(a.end_time||0)))};r.onerror=()=>{db.close();reject(r.error)}})}
 async function getJSON(url){const r=await fetch(url,{headers:{Accept:'application/json'}});if(!r.ok)throw new Error(`${r.status} ${r.statusText}`);return r.json()}
-function gameKey(g){return g.url||`${g.end_time}-${g.white?.username}-${g.black?.username}`}
-function syncMetaKey(u){return `chess-sync-meta:${u.toLowerCase()}`}
-function readSyncMeta(u){try{return JSON.parse(localStorage.getItem(syncMetaKey(u))||'null')||{archives:[],lastSync:0}}catch{return {archives:[],lastSync:0}}}
-function writeSyncMeta(u,meta){localStorage.setItem(syncMetaKey(u),JSON.stringify(meta))}
-const SYNC_INTERVAL_MS=24*60*60*1000;
-let syncInFlight=null;
 function userGames(games,u){const name=u.toLowerCase();return games.filter(g=>String(g.white?.username||'').toLowerCase()===name||String(g.black?.username||'').toLowerCase()===name)}
-async function sync({automatic=false}={}){
- if(syncInFlight)return syncInFlight;
- syncInFlight=(async()=>{
- const button=$('sync'),status=$('status');button.disabled=true;
- try{
-  const u=$('user').value.trim();if(!u){if(!automatic)throw new Error('Enter a Chess.com username');status.textContent='Enter a Chess.com username to import games.';return}
-  const previous=localStorage.getItem('chess-username')||'';
-  localStorage.setItem('chess-username',u);
-  const before=userGames(await allGames(),u),meta=readSyncMeta(u);
-  const last=Number(meta.lastSync)||0;
-  // All entry points respect the same strict greater-than-one-day freshness guard.
-  if(last>0&&Date.now()-last<=SYNC_INTERVAL_MS){
-   renderGames(before,u);
-   status.textContent=`Using ${before.length} saved games · next check after 24 hours`;
-   if(previous.toLowerCase()!==u.toLowerCase())window.dispatchEvent(new Event('chessImportFinished'));
-   return;
-  }
-  status.textContent=before.length?'Checking for new Chess.com games…':'Importing Chess.com history…';
-  const response=await getJSON(`https://api.chess.com/pub/player/${encodeURIComponent(u)}/games/archives`);
-  const archives=response.archives||[],known=new Set(meta.archives||[]);
-  // Previously imported months are immutable except the current month and recent boundary.
-  // On the first import, download all archives; later, only newly discovered months
-  // and the latest archive (where today's games are still arriving).
-  const targets=before.length
-   ? [...new Set([...archives.filter(x=>!known.has(x)),...archives.slice(-1)])]
-   : archives;
-  const existing=new Set(before.map(gameKey));
-  let newCount=0;
-  for(let i=0;i<targets.length;i++){
-   status.textContent=`Downloading ${i+1}/${targets.length} monthly archives…`;
-   const d=await getJSON(targets[i]),batch=(d.games||[]).filter(g=>String(g.white?.username||'').toLowerCase()===u.toLowerCase()||String(g.black?.username||'').toLowerCase()===u.toLowerCase());
-   const added=batch.filter(g=>!existing.has(gameKey(g)));
-   for(const g of added)existing.add(gameKey(g));
-   if(added.length){await putGames(added);newCount+=added.length}
-  }
-  const games=userGames(await allGames(),u);renderGames(games,u);
-  writeSyncMeta(u,{archives:[...archives],lastSync:Date.now()});
-  // Refresh dependent views only when the local game collection actually changes.
-  if(newCount||previous.toLowerCase()!==u.toLowerCase())window.dispatchEvent(new CustomEvent('chessImportFinished',{detail:{username:u,newCount}}));
-  status.textContent=newCount?`${newCount} new games synced · ${games.length} saved`:`Up to date · ${games.length} saved games · next check in 24 hours`;
- }catch(e){status.textContent=(automatic?'Auto-sync failed: ':'Sync failed: ')+e.message}
- finally{button.disabled=false}
- })();
- try{return await syncInFlight}finally{syncInFlight=null}
-}
+let studyLibrary=null,reviewUser='';
 const playerAvatarCache=new Map();
-function playerAvatar(username){
+function playerAvatar(username,source='chesscom'){
+  if(source==='lichess')return Promise.resolve(null);
   const key=String(username||'').toLowerCase();
   if(!playerAvatarCache.has(key))playerAvatarCache.set(key,getJSON('https://api.chess.com/pub/player/'+encodeURIComponent(key))
     .then(profile=>{const url=profile?.avatar;return typeof url==='string'&&url.startsWith('https://')?url:null})
@@ -106,10 +57,10 @@ function renderGames(games,u){
     d.dataset.opponent=String(opp.username||'').toLowerCase();
     const avatar=document.createElement('span');avatar.className='gamePlayerAvatar';avatar.textContent=String(opp.username||'?').slice(0,1).toUpperCase();
     const image=document.createElement('img');image.alt='';image.loading='lazy';image.hidden=true;avatar.appendChild(image);
-    d.loadAvatar=async()=>{const url=await playerAvatar(opp.username);if(!url||!d.isConnected)return;image.onload=()=>{image.hidden=false;avatar.classList.add('hasAvatar')};image.onerror=()=>{image.hidden=true;avatar.classList.remove('hasAvatar')};image.src=url};
+    d.loadAvatar=async()=>{const url=await playerAvatar(opp.username,g.source);if(!url||!d.isConnected)return;image.onload=()=>{image.hidden=false;avatar.classList.add('hasAvatar')};image.onerror=()=>{image.hidden=true;avatar.classList.remove('hasAvatar')};image.src=url};
     const body=document.createElement('div');body.className='gamePlayerDetails';
     const title=document.createElement('b');title.textContent=`${me.username} ${me.rating??''} — ${opp.username} ${opp.rating??''}`;
-    const info=document.createElement('div');info.className='muted';info.textContent=`${result} · ${formatTimeControl(g.time_control)} · ${new Date((g.end_time||0)*1000).toLocaleString()}`;
+    const info=document.createElement('div');info.className='muted';info.textContent=`${g.source==='lichess'?'Lichess · ':''}${result} · ${formatTimeControl(g.time_control)} · ${new Date((g.end_time||0)*1000).toLocaleString()}`;
     body.append(title,info);d.append(avatar,body);
     d.onclick=()=>openGame(g,u);
     d.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openGame(g,u)}};
@@ -120,6 +71,15 @@ function renderGames(games,u){
     else if(avatarObserver)avatarObserver.observe(d);
   });
 }
+// Study collections use the existing cards and Review, never the personal store.
+function libraryContext(data){
+ let node=$('importLibraryContext');if(!node){node=document.createElement('div');node.id='importLibraryContext';node.className='importLibraryContext';const text=document.createElement('p');text.appendChild(document.createElement('strong'));text.appendChild(document.createElement('span'));const button=document.createElement('button');button.type='button';button.className='btn';button.textContent='Back to my games';button.addEventListener('click',()=>window.dispatchEvent(new CustomEvent('browsePersonalGames')));node.append(text,button);$('games').before(node);}
+ node.hidden=!data;if(data){node.querySelector('strong').textContent=data.user+' · '+(data.source==='lichess'?'Lichess':'Chess.com');node.querySelector('span').textContent='Public study collection · separate from your personal statistics';}
+}
+window.addEventListener('browseImportedGames',event=>{const data=event.detail;if(studyLibrary?.key!==data.key)$('resetGameFilters')?.click();studyLibrary=data;libraryContext(data);renderGames(data.games,data.user);if(data.navigate)$('gamesTab')?.click();});
+async function refreshPersonalLibrary(){const u=(localStorage.getItem('chess-username')||'').trim();const games=await allGames();if(studyLibrary||u!==(localStorage.getItem('chess-username')||'').trim())return;renderGames(userGames(games,u),u);}
+window.addEventListener('chessImportFinished',()=>{void refreshPersonalLibrary().catch(()=>{});});
+window.addEventListener('browsePersonalGames',()=>{$('resetGameFilters')?.click();studyLibrary=null;libraryContext(null);void refreshPersonalLibrary().catch(()=>{});$('gamesTab')?.click();});
 // Resolve Home actions by saved identity; filters and pagination can reorder cards.
 window.addEventListener('requestOpenSavedGame',async event=>{
   const user=(localStorage.getItem('chess-username')||'').trim();
@@ -138,8 +98,8 @@ function formatTimeControl(tc){if(!tc)return 'Game';if(tc.includes('+')){const [
 function parseInitialFen(pgn){const m=pgn.match(/^\[FEN\s+"([^"]+)"\]/m);return m?m[1]:null}
 function freshChess(){const fen=parseInitialFen(selectedGame?.pgn||'');return fen?new Chess(fen):new Chess()}
 function freshFromPgn(pgn){const c=new Chess();c.loadPgn(pgn);return c}
-function openGame(g,u,startPly=0){selectedGame=g;const parsed=freshFromPgn(g.pgn);mainMoves=parsed.history({verbose:true});orientation=g.white.username.toLowerCase()===u.toLowerCase()?'white':'black';currentPly=0;variation=false;selectedSquare=null;lastMove=null;currentChess=freshChess();showScreen('review');$('gameTitle').textContent=`${g.white.username} ${g.white.rating??''} — ${g.black.username} ${g.black.rating??''}`;$('gameMeta').textContent=`${new Date((g.end_time||0)*1000).toLocaleString()} · ${formatTimeControl(g.time_control)} · ${g.rated?'Rated':'Casual'}`;renderAll();window.scrollTo(0,0);const ply=Number.isSafeInteger(startPly)&&startPly>=0?Math.min(startPly,mainMoves.length):0;if(ply){gotoPly(ply,{audible:false});window.dispatchEvent(new Event('reviewNavigation'));}window.dispatchEvent(new CustomEvent('savedGameOpened',{detail:{key:gameIdentity(g),ply}}))}
-function gotoPly(ply,{audible=true}={}){ply=Math.max(0,Math.min(mainMoves.length,ply));const old=currentPly,wasVariation=variation;currentChess=freshChess();lastMove=null;for(let i=0;i<ply;i++){const m=mainMoves[i];lastMove=currentChess.move({from:m.from,to:m.to,promotion:m.promotion})}currentPly=ply;variation=false;selectedSquare=null;legalTargets=[];clearEval();renderBoard();if(wasVariation){renderMoves()}else{const moves=document.querySelectorAll('#moves .move');if(moves.length!==mainMoves.length)renderMoves();else{if(old>0)moves[old-1]?.classList.remove('active');if(ply>0)moves[ply-1]?.classList.add('active')}}$('variationNote').textContent='';renderMobileMoveStrip();if(old!==ply&&audible){const ending=ply===mainMoves.length&&!lastMove?.san?.includes('#')?gameResultFeedback(selectedGame,localStorage.getItem('chess-username')):null;if(ply===old+1)moveFeedback(lastMove,{boardId:'board',type:ending});else void playFeedback(ending||'move',{context:'board'});}}
+function openGame(g,u,startPly=0){reviewUser=u;selectedGame=g;const parsed=freshFromPgn(g.pgn);mainMoves=parsed.history({verbose:true});orientation=g.white.username.toLowerCase()===u.toLowerCase()?'white':'black';currentPly=0;variation=false;selectedSquare=null;lastMove=null;currentChess=freshChess();showScreen('review');$('gameTitle').textContent=`${g.white.username} ${g.white.rating??''} — ${g.black.username} ${g.black.rating??''}`;$('gameMeta').textContent=`${new Date((g.end_time||0)*1000).toLocaleString()} · ${formatTimeControl(g.time_control)} · ${g.rated?'Rated':'Casual'} · ${g.source==='lichess'?'Lichess':'Chess.com'}`;renderAll();window.scrollTo(0,0);const ply=Number.isSafeInteger(startPly)&&startPly>=0?Math.min(startPly,mainMoves.length):0;if(ply){gotoPly(ply,{audible:false});window.dispatchEvent(new Event('reviewNavigation'));}window.dispatchEvent(new CustomEvent('savedGameOpened',{detail:{key:gameIdentity(g),ply}}))}
+function gotoPly(ply,{audible=true}={}){ply=Math.max(0,Math.min(mainMoves.length,ply));const old=currentPly,wasVariation=variation;currentChess=freshChess();lastMove=null;for(let i=0;i<ply;i++){const m=mainMoves[i];lastMove=currentChess.move({from:m.from,to:m.to,promotion:m.promotion})}currentPly=ply;variation=false;selectedSquare=null;legalTargets=[];clearEval();renderBoard();if(wasVariation){renderMoves()}else{const moves=document.querySelectorAll('#moves .move');if(moves.length!==mainMoves.length)renderMoves();else{if(old>0)moves[old-1]?.classList.remove('active');if(ply>0)moves[ply-1]?.classList.add('active')}}$('variationNote').textContent='';renderMobileMoveStrip();if(old!==ply&&audible){const ending=ply===mainMoves.length&&!lastMove?.san?.includes('#')?gameResultFeedback(selectedGame,reviewUser):null;if(ply===old+1)moveFeedback(lastMove,{boardId:'board',type:ending});else void playFeedback(ending||'move',{context:'board'});}}
 function renderAll(){renderPlayers();renderBoard();renderMoves();$('variationNote').textContent=variation?'Exploring your variation. Use return to go back to the game.':''}
 function renderPlayers(){const topColor=orientation==='white'?'black':'white',bottomColor=orientation,top=topColor==='white'?selectedGame.white:selectedGame.black,bottom=bottomColor==='white'?selectedGame.white:selectedGame.black;const h=(p,c)=>`<span class="playerName">${pieceSvg(c==='white'?'w':'b','p','playerPiece')}<span>${p.username}</span></span><span>${p.rating??''}</span>`;$('topPlayer').innerHTML=h(top,topColor);$('bottomPlayer').innerHTML=h(bottom,bottomColor)}
 function squareOrder(){const files=orientation==='white'?['a','b','c','d','e','f','g','h']:['h','g','f','e','d','c','b','a'],ranks=orientation==='white'?[8,7,6,5,4,3,2,1]:[1,2,3,4,5,6,7,8];return ranks.flatMap(r=>files.map(f=>f+r))}
@@ -215,6 +175,6 @@ async function analysePosition(){
 function showEval(data){const pvs=(data.pvs?.length?data.pvs:[data.pv]).filter(Boolean).slice(0,3),top=scoreInfo(pvs[0]);$('engineScore').textContent=$('mobileScore').textContent=top.label;$('engineSource').textContent=`${data.source} · depth ${data.depth??'—'}`;$('mobileSource').textContent=data.source;$('bestLine').textContent='Best: '+(pvs[0].moves||'');$('mobileLine').textContent='Best: '+(pvs[0].moves||'');const pct=50+45*(2/Math.PI)*Math.atan(top.whiteScore/3);$('evalFill').style.height=`${Math.max(3,Math.min(97,pct))}%`;drawEngineArrows(pvs)}
 function rerenderAppearance(){if(selectedGame)renderAll();const e=$('enginePieceIcon');if(e)e.innerHTML=pieceSvg('b','n')}
 window.addEventListener('chessPreference',e=>{if(e.detail?.key==='pieces')rerenderAppearance();if(e.detail?.key==='engine')clearEval()});
-$('sync').onclick=()=>sync({automatic:false});$('back').onclick=()=>showScreen('games');$('flip').onclick=()=>{orientation=orientation==='white'?'black':'white';renderAll();const cached=evalCache.get('local|'+currentChess.fen());if(cached)showEval(cached)};$('analyse').onclick=$('analyseMobile').onclick=analysePosition;$('start').onclick=()=>gotoPly(0);$('prev').onclick=()=>gotoPly(Math.max(0,currentPly-1));$('next').onclick=()=>gotoPly(Math.min(mainMoves.length,currentPly+1));$('end').onclick=()=>gotoPly(mainMoves.length);$('resetVariation').onclick=()=>gotoPly(currentPly);
-(async()=>{try{const savedUser=localStorage.getItem('chess-username');if(savedUser)$('user').value=savedUser;const u=$('user').value.trim(),saved=await allGames();renderGames(userGames(saved,u),u);$('status').textContent=saved.length?`Loaded saved games from this device`:'No saved games yet';if(u)await sync({automatic:true})}catch(e){$('status').textContent='Storage initialisation failed: '+e.message}})();
+$('back').onclick=()=>showScreen('games');$('flip').onclick=()=>{orientation=orientation==='white'?'black':'white';renderAll();const cached=evalCache.get('local|'+currentChess.fen());if(cached)showEval(cached)};$('analyse').onclick=$('analyseMobile').onclick=analysePosition;$('start').onclick=()=>gotoPly(0);$('prev').onclick=()=>gotoPly(Math.max(0,currentPly-1));$('next').onclick=()=>gotoPly(Math.min(mainMoves.length,currentPly+1));$('end').onclick=()=>gotoPly(mainMoves.length);$('resetVariation').onclick=()=>gotoPly(currentPly);
+(async()=>{try{const savedUser=localStorage.getItem('chess-username');if(savedUser)$('user').value=savedUser;const u=$('user').value.trim(),saved=await allGames();renderGames(userGames(saved,u),u);$('status').textContent=saved.length?`Loaded saved games from this device`:'No saved games yet';if(u)await syncPersonal({automatic:true})}catch(e){$('status').textContent='Storage initialisation failed: '+e.message}})();
 if('serviceWorker' in navigator)navigator.serviceWorker.register('./sw.js');
