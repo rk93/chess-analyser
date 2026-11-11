@@ -32,7 +32,7 @@ Each picker shows at most 100 matching paths to bound mobile DOM work. Search co
 
 ## Validation
 
-Latest local validation passes **221 unit/integration tests**, `npm run check:ui`, and **462 Playwright checks** on Node 22/Chromium 141, with no missing tests, failures, skips, retries or flaky results. The original 216-unit/438-browser baseline and subsequent CI investigations are historical evidence; hosted validation and remaining uncertainty are recorded below. See [latest press and lifecycle results](screenshots/opening-lessons/ci-press-tests.json).
+Latest local validation passes **221 unit/integration tests**, `npm run check:ui`, and **462 Playwright checks** on Node 22/Chromium 141, with no missing tests, failures, skips, retries or flaky results. The original 216-unit/438-browser baseline and subsequent CI investigations are historical evidence; hosted validation and remaining uncertainty are recorded below. See the [latest complete regression results](screenshots/opening-lessons/ci-catalogue-tests.json) and the catalogue-test follow-up below.
 
 | Project | Passed |
 | --- | ---: |
@@ -152,3 +152,11 @@ Final local validation after the stable-control fix: **221 unit/integration test
 | Stable touch release and native progress, 393px | [After](screenshots/opening-lessons/ci-press-after-393.png) |
 | Stable touch release and native progress, 430px | [After](screenshots/opening-lessons/ci-press-after-430.png) |
 | Stable mouse release and native progress, desktop | [After](screenshots/opening-lessons/ci-press-after-1280.png) |
+
+## Catalogue reopening test correction
+
+Hosted commit `39bb57e` passed every Review/navigation case, but its visual workflow reported **461 passed and one flaky catalogue-reopening test**. It was deliberately not merged. The test checked whether Retry was visible and then clicked it. Reopening the selector automatically loads the catalogue; that successful load could hide Retry between those two operations, leaving the test waiting for a button that was correctly hidden.
+
+The test now observes cancellation before reopening, waits for the automatic reload, verifies both selectors are enabled and Retry is hidden, and compares the actual board FEN before and after. The separate failed-load/manual-Retry/offline-playback test is unchanged. No production code, timeout or retry policy changes are involved. Twelve repetitions at each of the four viewports pass: **48 checks without retries, skips or flaky results**.
+
+After this correction, **221 unit/integration tests**, the UI bundle check and the complete **462-case** browser manifest pass again, without failures, retries, skips or flaky results. The full browser run took 642 seconds. Fresh post-completion navigation captures were inspected at 360px, 393px, 430px and desktop, with the dock visible; the suite also verifies actual hit targets and repeated navigation journeys. [Latest sanitized results](screenshots/opening-lessons/ci-catalogue-tests.json). The new published commit still requires clean hosted workflows before merge.

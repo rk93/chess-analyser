@@ -1,0 +1,37 @@
+{
+  "date": "2026-11-11",
+  "unit_integration": {
+    "passed": 221,
+    "failed": 0,
+    "skipped": 0,
+    "runtime": "Node 20"
+  },
+  "ui_bundle_check": "passed",
+  "browser": {
+    "passed": 462,
+    "failed": 0,
+    "skipped": 0,
+    "retries": 0,
+    "flaky": 0,
+    "manifest_matches": true,
+    "projects": {
+      "android-360": 121,
+      "android-393": 121,
+      "android-430": 121,
+      "desktop-players": 99
+    },
+    "duration_ms": 641551.392,
+    "runtime": "Node 22 / Chromium 141.0.7390.0",
+    "hosted_browser": "Chromium 141.0.7390.37, separate CI gate"
+  },
+  "catalogue_reopen_repetitions": {
+    "passed": 48,
+    "repeats_per_viewport": 12,
+    "failed": 0,
+    "retries": 0,
+    "flaky": 0,
+    "duration_ms": 45076.827
+  },
+  "scope": "Test-only correction: wait for automatic reload; explicit manual-Retry/offline test retained",
+  "hosted_ci": "Must be checked on the published commit before merge"
+}

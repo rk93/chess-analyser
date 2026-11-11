@@ -7,8 +7,11 @@ import {auditFeedback,boardMove} from './fixtures/feedback-fixtures.mjs';
 import {holdReviewEngine,waitForReviewEngineStart} from './fixtures/review-wait-fixtures.mjs';
 const data=JSON.parse(await readFile(new URL('../data/openings/catalog.json',import.meta.url),'utf8'));
 const entry=name=>data.entries.find(item=>item.name===name),italian=entry('Italian Game: Giuoco Piano'),gambit=entry("King's Gambit Accepted");
-async function init(page){
+async function observePositions(page){
  await page.addInitScript(()=>{window.lessonFens=[];addEventListener('chessPositionChanged',event=>{if(event.detail.context==='lab')lessonFens.push(event.detail.fen);});});
+}
+async function init(page){
+ await observePositions(page);
  await page.goto('/');await page.locator('#boardLabTab').click();await page.locator('#labOpeningLessons>summary').click();await expect(page.locator('#labOpeningStatus')).toContainText('3,865');
 }
 async function select(page,line=italian,side='white'){
@@ -85,12 +88,20 @@ test.describe('catalogue availability',()=>{
   await select(page);await page.context().setOffline(true);await page.locator('#labOpeningWatch').click();await expect(page.locator('#labOpeningProgress')).toContainText('Recorded line complete',{timeout:15000});
   const heights=await page.locator('#labOpeningDock button').evaluateAll(nodes=>nodes.filter(n=>n.getClientRects().length).map(n=>n.getBoundingClientRect().height));expect(heights.every(height=>height>=44)).toBe(true);await assertNavigationUsable(page);
  });
- test('closing a loading selector offers a working retry without changing the board',async({page})=>{
+ test('closing a loading selector cancels it; reopening reloads automatically without changing the board',async({page})=>{
   let release;const gate=new Promise(resolve=>release=resolve);await page.route('**/data/openings/catalog.json',async route=>{await gate;await route.continue().catch(()=>{});});
-  await page.goto('/');await page.locator('#boardLabTab').click();await page.locator('#labOpeningLessons>summary').click();await expect(page.locator('#labOpeningStatus')).toContainText('Loading');
-  await page.locator('#labOpeningLessons>summary').click();release();await page.unroute('**/data/openings/catalog.json');await page.locator('#labOpeningLessons>summary').click();
-  if(await page.locator('#labOpeningRetry').isVisible())await page.locator('#labOpeningRetry').click();
-  await expect(page.locator('#labOpeningStatus')).toContainText('3,865');await expect(page.locator('#labOpeningDock')).toBeHidden();await expect(page.locator('#labBoard .piece')).toHaveCount(32);
+  try{
+   await observePositions(page);await page.goto('/');await page.locator('#boardLabTab').click();const before=await fen(page);
+   await page.locator('#labOpeningLessons>summary').click();await expect(page.locator('#labOpeningStatus')).toContainText('Loading');
+   await page.locator('#labOpeningLessons>summary').click();
+   await expect(page.locator('#labOpeningStatus')).toContainText('Catalogue loading paused');
+   release();await page.unroute('**/data/openings/catalog.json');await page.locator('#labOpeningLessons>summary').click();
+   // Reopening retries automatically. A transient Retry button may disappear
+   // as that load succeeds; explicit error/retry is covered separately above.
+   await expect(page.locator('#labOpeningStatus')).toContainText('3,865');await expect(page.locator('#labOpeningRetry')).toBeHidden();
+   await expect(page.locator('#labOpeningSelect')).toBeEnabled();await expect(page.locator('#labGambitSelect')).toBeEnabled();
+   expect(await fen(page)).toBe(before);await expect(page.locator('#labOpeningDock')).toBeHidden();await expect(page.locator('#labBoard .piece')).toHaveCount(32);
+  }finally{release();}
  });
 
 });
